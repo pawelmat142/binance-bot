@@ -32,7 +32,6 @@ export class BinanceService implements OnModuleInit {
     ) {}
 
     testTakeProfit() {
-        this.tradeService.testTakeProfit()
     }
 
     async listSignalsTest(): Promise<SignalMessage[]> {
@@ -79,7 +78,6 @@ export class BinanceService implements OnModuleInit {
     }
 
     private async openTradesPerUnit(signal: SignalMessage) {
-        console.log('openTradesPerUnit')
         const trade = this.prepareTrade(signal)
         if (!trade.logs) {
             trade.logs = []

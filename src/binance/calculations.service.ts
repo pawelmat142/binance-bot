@@ -116,8 +116,13 @@ export class CalculationsService implements OnModuleInit {
     public calculateTradeQuantity(ctx: TradeCtx): void {
         const symbol = ctx.trade.variant.symbol
         const symbolInfo = this.getExchangeInfo(symbol)
-        const usdtAmount = new Decimal(ctx.unit.usdtPerTransaction)
-        if (!usdtAmount) throw new Error(`usdtAmount not found or 0`)
+        var usdtAmount = new Decimal(0)
+        if (process.env.TEST_MODE === 'true') {
+            usdtAmount = new Decimal(7)
+        } else {
+            usdtAmount = new Decimal(ctx.unit.usdtPerTransaction)
+        }
+        if (!usdtAmount || usdtAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)
 
         const entryPrice = new Decimal(ctx.trade.entryPrice)
         if (!entryPrice) throw new Error(`entryPrice not found or 0`)
@@ -129,8 +134,6 @@ export class CalculationsService implements OnModuleInit {
         if (quantity.lessThan(minQty)) {
             throw new Error(`quantity ${quantity} < minQty ${minQty}`)
         }
-
-        // const quantity = this.calculateQuantity(symbol, entryPrice, usdtAmount)
         const minNotional = this.getMinNotional(symbolInfo)
         if (usdtAmount.lessThan(minNotional)) {
             throw new Error(`usdtPerTransaction ${usdtAmount}  < MIN_NOTIONAL ${minNotional}`)
@@ -184,25 +187,6 @@ export class CalculationsService implements OnModuleInit {
     }
 
 
-    public calculateQuantity(symbol: string, entryPrice: Decimal, usdtAmount: Decimal): Decimal {
-        const symbolInfo = this.getExchangeInfo(symbol)
-        if (!usdtAmount) {
-            throw new Error(`usdtAmount not found or 0`)
-        }
-        if (!entryPrice) {
-            throw new Error(`entryPrice not found or 0`)
-        }
-        const quantity = usdtAmount.div(entryPrice)
-        const { minQty, stepSize } = this.getLotSize(symbolInfo)
-        const quantityStep = roundWithFraction(quantity, stepSize)
-        const result = quantityStep
-        if (result.lessThan(minQty)) {
-            throw new Error(`quantity ${result} < minQty ${minQty}`)
-        }
-        return result
-    }
-
-
     private getMinNotional(symbolInfo: FuturesExchangeInfoSymbol): Decimal { //returns min USDT needed to open trade
         const minNotionalFilter = (symbolInfo?.filters ?? []).find(f => f.filterType === 'MIN_NOTIONAL')
         if (!minNotionalFilter?.notional) {
@@ -244,9 +228,6 @@ export class CalculationsService implements OnModuleInit {
     }
     
 }
-
-
-
 
 
 

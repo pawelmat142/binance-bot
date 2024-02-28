@@ -58,8 +58,8 @@ export class SignalService {
         try {
             this.validateSignal(signal)
 
-            // TODO remove mock
-            // await this.verifyIfDuplicate(signal)
+            // TODO remove skiping duplicates
+            await this.verifyIfDuplicate(signal)
 
             await this.save(signal)
 

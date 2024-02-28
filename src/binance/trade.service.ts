@@ -20,49 +20,7 @@ export class TradeService {
     private readonly testNetwork = process.env.BINANCE_TEST_NETWORK === 'true'
 
     constructor(
-        private readonly calcService: CalculationsService,
-        // TODO remove
-        private readonly unitsService: UnitService,
     ) {}
-
-
-    async testTakeProfit() {
-        const params = queryParams({
-            symbol: 'ZECUSDT',
-            side: 'SELL',
-            type: TradeType.TAKE_PROFIT_MARKET,
-            quantity: 0.444,
-            stopPrice: 23,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: 15000
-        })
-        const unit = this.unitsService.getUnit('ppp')
-        console.log(unit)
-        const ctx = new TradeCtx({ unit: unit, trade: null })
-        const result = await this.placeOrder(params, ctx)
-        console.log(result)
-    }
-    
-
-    async testStopLoss() {
-        const params = queryParams({
-            symbol: 'TIAUSDT',
-            side: 'SELL',
-            type: TradeType.STOP_MARKET,
-            quantity: 1,
-            stopPrice: 18.5,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: 15000
-        })
-
-        const unit = this.unitsService.getUnit('ppp')
-        console.log(unit)
-        const ctx = new TradeCtx({ unit: unit, trade: null })
-        const result = await this.placeOrder(params, ctx)
-        console.log(result)
-    }
 
     public async openPosition(ctx: TradeCtx) {
 
