@@ -1,6 +1,5 @@
 import { Prop } from "@nestjs/mongoose";
 import { FuturesResult, Trade } from "./trade";
-import { TradeUnit } from "./trade-unit";
 import { TradeStatus } from "./model";
 import { Unit } from "src/unit/trade-unit";
 import Decimal from "decimal.js";

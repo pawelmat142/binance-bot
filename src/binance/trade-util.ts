@@ -22,7 +22,7 @@ export abstract class TradeUtil {
     }
 
     public static getSymbolByToken(token: string): string {
-        return `${token}USDT`
+        return `${token.toUpperCase()}USDT`
     }
 
     public static addLog(msg: string, ctx: TradeCtx, logger: Logger, prefix?: string) {

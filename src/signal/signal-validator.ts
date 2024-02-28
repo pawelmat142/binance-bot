@@ -66,7 +66,7 @@ export class SignalValidator {
 
     public validate() {
         for(let i=0; i < this.lines.length; i++) {
-            this.findSignalModeAndTokenNameLineIndex(i)
+            this.findSignalSineAndSymbol(i)
             this.findEntryZoneIndex(i)
             this.findTakeProfitLineIndex(i)
             this.findStopLossLineIndex(i)
@@ -101,7 +101,7 @@ export class SignalValidator {
         this.signal.tradeVariant = this.variant as TradeVariant
     }
 
-    private findSignalModeAndTokenNameLineIndex(lineIndex: number) {
+    private findSignalSineAndSymbol(lineIndex: number) {
         if (this.tokenNameLineIndex !== -1) {
             return
         }
@@ -111,19 +111,23 @@ export class SignalValidator {
         if (isShort && !isLong) {
             this.variant.side = 'SELL'
             this.tokenNameLineIndex = lineIndex
-            this.findSymbol(line, 'SHORT')
+            this.findSymbol(line)
         } else if (!isShort && isLong) {
             this.tokenNameLineIndex = lineIndex
             this.variant.side = 'BUY'
-            this.findSymbol(line, 'LONG')
+            this.findSymbol(line)
         }
     }
 
-    private findSymbol(line: string, mode: 'SHORT' | 'LONG') {
+    private findSymbol(line: string) {
         if (line) {
-            const tokenName = line.replace(mode, '').trim()
-            if (tokenName) {
-                this.variant.symbol = TradeUtil.getSymbolByToken(tokenName)
+            let words = line.split(' ')
+                .filter(word => !!word)
+                .filter(word => !word.toLowerCase().includes('short'))
+                .filter(word => !word.toLowerCase().includes('long'))
+            if (words.length > 0) {
+                const token = words[0]
+                this.variant.symbol = TradeUtil.getSymbolByToken(token)
             }
         }
     }

@@ -24,25 +24,24 @@ export class SignalService {
 
     testOnReceiveMessage() {
         const msg = `
-        LONG AVAX 
+        lONG  ILV 
 
-        SWING 
-        
-        Very risky signal
-        
-        Entry Zone: 
-        38$ - 40$ 
-        
-        Take profits: 
-        1️⃣43$
-        2️⃣46$
-        3️⃣50$
-        4️⃣60$
-        
-        Open with 5x leverage
-        
-        Stop Loss: 33$
-        
+SWING TRADE
+
+Very risky signal
+
+Entry Zone: 
+95$ - 97$ 
+
+Take profits: 
+1️⃣105$                    Close 30%
+2️⃣110$                    Close 30%
+3️⃣130$                    Close 20%
+4️⃣150$                    Close 20%
+
+Open between 5x leverage
+
+Stop Loss: 80$
         `
         this.onReceiveTelegramMessage({
             message: msg,
@@ -68,6 +67,7 @@ export class SignalService {
 
             if (signal.valid) {
                 SignalUtil.addLog(`Signal is valid, openin trade... `, signal, this.logger)
+                // TODO remove skip trade processing
                 this.tradeSubject$.next(signal)
             } else {
                 throw new Error('Signal is not valid')
