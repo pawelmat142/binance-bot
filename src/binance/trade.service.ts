@@ -4,13 +4,8 @@ import { getHeaders, queryParams, sign } from 'src/global/util';
 import { isBinanceError } from './model/binance.error';
 import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
-import { CalculationsService } from './calculations.service';
-import { TradeType } from './model/model';
-import { UnitService } from 'src/unit/unit.service';
 import Decimal from 'decimal.js';
-import { timeStamp } from 'console';
 import { HttpMethod } from 'src/global/http-method';
-import { take } from 'rxjs';
 
 @Injectable()
 export class TradeService {
@@ -23,7 +18,6 @@ export class TradeService {
     ) {}
 
     public async openPosition(ctx: TradeCtx) {
-
         if (TradeUtil.priceInEntryZone(ctx)) {
             await this.tradeRequestMarket(ctx)
         } else {
@@ -163,11 +157,26 @@ export class TradeService {
             orderId: orderId,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-            recvWindow: 15000
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
         return this.placeOrder(params, ctx, 'DELETE')
     }
 
+    public async setIsolatedMode(ctx: TradeCtx) {
+        const params = queryParams({
+            symbol: ctx.symbol,
+            marginType: 'ISOLATED',
+            timestamp: Date.now(),
+            timeInForce: 'GTC',
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+        })
+        const request = await fetch(this.signUrlWithParams(`/marginType`, ctx, params), {
+            method: 'POST',
+            headers: getHeaders(ctx.unit)
+        })
+        const response: FuturesResult = await request.json()
+        return response
+    }
 
     private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
         const quantity = forcedQuantity ?? takeProfit.quantity

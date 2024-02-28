@@ -95,6 +95,7 @@ export class BinanceService implements OnModuleInit {
 
     private async openTradeForUnit(ctx: TradeCtx) {
         try {
+            await this.tradeService.setIsolatedMode(ctx)
             await this.tradeService.setPositionLeverage(ctx)
             await this.calcService.calculateEntryPrice(ctx)
             this.calcService.calculateTradeQuantity(ctx)

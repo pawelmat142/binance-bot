@@ -16,6 +16,8 @@ export abstract class TradeUtil {
 
     public static readonly DEFAULT_LEVER = 5
 
+    public static readonly DEFAULT_REC_WINDOW = 30000
+
 
     public static getTradeSide(mode: SignalMode): 'BUY' | 'SELL' {
         return mode === 'SHORT' ? 'SELL' : 'BUY'
@@ -50,7 +52,7 @@ export abstract class TradeUtil {
             price: trade.entryPrice,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-            recvWindow: 15000
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
     }
 
@@ -61,7 +63,7 @@ export abstract class TradeUtil {
             type: TradeType.MARKET,
             quantity: trade.quantity,
             timestamp: Date.now(),
-            recvWindow: 15000
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
     }
 
@@ -78,7 +80,7 @@ export abstract class TradeUtil {
             stopPrice: stopLossPrice ?? ctx.trade.variant.stopLoss,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-            recvWindow: 15000
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
     }
 
@@ -91,7 +93,7 @@ export abstract class TradeUtil {
             stopPrice: price,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-            recvWindow: 15000
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
     }
 

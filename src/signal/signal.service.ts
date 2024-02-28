@@ -24,24 +24,24 @@ export class SignalService {
 
     testOnReceiveMessage() {
         const msg = `
-        lONG  ILV 
+        LONG ALGO 
 
-SWING TRADE
+SWING 
 
 Very risky signal
 
 Entry Zone: 
-95$ - 97$ 
+0.20$ - 0.22$ 
 
 Take profits: 
-1️⃣105$                    Close 30%
-2️⃣110$                    Close 30%
-3️⃣130$                    Close 20%
-4️⃣150$                    Close 20%
+1️⃣0.24$
+2️⃣0.30$
+3️⃣0.35$
+4️⃣0.42$
 
-Open between 5x leverage
+Open with 5x leverage
 
-Stop Loss: 80$
+Stop Loss: 0.18$
         `
         this.onReceiveTelegramMessage({
             message: msg,
@@ -50,15 +50,13 @@ Stop Loss: 80$
     }
 
 
-
-
     public async onReceiveTelegramMessage(telegramMessage: TelegramMessage) {
         const signal: SignalMessage = this.prepareSignal(telegramMessage)
         try {
             this.validateSignal(signal)
 
             // TODO remove skiping duplicates
-            await this.verifyIfDuplicate(signal)
+            // await this.verifyIfDuplicate(signal)
 
             await this.save(signal)
 

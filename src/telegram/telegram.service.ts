@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
-import { TradeUnit } from 'src/binance/model/trade-unit';
-import { TakeProfit, TradeContext, TradeCtx } from 'src/binance/model/trade-variant';
+import { TradeContext, TradeCtx } from 'src/binance/model/trade-variant';
 import { TradeUtil } from 'src/binance/trade-util';
 import { Telegram } from 'telegraf';
 
@@ -36,11 +35,11 @@ export class TelegramService {
 
     public onFilledPosition(ctx: TradeCtx) {
         const lines = [
-            `Filled position ${ctx.side} ${ctx.symbol}`,
-            `entryPrice: ${ctx.trade.entryPrice}$`,
+            `${ctx.side} ${ctx.symbol} FILLED`,
+            `entryPrice: ${this.print$(ctx.trade.entryPrice)}`,
         ]
         const stopLoss = ctx.trade.stopLossResult
-        if (stopLoss) lines.push(`stop loss: ${stopLoss.stopPrice}$, ${stopLoss.status}`)
+        if (stopLoss) lines.push(`stop loss: ${this.print$(stopLoss.stopPrice)}, ${stopLoss.status}`)
         else lines.push(`STOP LOSS MISSING!`)
         this.addTakeProfitLines(ctx, lines)
         this.sendToBinanceBotChannel(lines)
@@ -50,7 +49,7 @@ export class TelegramService {
     public onFilledStopLoss(ctx: TradeCtx) {
         const lines = [
             `Filled stop loss ${ctx.side} ${ctx.symbol}`,
-            `price: ${parseFloat(ctx.trade.stopLossResult.price)}$`,
+            `price: ${this.print$(ctx.trade.stopLossResult.price)}`,
             `take profits should be closed automatically`
         ]
         this.sendToBinanceBotChannel(lines)
@@ -64,9 +63,9 @@ export class TelegramService {
                 if (tp.quantity) {
                     if (tp.reuslt) {
                         const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.executedQuantity).times(100).round()
-                        lines.push(`n${tp.order} - ${parseFloat(tp.reuslt?.stopPrice)}$, ${realPercent}%, ${tp.reuslt.status}`)
+                        lines.push(`n${tp.order} - ${this.print$(tp.reuslt?.stopPrice)}, ${realPercent}%, ${tp.reuslt.status}`)
                     } else {
-                        lines.push(`n${tp.order} - ${tp.price}$, waiting`)
+                        lines.push(`n${tp.order} - ${this.print$(tp.price)}, waiting`)
                     }
                 }
             }
@@ -98,6 +97,10 @@ export class TelegramService {
             ctx.trade.logs[logsLength-3],
         ]
         return this.sendToBinanceBotChannel(lines)
+    }
+
+    private print$(input) {
+        return `$${input}`
     }
 
 }
