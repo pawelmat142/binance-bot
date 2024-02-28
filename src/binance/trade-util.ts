@@ -158,4 +158,9 @@ export abstract class TradeUtil {
         return new Decimal(ctx?.trade?.variant?.leverMax ?? TradeUtil.DEFAULT_LEVER)
     }
 
+    public static everyTakeProfitFilled(ctx: TradeCtx): boolean {
+        const takeProfits = ctx.trade.variant.takeProfits
+        return takeProfits.every(tp => tp.reuslt?.status === TradeStatus.FILLED)
+    }
+ 
 }

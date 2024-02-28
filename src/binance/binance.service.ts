@@ -178,10 +178,15 @@ export class BinanceService implements OnModuleInit {
         try {
             this.updateTakeProfit(eventTradeResult, ctx)
 
-            await this.tradeService.openNextTakeProfit(ctx)
-
-            await this.tradeService.updateStopLoss(ctx)
-
+            if (TradeUtil.everyTakeProfitFilled(ctx)) {
+                await this.tradeService.closeStopLoss(ctx)
+                TradeUtil.addLog(`Every take profit filled, stop loss closed ${trade._id}`, ctx, this.logger)
+            } 
+            else {
+                await this.tradeService.openNextTakeProfit(ctx)
+                await this.tradeService.updateStopLoss(ctx)
+                TradeUtil.addLog(`Opened next take profit, moved stop loss ${trade._id}`, ctx, this.logger)
+            }
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {

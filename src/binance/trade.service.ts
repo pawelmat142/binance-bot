@@ -120,12 +120,16 @@ export class TradeService {
 
 
     public async updateStopLoss(ctx: TradeCtx): Promise<void> {
+        await this.closeStopLoss(ctx)
+        await this.stopLossRequest(ctx)
+    }
+
+    public async closeStopLoss(ctx: TradeCtx): Promise<void> {
         const trade = ctx.trade
         const stopLossOrderId = trade.stopLossResult?.orderId
         if (!stopLossOrderId) throw new Error(`Could not find SL result in found trade ${trade._id}`)
         trade.stopLossResult = await this.closeOrder(ctx, stopLossOrderId)
         TradeUtil.addLog(`Closed stop loss for trade: ${trade._id}`, ctx, this.logger)
-        await this.stopLossRequest(ctx)
     }
 
     public async takeProfitRequests(ctx: TradeCtx) {
