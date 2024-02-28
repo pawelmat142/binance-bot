@@ -1,0 +1,7 @@
+{
+  "name": "binance-bot",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "custom"
+}

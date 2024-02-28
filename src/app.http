@@ -1,0 +1,63 @@
+### test
+GET http://localhost:8009/test
+
+### futuresTest
+GET http://localhost:8009/futures/test
+
+### futuresTest
+GET http://localhost:8009/signal/test
+
+
+
+
+### listSignals 
+GET http://193.56.240.228:8008/signal/list-valid
+
+
+
+
+### listSignals
+GET http://localhost:8009/signal/list
+
+### listValid
+GET http://localhost:8009/signal/list-valid
+
+
+
+### listTrades
+GET http://localhost:8009/trade/list
+
+
+
+
+
+### addUnit
+POST http://localhost:8009/unit/add-unit
+Content-Type: application/json
+
+{
+    "identifier": "ppp",
+    "active": true,
+    "usdtPerTransaction": 20,
+    "binanceApiKey": "",
+    "binanceApiSecret": ""
+}
+
+
+### test
+GET http://localhost:8009/unit/test
+
+### keepAlive
+GET http://localhost:8009/unit/socket/keepalive/ppp
+
+### socketClose
+GET http://localhost:8009/unit/socket/close/ppp
+
+### getLogs
+GET http://localhost:8009/unit/logs/ppp
+
+### cleanLogs
+GET http://localhost:8009/unit/clean-log/ppp
+
+### getLogs
+GET http://localhost:8009/unit/clean-log/ppp
