@@ -77,15 +77,16 @@ export class TradeService {
             return
         }
         const takeProfits = ctx.trade.variant.takeProfits ?? []
-        let unfilledTakeProfitQuantity = new Decimal(ctx.executedQuantity)
+        let stopLossQuantity = new Decimal(ctx.executedQuantity)
         for (let takeProfit of takeProfits) {
-            const executedTakeProfit = Number(takeProfit.reuslt?.executedQty)
-            if (!isNaN(executedTakeProfit)) {
-                unfilledTakeProfitQuantity.minus(new Decimal(executedTakeProfit))
+            const executedTakeProfitQuantity = Number(takeProfit.reuslt?.executedQty)
+            if (!isNaN(executedTakeProfitQuantity)) {
+                stopLossQuantity = stopLossQuantity.minus(new Decimal(executedTakeProfitQuantity))
             }
         }
-        const stopLossQuantity = unfilledTakeProfitQuantity
-        const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity)
+
+        const stopLossPrice = this.getStopLossPrice(ctx)
+        const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)
         const result = await this.placeOrder(params, ctx)
         ctx.trade.stopLossTime = new Date()
         ctx.trade.stopLossResult = result
@@ -94,8 +95,29 @@ export class TradeService {
             ctx.trade.stopLossResult.executedQty = ctx.trade.quantity.toString()
             ctx.trade.stopLossResult.status = 'NEW'
         }
-        TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}`, ctx, this.logger)
+        TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
     }
+
+    private getStopLossPrice(ctx: TradeCtx): number {
+        const lastFilledTakeProfit = TradeUtil.lastFilledTakeProfit(ctx)
+        if (lastFilledTakeProfit) {
+            const order = lastFilledTakeProfit.order
+            if (order === 0) {
+                const entryPrice = Number(ctx.trade.futuresResult.price)
+                if (!isNaN(entryPrice)) {
+                    return entryPrice
+                }
+            }
+            if (order > 0) {
+                const stopLossPrice = ctx.trade.variant.takeProfits[order-1].price
+                if (!isNaN(stopLossPrice)) {
+                    return stopLossPrice
+                }
+            }
+        }
+        return ctx.trade.variant.stopLoss
+    }
+
 
     public async updateStopLoss(ctx: TradeCtx): Promise<void> {
         const trade = ctx.trade

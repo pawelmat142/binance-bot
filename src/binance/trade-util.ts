@@ -65,7 +65,7 @@ export abstract class TradeUtil {
         })
     }
 
-    public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal): string => {
+    public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): string => {
         const tradeExecutedQty = ctx.trade.futuresResult.executedQty
         if (!tradeExecutedQty) {
             throw new Error(`executedQty could not be found`)
@@ -75,7 +75,7 @@ export abstract class TradeUtil {
             side: ctx.stopLossSide,
             type: TradeType.STOP_MARKET,
             quantity: quantity.toNumber(),
-            stopPrice: ctx.trade.variant.stopLoss,
+            stopPrice: stopLossPrice ?? ctx.trade.variant.stopLoss,
             timestamp: Date.now(),
             timeInForce: 'GTC',
             recvWindow: 15000
