@@ -122,19 +122,19 @@ export abstract class TradeUtil {
     }
 
     public static isFilledPosition(tradeResult: FuturesResult): boolean {
-        const isLimitType = tradeResult.type === TradeType.LIMIT || tradeResult.type === TradeType.MARKET
+        const isLimitType = tradeResult.origType === TradeType.LIMIT || tradeResult.type === TradeType.MARKET
         const isFilled = tradeResult.status === TradeStatus.FILLED
         return isLimitType && isFilled
     }
 
     public static isFilledStopLoss(tradeResult: FuturesResult): boolean {
-        const isStopLoss = tradeResult.type === TradeType.STOP_MARKET
+        const isStopLoss = tradeResult.origType === TradeType.STOP_MARKET
         const isFilled = tradeResult.status === TradeStatus.FILLED
         return isStopLoss && isFilled
     }
 
     public static isFilledTakeProfit(tradeResult: FuturesResult): boolean {
-        const isTakeProfit = tradeResult.type === TradeType.TAKE_PROFIT_MARKET
+        const isTakeProfit = tradeResult.origType === TradeType.TAKE_PROFIT_MARKET
         const isFilled = tradeResult.status === TradeStatus.FILLED
         return isTakeProfit && isFilled
     }

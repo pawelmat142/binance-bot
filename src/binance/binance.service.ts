@@ -41,7 +41,8 @@ export class BinanceService implements OnModuleInit {
     }
 
     public listTrades() {
-        return this.tradeModel.find().exec()
+        return this.
+        tradeModel.find().exec()
     }
 
 
@@ -56,6 +57,8 @@ export class BinanceService implements OnModuleInit {
     private onTradeEvent = async (tradeEvent: TradeEventData) => {
         const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
         const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
+
+        this.logger.log(eventTradeResult)
 
         if (TradeUtil.isFilledPosition(eventTradeResult)) {
             await this.waitUntilSaveTrade()

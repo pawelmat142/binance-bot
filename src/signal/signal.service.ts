@@ -24,24 +24,24 @@ export class SignalService {
 
     testOnReceiveMessage() {
         const msg = `
-        LONG ALGO 
+        LONG SEI 
 
 SWING 
 
 Very risky signal
 
 Entry Zone: 
-0.20$ - 0.22$ 
+0.90$ - 0.92$ 
 
 Take profits: 
-1️⃣0.24$
-2️⃣0.30$
-3️⃣0.35$
-4️⃣0.42$
+1️⃣1$
+2️⃣1.05$
+3️⃣1.10$
+4️⃣1.15$
 
-Open with 5x leverage
+Open with 10x leverage
 
-Stop Loss: 0.18$
+Stop Loss: 0.85$
         `
         this.onReceiveTelegramMessage({
             message: msg,
@@ -56,7 +56,7 @@ Stop Loss: 0.18$
             this.validateSignal(signal)
 
             // TODO remove skiping duplicates
-            // await this.verifyIfDuplicate(signal)
+            await this.verifyIfDuplicate(signal)
 
             await this.save(signal)
 

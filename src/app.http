@@ -1,6 +1,11 @@
 ### test
 GET http://localhost:8009/test
 
+
+### test
+GET http://localhost:8009/convert-bnb-msg
+
+
 ### futuresTest
 GET http://localhost:8009/futures/test
 
