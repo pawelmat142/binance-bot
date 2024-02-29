@@ -13,6 +13,7 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
+import { UnitUtil } from 'src/unit/unit.util';
 
 // TODO close the trade signal 
 
@@ -95,10 +96,28 @@ export class BinanceService implements OnModuleInit {
         for (let unit of units) {
             trade.unitIdentifier = unit.identifier
             const ctx = new TradeCtx({ trade, unit })
+            if (await this.findInProgressTrade(ctx)) {
+                return
+            }
             TradeUtil.addLog('NOW IM TRADE', ctx, this.logger)
             trade.timestamp = new Date()
             await this.openTradeForUnit(ctx)
         }
+    }
+
+    private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
+        const trade = await this.tradeModel.findOne({
+            "unitIdentifier": ctx.unit.identifier,
+            "futuresResult.side": ctx.side,
+            "futuresResult.symbol": ctx.symbol,
+            "futuresResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] }
+        })
+        if (trade) {
+            // TODO send msg to unit
+            this.unitService.addLog(ctx.unit, `Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}`)
+            return true
+        }
+        return false
     }
 
 
