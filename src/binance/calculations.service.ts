@@ -145,7 +145,8 @@ export class CalculationsService implements OnModuleInit {
     public calculateTakeProfitQuantities(ctx: TradeCtx) {
         const length = ctx.trade.variant.takeProfits.length
         const symbol = ctx.trade.variant.symbol
-        const executedQuantity = ctx.executedQuantity
+        // const executedQuantity = ctx.executedQuantity
+        const executedQuantity = ctx.origQuantity
         const symbolInfo = this.getExchangeInfo(symbol)
         const minNotional = this.getMinNotional(symbolInfo)
         const { minQty, stepSize } = this.getLotSize(symbolInfo)

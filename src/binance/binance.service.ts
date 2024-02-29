@@ -12,7 +12,7 @@ import { TradeCtx } from './model/trade-variant';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
-import { Unit } from 'src/unit/trade-unit';
+import { Unit } from 'src/unit/unit';
 
 // TODO close the trade signal 
 
@@ -58,22 +58,28 @@ export class BinanceService implements OnModuleInit {
         const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
         const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
 
-        this.logger.log(eventTradeResult)
-
-        if (TradeUtil.isFilledPosition(eventTradeResult)) {
+        if (TradeUtil.isFilledOrder(eventTradeResult)) {
             await this.waitUntilSaveTrade()
-            this.onFilledPosition(eventTradeResult, unit)
-            
-        } else if (TradeUtil.isFilledStopLoss(eventTradeResult)) {
-            await this.waitUntilSaveTrade()
-            this.onFilledStopLoss(eventTradeResult, unit)
-            
-        } else if (TradeUtil.isFilledTakeProfit(eventTradeResult)) {
-            await this.waitUntilSaveTrade()
-            this.onFilledTakeProfit(eventTradeResult, unit)
+            const ctx = await this.prepareCtx(eventTradeResult, unit)
+            this.onFilledOrder(ctx, eventTradeResult)
         }
-
         // TODO on closed / on error
+    }
+
+    private async prepareCtx(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
+        const trade = await this.tradeModel.findOne({
+            unitIdentifier: unit.identifier,
+            $or: [
+                { "futuresResult.orderId": eventTradeResult.orderId },
+                { "stopLossResult.orderId": eventTradeResult.orderId },
+                { "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId },
+            ]
+        }).exec()
+        if (!trade) {
+            this.unitService.addError(unit, `Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
+            return
+        }
+        return new TradeCtx({ unit, trade })
     }
 
     private async waitUntilSaveTrade() {
@@ -112,44 +118,45 @@ export class BinanceService implements OnModuleInit {
         }
     }
 
-    private async onFilledPosition(eventTradeResult: FuturesResult, unit: Unit) {
-        const trade = await this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            "futuresResult.orderId": eventTradeResult.orderId,
-        }).exec()
-        if (!trade) {
-            this.unitService.addError(unit, `Could not find matching trade - on filled position ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
+    private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
+        if (ctx.trade.futuresResult.orderId === eventTradeResult.orderId) {
+            this.onFilledPosition(ctx, eventTradeResult)
+
+        } else if (ctx.trade.stopLossResult.orderId === eventTradeResult.orderId) {
+            this.onFilledStopLoss(ctx, eventTradeResult)
+
+        } else if (this.takeProfitOrderIds(ctx.trade).includes(eventTradeResult.orderId)) {
+            this.onFilledTakeProfit(ctx, eventTradeResult)
+            
+        } else {
+            TradeUtil.addLog( `Found trade but matching error! ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`, ctx, this.logger)
         }
-        const ctx = new TradeCtx({ unit, trade })
-        TradeUtil.addLog(`Found trade with result id ${trade.futuresResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
+    }
+
+    private takeProfitOrderIds(order: Trade): number[] {
+        return order.variant.takeProfits.filter(tp => !!tp.reuslt).map(tp => tp.reuslt?.orderId)
+    }
+
+
+    private async onFilledPosition(ctx: TradeCtx, eventTradeResult: FuturesResult) {
+        TradeUtil.addLog(`Found trade with result id ${ctx.trade.futuresResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
         try {
             ctx.trade.futuresResult = eventTradeResult
             await this.tradeService.stopLossRequest(ctx)
             this.calcService.calculateTakeProfitQuantities(ctx)
             await this.tradeService.openNextTakeProfit(ctx)
             // await this.tradeService.takeProfitRequests(ctx)
-
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
             const saved = await this.update(ctx.trade)
-            TradeUtil.addLog(`Updated trade ${trade._id}`, ctx, this.logger)
+            TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
             this.telegramService.onFilledPosition(ctx)
         }
     }
 
-    private async onFilledStopLoss(eventTradeResult: FuturesResult, unit: Unit) {
-        const trade = await this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            "stopLossResult.orderId": eventTradeResult.orderId
-        }).exec()
-        if (!trade) {
-            this.unitService.addError(unit, `Could not find matching trade - on filled stop loss ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
-        }
-        const ctx = new TradeCtx({ unit, trade })
-        TradeUtil.addLog(`Filled stop loss with orderId ${trade.stopLossResult.orderId}`, ctx, this.logger)
+    private async onFilledStopLoss(ctx: TradeCtx, eventTradeResult: FuturesResult) {
+        TradeUtil.addLog(`Filled stop loss with orderId ${ctx.trade.stopLossResult.orderId}`, ctx, this.logger)
         try {
             ctx.trade.stopLossResult = eventTradeResult
             const takeProfits = ctx.trade.variant.takeProfits
@@ -164,38 +171,29 @@ export class BinanceService implements OnModuleInit {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
             const saved = await this.update(ctx.trade)
-            TradeUtil.addLog(`Updated trade ${trade._id}`, ctx, this.logger)
+            TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
             this.telegramService.onFilledStopLoss(ctx)
         }
     }
 
-    private async onFilledTakeProfit(eventTradeResult: FuturesResult, unit: Unit) {
-        const trade = await this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId,
-        }).exec()
-        if (!trade) {
-            this.unitService.addError(unit, `Could not find matching trade with TP ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
-        }
-        const ctx = new TradeCtx({ unit, trade })
+    private async onFilledTakeProfit(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         try {
             this.updateTakeProfit(eventTradeResult, ctx)
 
             if (TradeUtil.everyTakeProfitFilled(ctx)) {
                 await this.tradeService.closeStopLoss(ctx)
-                TradeUtil.addLog(`Every take profit filled, stop loss closed ${trade._id}`, ctx, this.logger)
+                TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
             } 
             else {
                 await this.tradeService.openNextTakeProfit(ctx)
                 await this.tradeService.updateStopLoss(ctx)
-                TradeUtil.addLog(`Opened next take profit, moved stop loss ${trade._id}`, ctx, this.logger)
+                TradeUtil.addLog(`Opened next take profit, moved stop loss ${ctx.trade._id}`, ctx, this.logger)
             }
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
             const saved = await this.update(ctx.trade)
-            TradeUtil.addLog(`Updated trade ${trade._id}`, ctx, this.logger)
+            TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
             this.telegramService.onFilledTakeProfit(ctx)
         }
     }
@@ -207,7 +205,6 @@ export class BinanceService implements OnModuleInit {
         TradeUtil.addLog(`Filled take profit: ${tp.order} for trade: ${ctx.trade._id}`, ctx, this.logger)
         tp.reuslt = eventTradeResult
     }
-
 
     private prepareTrade(signal: SignalMessage): Trade {
         const variant = signal.tradeVariant
@@ -234,6 +231,5 @@ export class BinanceService implements OnModuleInit {
         ).exec()
 
     }
-
 
 }

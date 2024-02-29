@@ -24,8 +24,10 @@ export class AppController {
 
   @Get('/convert-bnb-msg')
   convertBinanceMessageToTradeEvent() {
-    const tradeEvent = `{"e":"ORDER_TRADE_UPDATE","T":1709220138458,"E":1709220138459,"o":{"s":"SEIUSDT","c":"p2GMXdRRegAV7JIN2WrQVw","S":"BUY","o":"MARKET","f":"GTC","q":"445","p":"0","ap":"0.8983000","sp":"0","x":"TRADE","X":"PARTIALLY_FILLED","i":3026735151,"l":"11","z":"392","L":"0.8983000","n":"0.00494065","N":"USDT","T":1709220138458,"t":148318954,"b":"0","a":"0","m":false,"R":false,"wt":"CONTRACT_PRICE","ot":"MARKET","ps":"BOTH","cp":false,"rp":"0","pP":false,"si":0,"ss":0,"V":"NONE","pm":"NONE","gtd":0}}`
-    return TradeUtil.parseToFuturesResult(JSON.parse(tradeEvent))
+    const tradeEvent = `
+    {"e":"ORDER_TRADE_UPDATE","T":1709228306018,"E":1709228306019,"o":{"s":"SEIUSDT","c":"w9M1Sao5kbDXw7fnCVd097","S":"SELL","o":"MARKET","f":"GTC","q":"53","p":"0","ap":"0.8500000","sp":"0.8500000","x":"TRADE","X":"FILLED","i":3026735289,"l":"53","z":"53","L":"0.8500000","n":"0.02252500","N":"USDT","T":1709228306018,"t":148502631,"b":"0","a":"0","m":false,"R":false,"wt":"CONTRACT_PRICE","ot":"STOP_MARKET","ps":"BOTH","cp":false,"rp":"-2.55990000","pP":false,"si":0,"ss":0,"V":"NONE","pm":"NONE","gtd":0}}
+    `
+   return TradeUtil.parseToFuturesResult(JSON.parse(tradeEvent))
   }
 
 

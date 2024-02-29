@@ -3,7 +3,16 @@ import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
 import { TradeContext, TradeCtx } from 'src/binance/model/trade-variant';
 import { TradeUtil } from 'src/binance/trade-util';
-import { Telegram } from 'telegraf';
+import { Context, Telegram } from 'telegraf';
+
+import {
+    Update,
+    Ctx,
+    Start,
+    Help,
+    On,
+    Hears,
+  } from 'nestjs-telegraf';
 
 @Injectable()
 export class TelegramService {
@@ -15,7 +24,13 @@ export class TelegramService {
 
     private readonly skipTelegram = process.env.SKIP_TELEGRAM === 'true'
 
-    public async sendMessage(msg: string){
+
+    // @Hears('hi')
+    // async onText(@Ctx() ctx: Context) {
+    //     console.log(ctx)
+    // }
+
+    public async sendPublicMessage(msg: string) {
         if (this.skipTelegram) {
             return
         }
@@ -23,13 +38,16 @@ export class TelegramService {
     }
 
     private async sendToBinanceBotChannel(lines: string[]): Promise<boolean> {
-        const msg = (lines || []).reduce((acc, line) => acc + line + '\n', '')
         if (this.skipTelegram) {
             return
         }
         this.logger.log(`Sending message to public channel`)
-        await this.bot.sendMessage(this.channelId, msg)
+        await this.bot.sendMessage(this.channelId, this.msgFrom(lines))
         // this.logger.log(response)
+    }
+
+    private async sendUnitMessage(lines: string[], ctx: TradeCtx): Promise<void> {
+
     }
 
 
@@ -62,7 +80,7 @@ export class TelegramService {
             for (let tp of tps) {
                 if (tp.quantity) {
                     if (tp.reuslt) {
-                        const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.executedQuantity).times(100).round()
+                        const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.origQuantity).times(100).round()
                         lines.push(`n${tp.order} - ${this.print$(tp.reuslt?.stopPrice)}, ${realPercent}%, ${tp.reuslt.status}`)
                     } else {
                         lines.push(`n${tp.order} - ${this.print$(tp.price)}, waiting`)
@@ -101,6 +119,10 @@ export class TelegramService {
 
     private print$(input) {
         return `$${input}`
+    }
+
+    private msgFrom(lines: string[]) {
+        return (lines || []).reduce((acc, line) => acc + line + '\n', '')
     }
 
 }

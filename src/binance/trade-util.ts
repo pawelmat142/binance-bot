@@ -121,7 +121,7 @@ export abstract class TradeUtil {
         } as FuturesResult
     }
 
-    public static isFilledPosition(tradeResult: FuturesResult): boolean {
+    public static isFilledOrder(tradeResult: FuturesResult): boolean {
         const isLimitType = tradeResult.origType === TradeType.LIMIT || tradeResult.type === TradeType.MARKET
         const isFilled = tradeResult.status === TradeStatus.FILLED
         return isLimitType && isFilled

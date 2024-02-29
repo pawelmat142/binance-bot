@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { Unit } from './trade-unit';
+import { Unit } from './unit';
 import { Model } from 'mongoose';
 import { EVERY_45_MINUTES, getHeaders, newObjectId, sign } from 'src/global/util';
 import { TradeUtil } from 'src/binance/trade-util';
@@ -252,12 +252,7 @@ export class UnitService implements OnModuleInit {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
             { $set: { listenKey: listenKey } }
-        ).exec().finally(() => {
-            if (process.env.TEST_MODE === 'true') {
-                return
-            }
-            this.addLog(unit, `Listen key is set for unit ${unit.identifier}`)
-        })
+        ).exec()
     }
 
 

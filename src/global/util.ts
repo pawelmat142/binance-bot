@@ -1,7 +1,7 @@
 import * as moment from 'moment-timezone';
 import * as crypto from 'crypto'
 import { Types } from 'mongoose';
-import { Unit } from 'src/unit/trade-unit';
+import { Unit } from 'src/unit/unit';
 import Decimal from 'decimal.js';
 
 export const toDateString = (date: Date): string => {

@@ -31,15 +31,14 @@ SWING
 Very risky signal
 
 Entry Zone: 
-0.90$ - 0.92$ 
+0.86$ - 0.87$ 
 
 Take profits: 
-1️⃣1$
-2️⃣1.05$
-3️⃣1.10$
-4️⃣1.15$
+1️⃣0.8622$
+1️⃣0.865$
+1️⃣0.867$
 
-Open with 10x leverage
+Open with 5x leverage
 
 Stop Loss: 0.85$
         `
@@ -61,7 +60,7 @@ Stop Loss: 0.85$
             await this.save(signal)
 
             // TODO temporary
-            this.telegramService.sendMessage(telegramMessage?.message)
+            this.telegramService.sendPublicMessage(telegramMessage?.message)
 
             if (signal.valid) {
                 SignalUtil.addLog(`Signal is valid, openin trade... `, signal, this.logger)

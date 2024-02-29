@@ -1,4 +1,4 @@
-import { Unit } from "./trade-unit"
+import { Unit } from "./unit"
 import { WebSocket } from 'ws';
 
 export abstract class UnitUtil {

@@ -1,7 +1,7 @@
 import { Prop } from "@nestjs/mongoose";
 import { FuturesResult, Trade } from "./trade";
 import { TradeStatus } from "./model";
-import { Unit } from "src/unit/trade-unit";
+import { Unit } from "src/unit/unit";
 import Decimal from "decimal.js";
 
 export type TradeSide = 'BUY' | 'SELL'
@@ -81,6 +81,14 @@ export class TradeCtx implements TradeContext {
 
     public get executedQuantity(): Decimal {
         const tradeExecutedQty = this.trade.futuresResult.executedQty
+        if (!tradeExecutedQty) {
+            throw new Error(`executedQty could not be found`)
+        }
+        return new Decimal(tradeExecutedQty)
+    }
+
+    public get origQuantity(): Decimal {
+        const tradeExecutedQty = this.trade.futuresResult.origQty
         if (!tradeExecutedQty) {
             throw new Error(`executedQty could not be found`)
         }

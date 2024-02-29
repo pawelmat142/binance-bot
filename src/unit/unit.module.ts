@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { UnitService } from './unit.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Unit, UnitSchema } from './trade-unit';
+import { Unit, UnitSchema } from './unit';
 import { UnitController } from './unit.controller';
 import { ScheduleModule } from '@nestjs/schedule';
 
