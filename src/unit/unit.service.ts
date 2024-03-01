@@ -81,12 +81,18 @@ export class UnitService implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_DAY_AT_7AM)
     private async loadUnits() {
-        const units = await this.unitModel.find({ active: true }).exec()
+        const units = await this.unitModel.find({ active: true }, { 
+            listenJsons: false,
+            binanceApiKey: false,
+            binanceApiSecret: false,
+            listenKey: false
+        }).exec()
         if (Array.isArray(units)) {
             this._units$.next(units)
             const list = units.map(u => u.identifier).join(', ')
             this.logger.log(`Loaded ${units.length} units: [ ${list} ]`)
-            this.startListeningForEveryUnit()
+            // TODO remove mock
+            // this.startListeningForEveryUnit()
         }
     }
 
@@ -117,6 +123,8 @@ export class UnitService implements OnModuleInit {
         await Promise.all(units.map(this.startListening))
         this.logger.log(`Stared listening for ${units.length} units: [ ${units.map(u=>u.identifier).join(', ')} ]`)
     }
+
+
 
 
     public startListening = async (unit: Unit) => {
@@ -171,6 +179,12 @@ export class UnitService implements OnModuleInit {
         return response
     }
 
+    public stopListening(unit: Unit) {
+        unit.socket?.close()
+        return this.request(unit, 'DELETE')
+    }
+
+
     private async fetchListenKey(unit: Unit): Promise<string> {
         const response = await this.request(unit, 'POST')
         const listenKey = response?.listenKey
@@ -180,11 +194,6 @@ export class UnitService implements OnModuleInit {
         this.logger.log(`Found new listenKey for unit ${unit.identifier}: ${listenKey}`)
         this.updateListenKey(unit, listenKey)
         return listenKey
-    }
-
-    public stopListening(unit: Unit) {
-        unit.socket?.close()
-        return this.request(unit, 'DELETE')
     }
 
     private async request(unit: Unit, method: HttpMethod) {
@@ -200,8 +209,6 @@ export class UnitService implements OnModuleInit {
         }
         return response
     }
-
-
 
 
     private signUrlWithParams(path: string, unit: Unit, queryString: string) {
@@ -327,11 +334,18 @@ export class UnitService implements OnModuleInit {
         return listenJsons.map(j => TradeUtil.parseToFuturesResult(JSON.parse(j.split(" - ")[1])))
     } 
 
+    public async identifierTaken(identifier: string): Promise<boolean> {
+        return !!(await this.unitModel.exists({ identifier }).exec())
+    }
+
+    public async apiKeyTaken(binanceApiKey: string): Promise<boolean> {
+        return !!(await this.unitModel.exists({ binanceApiKey }).exec())
+    }
+
 
     private async fetchListenJsons(identifier: string): Promise<string[]> {
         const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: true }).exec()
         return unit?.listenJsons ?? []
     }
-
 
 }

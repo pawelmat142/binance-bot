@@ -13,7 +13,6 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
-import { UnitUtil } from 'src/unit/unit.util';
 
 // TODO close the trade signal 
 
@@ -61,13 +60,13 @@ export class BinanceService implements OnModuleInit {
 
         if (TradeUtil.isFilledOrder(eventTradeResult)) {
             await this.waitUntilSaveTrade()
-            const ctx = await this.prepareCtx(eventTradeResult, unit)
+            const ctx = await this.prepareTradeContext(eventTradeResult, unit)
             this.onFilledOrder(ctx, eventTradeResult)
         }
         // TODO on closed / on error
     }
 
-    private async prepareCtx(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
+    private async prepareTradeContext(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
         const trade = await this.tradeModel.findOne({
             unitIdentifier: unit.identifier,
             $or: [
@@ -84,7 +83,7 @@ export class BinanceService implements OnModuleInit {
     }
 
     private async waitUntilSaveTrade() {
-        return new Promise(resolve => setTimeout(resolve, 1000));
+        return new Promise(resolve => setTimeout(resolve, 1000))
     }
 
     private async openTradesPerUnit(signal: SignalMessage) {

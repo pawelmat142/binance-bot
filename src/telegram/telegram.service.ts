@@ -3,16 +3,8 @@ import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
 import { TradeContext, TradeCtx } from 'src/binance/model/trade-variant';
 import { TradeUtil } from 'src/binance/trade-util';
-import { Context, Telegram } from 'telegraf';
-
-import {
-    Update,
-    Ctx,
-    Start,
-    Help,
-    On,
-    Hears,
-  } from 'nestjs-telegraf';
+import { Telegram } from 'telegraf';
+import { BotUtil } from './bot.util';
 
 @Injectable()
 export class TelegramService {
@@ -20,15 +12,13 @@ export class TelegramService {
     private readonly logger = new Logger(TelegramService.name)
 
     private readonly bot = new Telegram(process.env.TELEGRAM_BOT_TOKEN)
+
     private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
 
     private readonly skipTelegram = process.env.SKIP_TELEGRAM === 'true'
 
-
-    // @Hears('hi')
-    // async onText(@Ctx() ctx: Context) {
-    //     console.log(ctx)
-    // }
+    constructor(
+    ) {}
 
     public async sendPublicMessage(msg: string) {
         if (this.skipTelegram) {
@@ -42,7 +32,7 @@ export class TelegramService {
             return
         }
         this.logger.log(`Sending message to public channel`)
-        await this.bot.sendMessage(this.channelId, this.msgFrom(lines))
+        await this.bot.sendMessage(this.channelId, BotUtil.msgFrom(lines))
         // this.logger.log(response)
     }
 
@@ -119,10 +109,6 @@ export class TelegramService {
 
     private print$(input) {
         return `$${input}`
-    }
-
-    private msgFrom(lines: string[]) {
-        return (lines || []).reduce((acc, line) => acc + line + '\n', '')
     }
 
 }
