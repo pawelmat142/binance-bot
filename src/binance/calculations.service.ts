@@ -17,7 +17,6 @@ export class CalculationsService implements OnModuleInit {
     constructor(
     ) {}
 
-
     private readonly _exchangeInfo$ = new BehaviorSubject<FuturesExchangeInfo | null>(null)
     
     async onModuleInit() {
@@ -229,29 +228,3 @@ export class CalculationsService implements OnModuleInit {
     }
     
 }
-
-
-
-// Took a while to figure it out, but I believe I have come to a solution/explanation.
-
-// As I previously noted, we are interested in the filters array found in the response of the fapi.binance.com/fapi/v1/exchangeInfo endpoint, specifically the MARKET_LOT_SIZE (LOT_SIZE if you are not interested in market orders) and MIN_NOTIONAL filters. When I wrote the question I assumed one of those had to be the source of truth, but none of the two were consistently matching the minimum order quantities seen on Binance UI.
-
-// It turns out its not one of them, but the two combined...sort of.
-
-// For inexperienced traders - a quick definition. Base asset - the asset you are buying. Quote asset - the asset you are acquiring the base asset with. In my case (ETHUSDT) ETH was the base asset and USDT was the quote asset.
-
-// MIN_NOTIONAL filter tells you the minimum amount of the quote asset you are required to spend to acquire the base asset. This filter is equal to 5 USDT in the case of ETHUSDT at the time of posting.
-
-// MARKET_LOT_SIZE filter tells you the minimum amount of the base asset you can buy. This filter is equal to 0.001 in the case of ETHUSDT at the time of posting.
-
-// Depending on the price of ETH, 0.001 ETH may cost less than 5 USDT, which would not fill the MIN_NOTIONAL filter's requirement. Similarly, if, due to price, 5 USDT bought less than 0.001 ETH, an order with notional value of 5 USDT would not fill the requirement of the MARKET_LOT_SIZE filter.
-
-// Hence, to calculate the minimum order quantity, we need to take the maximum value of the two with one caveat. We first need to convert the MIN_NOTIONAL filter value of 5 USDT to ETH. We can do that by dividing that value by the current price of ETH. Beware, if the result of the division has more decimal points then the quantity precision of the asset on Binance, we need to round up to that number of decimals.
-
-// Ultimately, the calculation example in Python:
-
-// max(
-//   MIN_MARKET_LOT_SIZE, 
-//   round_up((MIN_NOTIONAL / CURRENT_ETH_PRICE), ETH_QUANTITY_PRECISION)
-// ) 
-// An example of the decimal rounding up function can be found here

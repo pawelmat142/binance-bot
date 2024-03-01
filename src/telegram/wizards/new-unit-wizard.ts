@@ -1,4 +1,3 @@
-import { Inject } from "@nestjs/common";
 import { BotWizard, WizardStep } from "./bot-wizard";
 import { UnitService } from "src/unit/unit.service";
 import { Unit } from "src/unit/unit";
@@ -9,31 +8,25 @@ export class NewUnitWizard extends BotWizard {
 
     constructor(
         chatId: number,
-        unitService: UnitService
+        unitService: UnitService,
     ) {
         super(chatId)
         this.unitService = unitService
     }
 
-    getSteps = (): WizardStep[] => {
-        return this._steps
-    }
+    private unit: Partial<Unit> = {}
 
-    unit: Partial<Unit> = {}
-
-    public _steps: WizardStep[] = [
+    getSteps = (): WizardStep[] => [
         {
             order: 0,
             message: [
                 `Prompts: `,
                 `start - to start subscribe bot`
             ],
-            answers: [
-                {
-                    phrase: 'start',
-                    result: async () => 1
-                }
-            ]
+            answers: [{
+                phrase: 'start',
+                result: async () => 1
+            }]
         }, {
             order: 1,
             message: [ `Provide unique nickname / identifier` ],
@@ -42,7 +35,7 @@ export class NewUnitWizard extends BotWizard {
                 result: async (text) => {
                     const identifierTaken = await this.unitService.identifierTaken(text)
                     if (identifierTaken) {
-                        return `Identifier taken`
+                        return [`Identifier taken`]
                     }
                     this.unit.identifier = text
                     return 2
@@ -56,7 +49,7 @@ export class NewUnitWizard extends BotWizard {
                 result: async (text) => {
                     const apiKeyTaken = await this.unitService.apiKeyTaken(text)
                     if (apiKeyTaken) {
-                        return `Api key is already in use`
+                        return [`Api key is already in use`]
                     }
                     this.unit.binanceApiKey = text
                     return 3
@@ -68,15 +61,77 @@ export class NewUnitWizard extends BotWizard {
             answers: [{
                 input: true,
                 result: async (text) => {
-                    // TODO test api key
-                    return 4
+                    this.unit.binanceApiSecret = text
+                    // TODO mock
+                    // const apiKeyError = await this.unitService.apiKeyError(this.unit)
+                    const apiKeyError = null
+                    if (apiKeyError) {
+                        this.order = 2
+                        return [apiKeyError.msg]
+                    } else {
+                        this.unit.active = false
+                        return 4
+                    }
                 }
             }]
         }, {
             order: 4,
-            message: [ `TODO `],
+            message: [ `Provide USDT amount per single transaction`],
+            answers: [{
+                input: true,
+                result: async (text) => {
+                    const usdtPerTransaction = Number(text)
+                    if (isNaN(usdtPerTransaction)) {
+                        return [`${text} is not a number`]
+                    }
+                    if (usdtPerTransaction < 7) {
+                        return [`Amount should be more than $7`]
+                    }
+                    this.unit.usdtPerTransaction = usdtPerTransaction
+                    console.log(this.unit)
+                    return 5
+                }
+            }]
+        }, {
+            order: 5,
+            message: [ 
+                `$${this.unit.usdtPerTransaction} selected`, 
+                `Provide CONFIRM to confirm`
+            ], 
+            answers: [{
+                input: true,
+                result: async (text: string) => {
+                    if (text === 'CONFIRM') {
+                        // TODO mock
+                        // await this.addUnit()
+                        return 6
+                    } else {
+                        this.unit = {}
+                        this.order = 0
+                        return [`Subscription failed`]
+                    }
+                }
+            }]
+        }, {
+            order: 6,
+            message: this.getFinalMessage()
         }
     ]
 
-}
+    private async addUnit() {
+        const unit = await this.unitService.addUnit(this.unit as Unit)
+        console.log(unit)
+    }
 
+    private getFinalMessage(): string[] {
+        const lines = [ 
+            `Sumbscription completed`,
+            `identifier: ${this.unit.identifier}`,
+            `active: ${this.unit.active}`
+        ]
+        if (!this.unit.active) {
+            lines.push(`Subscription should be activated soon`)
+        }
+        return lines
+    }
+}

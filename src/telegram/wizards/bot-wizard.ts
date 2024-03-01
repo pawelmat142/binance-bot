@@ -11,7 +11,7 @@ export interface WizardStep {
 export interface WizardAnswer {
     input?: boolean //if input, result with text is executed
     phrase?: string
-    result(text?: string): Promise<number | string>
+    result(text?: string): Promise<number | string[]>
 }
 
 export abstract class BotWizard {
@@ -41,7 +41,7 @@ export abstract class BotWizard {
         return step
     }
 
-    public async getResponse(message: BotMessage, first = false): Promise<string> {
+    public async getResponse(message: BotMessage, first = false): Promise<string[]> {
         const text = message.text
         if (!text) {
             this.error(`Received blank message`)
@@ -56,14 +56,14 @@ export abstract class BotWizard {
                     this.order = result
                     this.log(`Go to step ${this.order}`)
                 } 
-                if (typeof result === 'string') {
-                     this.log(`Response: ${result}`)
-                    return result
+                if (Array.isArray(result)) {
+                    this.log(`Response: ${result}`)
+                    return [...result, BotUtil.msgFrom(this.step.message)]
                 }
             }
         }
         this.log(`Response: ${this.step.message}`)
-        return BotUtil.msgFrom(this.step.message)
+        return [BotUtil.msgFrom(this.step.message)]
     }
 
     private getAnswer(text: string): WizardAnswer  {

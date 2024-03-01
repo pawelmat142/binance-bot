@@ -6,6 +6,7 @@ import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
+import { Unit } from 'src/unit/unit';
 
 @Injectable()
 export class TradeService {

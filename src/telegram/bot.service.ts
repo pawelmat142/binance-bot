@@ -14,7 +14,7 @@ export class BotService implements OnModuleInit {
   private readonly logger = new Logger(BotService.name)
 
   constructor(
-    private readonly unitService: UnitService
+    private readonly unitService: UnitService,
   ) {}
 
   private readonly wizards$ = new BehaviorSubject<BotWizard[]>([])
@@ -35,37 +35,46 @@ export class BotService implements OnModuleInit {
   }
 
 
-
-
   private startListenForMessages() {
     const token = process.env.TELEGRAM_BOT_TOKEN
     const bot = new telegramBot(token, { polling: true })
     bot.on('message', async (message: BotMessage) => {
-      console.log(message)
-
       const chatId = message.chat.id
       if (!chatId) {
         this.logger.error('Chat id not found')
         return
       }
-
-      if (this.isUnitMessage(chatId)) {
-        this.logger.debug('in unit message')
-
-      } else {
-        const wizardOpened = this.findWizard(chatId)
-        if (wizardOpened) {
-          this.logger.debug('found wizardOpened')
-          const response = await wizardOpened.getResponse(message)
-          bot.sendMessage(wizardOpened.chatId, response)
-        } else {
-          this.logger.debug('creating new wizard')
-          const wizard = this.createWizard(message.chat.id)
-          const response = await wizard.getResponse(message, true)
-          bot.sendMessage(wizard.chatId, response)
+      const wizard = this.findWizard(chatId)
+      if (wizard) {
+        const response = await wizard.getResponse(message)
+        for (let msg of response) {
+          bot.sendMessage(wizard.chatId, msg)
         }
+        this.stopWizardIfFinished(wizard)
+      } else {
+        this.newWizard(message, bot)
       }
+
     })
+  }
+
+  private async newWizard(message: BotMessage, bot: any) {
+    const wizard = this.createWizard(message.chat.id)
+    const response = await wizard.getResponse(message, true)
+    bot.sendMessage(wizard.chatId, response[0])
+  }
+
+  
+  private stopWizardIfFinished(wizard: BotWizard) {
+    if (wizard.getSteps().length === wizard.order+1) {
+      this.stopWizard(wizard)
+    }
+  }
+
+  private stopWizard(wizard: BotWizard) {
+    const wizards = this.wizards$.value.filter(w => w.chatId !== wizard.chatId)
+    this.wizards$.next(wizards)
+    this.logger.log(`Stopped wizard ${wizard.chatId}`)
   }
 
 
@@ -79,14 +88,18 @@ export class BotService implements OnModuleInit {
   }
 
   private createWizard(chatId: number): BotWizard {
-    const wizard = new NewUnitWizard(chatId, this.unitService)
+    let wizard: BotWizard
+    if (this.isUnitMessage(chatId)) {
+      throw new Error(`TODO unit wizard`)
+    } else {
+      wizard = new NewUnitWizard(chatId, this.unitService)
+    }
     const wizards = this.wizards$.value
     wizards.push(wizard)
     this.wizards$.next(wizards)
+    this.logger.debug(`New wizard created: ${wizard.chatId}`)
     return wizard
   }
-
-
 
 }
 

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Unit } from './unit';
 import { Model } from 'mongoose';
-import { EVERY_45_MINUTES, getHeaders, newObjectId, sign } from 'src/global/util';
+import { EVERY_45_MINUTES, getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
 import { TradeUtil } from 'src/binance/trade-util';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UnitUtil } from './unit.util';
@@ -11,6 +11,7 @@ import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws
 import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 import { HttpMethod } from 'src/global/http-method';
 import { TradeEventData } from 'src/binance/model/trade-event-data';
+import { FuturesResult } from 'src/binance/model/trade';
 
 
 @Injectable()
@@ -341,6 +342,26 @@ export class UnitService implements OnModuleInit {
     public async apiKeyTaken(binanceApiKey: string): Promise<boolean> {
         return !!(await this.unitModel.exists({ binanceApiKey }).exec())
     }
+
+    public async apiKeyError(unit: Partial<Unit>): Promise<BinanceError> {
+        const params = queryParams({
+            timestamp: Date.now(),
+            timeInForce: 'GTC',
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+        })
+        const uri = sign(`${TradeUtil.futuresUri}/account`, params, unit as Unit)
+        console.log(uri)
+        const request = await fetch(uri, {
+            method: 'GET',
+            headers: getHeaders(unit as Unit)
+        })
+        const response = await request.json()
+        console.log(response)
+        if (isBinanceError(response)) {
+            return response
+        }
+        return null
+    } 
 
 
     private async fetchListenJsons(identifier: string): Promise<string[]> {
