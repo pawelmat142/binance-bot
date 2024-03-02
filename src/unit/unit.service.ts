@@ -11,7 +11,6 @@ import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws
 import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 import { HttpMethod } from 'src/global/http-method';
 import { TradeEventData } from 'src/binance/model/trade-event-data';
-import { FuturesResult } from 'src/binance/model/trade';
 
 
 @Injectable()
@@ -84,16 +83,15 @@ export class UnitService implements OnModuleInit {
     private async loadUnits() {
         const units = await this.unitModel.find({ active: true }, { 
             listenJsons: false,
-            binanceApiKey: false,
-            binanceApiSecret: false,
+            // binanceApiKey: false,
+            // binanceApiSecret: false,
             listenKey: false
         }).exec()
         if (Array.isArray(units)) {
             this._units$.next(units)
             const list = units.map(u => u.identifier).join(', ')
             this.logger.log(`Loaded ${units.length} units: [ ${list} ]`)
-            // TODO remove mock
-            // this.startListeningForEveryUnit()
+            this.startListeningForEveryUnit()
         }
     }
 
@@ -360,7 +358,7 @@ export class UnitService implements OnModuleInit {
         if (isBinanceError(response)) {
             return response
         }
-        return null
+        return 
     } 
 
 

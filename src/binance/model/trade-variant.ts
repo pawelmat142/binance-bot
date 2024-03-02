@@ -79,20 +79,12 @@ export class TradeCtx implements TradeContext {
         return this.stopLossSide
     }
 
-    public get executedQuantity(): Decimal {
-        const tradeExecutedQty = this.trade.futuresResult.executedQty
-        if (!tradeExecutedQty) {
-            throw new Error(`executedQty could not be found`)
-        }
-        return new Decimal(tradeExecutedQty)
-    }
-
     public get origQuantity(): Decimal {
-        const tradeExecutedQty = this.trade.futuresResult.origQty
-        if (!tradeExecutedQty) {
-            throw new Error(`executedQty could not be found`)
+        const origQuantity = this.trade.futuresResult.origQty
+        if (!origQuantity) {
+            throw new Error(`origQuantity could not be found`)
         }
-        return new Decimal(tradeExecutedQty)
+        return new Decimal(origQuantity)
     }
 
     public get takeProfitQuentitesSum(): Decimal {
@@ -105,9 +97,9 @@ export class TradeCtx implements TradeContext {
         return sum
     }
 
-    public get takeProfitExecutedQuentitesSum(): number {
+    public get takeProfitOrigQuentitesSum(): number {
         return this.trade.variant.takeProfits
-        .reduce((acc, tp) => acc + (Number(tp.reuslt?.executedQty ??0)), 0)
+        .reduce((acc, tp) => acc + (Number(tp.reuslt?.origQty ??0)), 0)
     }
 
     public get lever(): number {
@@ -119,12 +111,10 @@ export class TradeCtx implements TradeContext {
     }
 
     public get stopLossPlaced(): boolean {
-        // TODO sprawdzic jaki status na pewno
         return [TradeStatus.NEW].includes(this.trade.stopLossResult?.status)
     }
 
     public get stopLossFilled(): boolean {
-        // TODO sprawdzic jaki status na pewno
         return [TradeStatus.FILLED].includes(this.trade.stopLossResult?.status)
     }
 

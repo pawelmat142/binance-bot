@@ -63,8 +63,8 @@ export class NewUnitWizard extends BotWizard {
                 result: async (text) => {
                     this.unit.binanceApiSecret = text
                     // TODO mock
-                    // const apiKeyError = await this.unitService.apiKeyError(this.unit)
-                    const apiKeyError = null
+                    const apiKeyError = await this.unitService.apiKeyError(this.unit)
+                    // const apiKeyError = null
                     if (apiKeyError) {
                         this.order = 2
                         return [apiKeyError.msg]
@@ -103,7 +103,7 @@ export class NewUnitWizard extends BotWizard {
                 result: async (text: string) => {
                     if (text === 'CONFIRM') {
                         // TODO mock
-                        // await this.addUnit()
+                        await this.addUnit()
                         return 6
                     } else {
                         this.unit = {}

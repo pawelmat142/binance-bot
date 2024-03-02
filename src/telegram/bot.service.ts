@@ -19,7 +19,8 @@ export class BotService implements OnModuleInit {
 
   private readonly wizards$ = new BehaviorSubject<BotWizard[]>([])
 
-
+  private readonly bot = new telegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
+    
   onModuleInit() {
     this.startListenForMessages()
   }
@@ -34,11 +35,13 @@ export class BotService implements OnModuleInit {
       .filter(chatId => !isNaN(chatId))
   }
 
+  public sendUnitMessage(chatId: number, message: string) {
+    this.bot.sendMessage(chatId, message)
+  }
+
 
   private startListenForMessages() {
-    const token = process.env.TELEGRAM_BOT_TOKEN
-    const bot = new telegramBot(token, { polling: true })
-    bot.on('message', async (message: BotMessage) => {
+    this.bot.on('message', async (message: BotMessage) => {
       const chatId = message.chat.id
       if (!chatId) {
         this.logger.error('Chat id not found')
@@ -48,20 +51,20 @@ export class BotService implements OnModuleInit {
       if (wizard) {
         const response = await wizard.getResponse(message)
         for (let msg of response) {
-          bot.sendMessage(wizard.chatId, msg)
+          this.bot.sendMessage(wizard.chatId, msg)
         }
         this.stopWizardIfFinished(wizard)
       } else {
-        this.newWizard(message, bot)
+        this.newWizard(message)
       }
 
     })
   }
 
-  private async newWizard(message: BotMessage, bot: any) {
+  private async newWizard(message: BotMessage) {
     const wizard = this.createWizard(message.chat.id)
     const response = await wizard.getResponse(message, true)
-    bot.sendMessage(wizard.chatId, response[0])
+    this.bot.sendMessage(wizard.chatId, response[0])
   }
 
   
@@ -89,7 +92,9 @@ export class BotService implements OnModuleInit {
 
   private createWizard(chatId: number): BotWizard {
     let wizard: BotWizard
-    if (this.isUnitMessage(chatId)) {
+    // TODO mock
+    // if (this.isUnitMessage(chatId)) {
+      if (false) {
       throw new Error(`TODO unit wizard`)
     } else {
       wizard = new NewUnitWizard(chatId, this.unitService)

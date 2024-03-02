@@ -144,8 +144,7 @@ export class CalculationsService implements OnModuleInit {
     public calculateTakeProfitQuantities(ctx: TradeCtx) {
         const length = ctx.trade.variant.takeProfits.length
         const symbol = ctx.trade.variant.symbol
-        // const executedQuantity = ctx.executedQuantity
-        const executedQuantity = ctx.origQuantity
+        const origQuantity = ctx.origQuantity
         const symbolInfo = this.getExchangeInfo(symbol)
         const minNotional = this.getMinNotional(symbolInfo)
         const { minQty, stepSize } = this.getLotSize(symbolInfo)
@@ -153,14 +152,14 @@ export class CalculationsService implements OnModuleInit {
             let breakLoop = false
             const tp = ctx.trade.variant.takeProfits[i]
             const minQuantityByNotional = roundWithFraction(minNotional.div(tp.price), stepSize)
-            let quantity = roundWithFraction(executedQuantity.times(tp.closePercent).div(100), stepSize)
+            let quantity = roundWithFraction(origQuantity.times(tp.closePercent).div(100), stepSize)
             quantity = findMax(quantity, minQuantityByNotional, minQty)
             const sum = ctx.takeProfitQuentitesSum.plus(quantity)
-            if (sum.equals(executedQuantity)) {
+            if (sum.equals(origQuantity)) {
                 tp.quantity = quantity.toNumber()
                 breakLoop = true
-            } else if (sum.greaterThan(executedQuantity)) {
-                const correctedQuantity = quantity.minus(sum.minus(executedQuantity)) 
+            } else if (sum.greaterThan(origQuantity)) {
+                const correctedQuantity = quantity.minus(sum.minus(origQuantity)) 
                 if (correctedQuantity.lessThan(minQuantityByNotional)) {
                     if (i > 0) {
                         const prevTp = ctx.trade.variant.takeProfits[i-1]
@@ -181,9 +180,9 @@ export class CalculationsService implements OnModuleInit {
             .map(tp => tp.quantity)
             .filter(q => !!q)
             .join(', ')
-        if (sum.equals(executedQuantity)) {
-            TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${executedQuantity}`, ctx, this.logger)
-        } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${executedQuantity}`)
+        if (sum.equals(origQuantity)) {
+            TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`, ctx, this.logger)
+        } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`)
     }
 
 

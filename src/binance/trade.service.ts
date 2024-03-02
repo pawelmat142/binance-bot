@@ -25,9 +25,7 @@ export class TradeService {
             await this.tradeRequestLimit(ctx)
         }
         const status = ctx.trade.futuresResult?.status
-        if (TradeStatus.FILLED === status) {
-            TradeUtil.addLog(`Opened position with status: ${status}, executedQty: ${ctx.trade.futuresResult.executedQty}`, ctx, this.logger)
-        } else if (TradeStatus.NEW === status) {
+        if ([TradeStatus.NEW, TradeStatus.FILLED].includes(status)) {
             TradeUtil.addLog(`Opened position with status: ${status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
         } else {
             TradeUtil.addError(`Wrong trade status! ${status}`, ctx, this.logger)
@@ -40,10 +38,10 @@ export class TradeService {
         ctx.trade.timestamp = new Date()
         ctx.trade.futuresResult = result
         if (this.testNetwork) {
-            ctx.trade.futuresResult.executedQty = ctx.trade.quantity.toString()
+            ctx.trade.futuresResult.origQty = ctx.trade.quantity.toString()
             ctx.trade.futuresResult.status = 'FILLED'
         }
-        this.verifyExecutedQuantity(ctx)
+        this.verifyOrigQuantity(ctx)
     }
 
     private async tradeRequestLimit(ctx: TradeCtx): Promise<void> {
@@ -52,18 +50,18 @@ export class TradeService {
         ctx.trade.timestamp = new Date()
         ctx.trade.futuresResult = result
         if (this.testNetwork) {
-            ctx.trade.futuresResult.executedQty = ctx.trade.quantity.toString()
+            ctx.trade.futuresResult.origQty = ctx.trade.quantity.toString()
             ctx.trade.futuresResult.status = 'NEW'
         }
-        this.verifyExecutedQuantity(ctx)
+        this.verifyOrigQuantity(ctx)
     }
 
-    private verifyExecutedQuantity(ctx: TradeCtx) {
+    private verifyOrigQuantity(ctx: TradeCtx) {
         if (ctx.trade.futuresResult.status !== 'FILLED') {
             return
         }
-        if (!ctx.executedQuantity.equals(new Decimal(ctx.trade.quantity))) {
-            TradeUtil.addWarning(`executedQuantity ${ctx.executedQuantity} != quantity ${ctx.trade.quantity}`, ctx, this.logger)
+        if (!ctx.origQuantity.equals(new Decimal(ctx.trade.quantity))) {
+            TradeUtil.addWarning(`origQuantity ${ctx.origQuantity} != quantity ${ctx.trade.quantity}`, ctx, this.logger)
         }
     }
 
@@ -72,9 +70,9 @@ export class TradeService {
             return
         }
         const takeProfits = ctx.trade.variant.takeProfits ?? []
-        let stopLossQuantity = new Decimal(ctx.executedQuantity)
+        let stopLossQuantity = new Decimal(ctx.origQuantity)
         for (let takeProfit of takeProfits) {
-            const executedTakeProfitQuantity = Number(takeProfit.reuslt?.executedQty)
+            const executedTakeProfitQuantity = Number(takeProfit.reuslt?.origQty)
             if (!isNaN(executedTakeProfitQuantity)) {
                 stopLossQuantity = stopLossQuantity.minus(new Decimal(executedTakeProfitQuantity))
             }
@@ -87,7 +85,7 @@ export class TradeService {
         ctx.trade.stopLossResult = result
 
         if (this.testNetwork) {
-            ctx.trade.stopLossResult.executedQty = ctx.trade.quantity.toString()
+            ctx.trade.stopLossResult.origQty = ctx.trade.quantity.toString()
             ctx.trade.stopLossResult.status = 'NEW'
         }
         TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
@@ -128,9 +126,9 @@ export class TradeService {
     }
 
     public async takeProfitRequests(ctx: TradeCtx) {
-        if (!ctx.executedQuantity.equals(new Decimal(ctx.takeProfitQuentitesSum))) {
-            TradeUtil.addWarning(`takeProfitQuentitesSum ${ctx.takeProfitQuentitesSum} !== executedQuantity ${ctx.executedQuantity}`, ctx, this.logger)
-            await this.takeProfitRequest(ctx, ctx.trade?.variant?.takeProfits[0], ctx.executedQuantity.toNumber())
+        if (!ctx.origQuantity.equals(new Decimal(ctx.takeProfitQuentitesSum))) {
+            TradeUtil.addWarning(`takeProfitQuentitesSum ${ctx.takeProfitQuentitesSum} !== origQuantity ${ctx.origQuantity}`, ctx, this.logger)
+            await this.takeProfitRequest(ctx, ctx.trade?.variant?.takeProfits[0], ctx.origQuantity.toNumber())
         } else {
             for (let tp of ctx.trade?.variant?.takeProfits ?? []) {
                 await this.takeProfitRequest(ctx, tp)
@@ -196,10 +194,10 @@ export class TradeService {
     }
 
     private takeProfitQuantitiesFilled(ctx: TradeCtx): boolean {
-        if (ctx.executedQuantity.equals(new Decimal(ctx.takeProfitExecutedQuentitesSum))) {
+        if (ctx.origQuantity.equals(new Decimal(ctx.takeProfitOrigQuentitesSum))) {
             return true
-        } else if (new Decimal(ctx.takeProfitQuentitesSum).greaterThan(ctx.executedQuantity)) {
-            throw new Error(`Take profit quantities sum > executedQuantity`)
+        } else if (new Decimal(ctx.takeProfitQuentitesSum).greaterThan(ctx.origQuantity)) {
+            throw new Error(`Take profit quantities sum > origQuantity`)
         }
         return false
     }

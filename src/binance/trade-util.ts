@@ -68,9 +68,9 @@ export abstract class TradeUtil {
     }
 
     public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): string => {
-        const tradeExecutedQty = ctx.trade.futuresResult.executedQty
-        if (!tradeExecutedQty) {
-            throw new Error(`executedQty could not be found`)
+        const tradeorigQty = ctx.trade.futuresResult.origQty
+        if (!tradeorigQty) {
+            throw new Error(`origQuantity could not be found`)
         }
         return queryParams({
             symbol: ctx.trade.variant.symbol,
