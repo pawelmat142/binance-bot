@@ -88,7 +88,6 @@ export class NewUnitWizard extends BotWizard {
                         return [`Amount should be more than $7`]
                     }
                     this.unit.usdtPerTransaction = usdtPerTransaction
-                    console.log(this.unit)
                     return 5
                 }
             }]

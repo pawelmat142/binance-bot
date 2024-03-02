@@ -50,7 +50,6 @@ export class BotService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_30_MINUTES)
   private async deactivateExpiredWizards() {
-    console.log('deactivateExpiredWizards')
     const expiredWizardChatIds = this.wizards$.value
       .filter(BotUtil.isExpired).map(w => w.chatId)
     this.sendMessageToExpiredWizardChats(expiredWizardChatIds)
@@ -70,20 +69,19 @@ export class BotService implements OnModuleInit {
         return
       }
       const wizard = this.findWizard(chatId)
-      // TODO mock
-      // if (wizard) {
-      if (false) {
+      if (wizard) {
         const response = await wizard.getResponse(message)
-        for (let msg of response) {
+
+        for (let msg of response??[]) {
           this.bot.sendMessage(wizard.chatId, msg)
         }
         this.stopWizardIfFinished(wizard)
       } else {
         this.newWizard(message)
       }
-
     })
   }
+
 
   private async newWizard(message: BotMessage) {
     const wizard = await this.createWizard(message.chat.id)

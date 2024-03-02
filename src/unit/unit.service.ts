@@ -369,6 +369,15 @@ export class UnitService implements OnModuleInit {
         this.loadUnits()
         return update
     } 
+
+    public async updateUsdtPerTransaction(_unit: Unit) {
+        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
+        const update = await this.unitModel.updateOne(
+            { identifier: unit.identifier },
+            { $set: { usdtPerTransaction: _unit.usdtPerTransaction } }
+        ).exec()
+        return update
+    }
     
     private async fetchUnitByIdentifier(identifier: string): Promise<Unit> {
         const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: false })

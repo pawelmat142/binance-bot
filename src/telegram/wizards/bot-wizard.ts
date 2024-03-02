@@ -4,9 +4,10 @@ import { BotUtil } from "../bot.util"
 
 export interface WizardStep {
     order: number
-    message: string[]
+    message?: string[]
     answers?: WizardAnswer[]
     close?: boolean
+    switch?: string
 }
 
 export interface WizardAnswer {
@@ -37,7 +38,11 @@ export abstract class BotWizard {
     getSteps = (): WizardStep[] => {throw new Error("not implemented")}
 
     public get step(): WizardStep {
-        const step = this.getSteps()[this.order]
+        const defaultStep = this.defaultSteps.find(s => s.order === this.order)
+        if (defaultStep) {
+            return defaultStep
+        }
+        const step = this.getSteps().find(s => s.order === this.order)
         if (!step) {
           this.logger.error(`Cound not find step ${this.order}, wizard for chat id: ${this.chatId}`)
         }
@@ -53,26 +58,31 @@ export abstract class BotWizard {
         this.log(`Received message: ${text}`)
 
         this.modified = new Date()
-        // if (!first) {
-            const answer = this.getAnswer(text)
-            if (answer) {
-                const result = await answer.result(text)
-                if (typeof result === 'number') {
-                    this.order = result
-                    this.log(`Go to step ${this.order}`)
-                } 
-                if (Array.isArray(result)) {
-                    this.log(`Response: ${result}`)
-                    return [...result, BotUtil.msgFrom(step.message)]
-                }
+
+        const answer = this.getAnswer(text)
+        if (answer) {
+            const result = await answer.result(text)
+            if (typeof result === 'number') {
+                this.order = result
+                this.log(`Go to step ${this.order}`)
+            } 
+            if (Array.isArray(result)) {
+                this.log(`Response: ${result}`)
+                return [...result, BotUtil.msgFrom(step.message)]
             }
-        // }
-        const response = this.step.message
+        }
+
+        const newStep = this.step
+        const response = newStep.message
         this.log(`Response: ${response}`)
         return [BotUtil.msgFrom(response)]
     }
 
     private getAnswer(text: string): WizardAnswer  {
+        const defaultAnswer = this.defaultAnswers.find(a => a.phrase === text)
+        if (defaultAnswer) {
+            return defaultAnswer
+        }
         const step = this.step
         if ((step.answers || []).length === 1) {
             const a = step.answers[0]
@@ -82,5 +92,16 @@ export abstract class BotWizard {
         }
         return (step.answers || []).find(a => a.phrase === text)
     }
+
+    private readonly defaultSteps: WizardStep[] = [{
+        order: -1,
+        close: true,
+        message: [`Dialog stopped`],
+    }]
+
+    private readonly defaultAnswers: WizardAnswer[] = [{
+        phrase: 'stop',
+        result: async () => -1
+    }]
 
 }
