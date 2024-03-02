@@ -63,9 +63,7 @@ export class NewUnitWizard extends BotWizard {
                 input: true,
                 result: async (text) => {
                     this.unit.binanceApiSecret = text
-                    // TODO mock
                     const apiKeyError = await this.unitService.apiKeyError(this.unit)
-                    // const apiKeyError = null
                     if (apiKeyError) {
                         this.order = 2
                         return [apiKeyError.msg]
@@ -102,7 +100,6 @@ export class NewUnitWizard extends BotWizard {
                 input: true,
                 result: async (text: string) => {
                     if (text === 'CONFIRM') {
-                        // TODO mock
                         await this.addUnit()
                         return 6
                     } else {
@@ -120,6 +117,7 @@ export class NewUnitWizard extends BotWizard {
     ]
 
     private async addUnit() {
+        this.unit.telegramChannelId = `${this.chatId}`
         const unit = await this.unitService.addUnit(this.unit as Unit)
         console.log(unit)
     }
@@ -130,9 +128,6 @@ export class NewUnitWizard extends BotWizard {
             `identifier: ${this.unit.identifier}`,
             `active: ${this.unit.active}`
         ]
-        if (!this.unit.active) {
-            lines.push(`Subscription should be activated soon`)
-        }
         return lines
     }
 }

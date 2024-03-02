@@ -54,7 +54,6 @@ Stop Loss: 0.85$
         try {
             this.validateSignal(signal)
 
-            // TODO remove skiping duplicates
             await this.verifyIfDuplicate(signal)
 
             await this.save(signal)
@@ -64,7 +63,6 @@ Stop Loss: 0.85$
 
             if (signal.valid) {
                 SignalUtil.addLog(`Signal is valid, openin trade... `, signal, this.logger)
-                // TODO remove skip trade processing
                 this.tradeSubject$.next(signal)
             } else {
                 throw new Error('Signal is not valid')

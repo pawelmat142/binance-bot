@@ -50,7 +50,6 @@ export abstract class BotWizard {
     }
 
     public async getResponse(message: BotMessage, first = false): Promise<string[]> {
-        const step = this.step
         const text = message.text
         if (!text) {
             this.error(`Received blank message`)
@@ -68,7 +67,7 @@ export abstract class BotWizard {
             } 
             if (Array.isArray(result)) {
                 this.log(`Response: ${result}`)
-                return [...result, BotUtil.msgFrom(step.message)]
+                return [...result, BotUtil.msgFrom(this.step.message)]
             }
         }
 
@@ -79,7 +78,7 @@ export abstract class BotWizard {
     }
 
     private getAnswer(text: string): WizardAnswer  {
-        const defaultAnswer = this.defaultAnswers.find(a => a.phrase === text)
+        const defaultAnswer = this.defaultAnswers.find(a => a.phrase.toLowerCase() === text.toLowerCase())
         if (defaultAnswer) {
             return defaultAnswer
         }
@@ -90,7 +89,7 @@ export abstract class BotWizard {
                 return a
             }
         }
-        return (step.answers || []).find(a => a.phrase === text)
+        return (step.answers || []).find(a => a.phrase.toLowerCase() === text.toLowerCase())
     }
 
     private readonly defaultSteps: WizardStep[] = [{

@@ -70,18 +70,26 @@ export class BotService implements OnModuleInit {
       }
       const wizard = this.findWizard(chatId)
       if (wizard) {
-        const response = await wizard.getResponse(message)
-
-        for (let msg of response??[]) {
-          this.bot.sendMessage(wizard.chatId, msg)
-        }
-        this.stopWizardIfFinished(wizard)
+        await this.processWizardStep(message, wizard)
       } else {
         this.newWizard(message)
       }
     })
   }
 
+  private async processWizardStep(message: BotMessage, wizard: BotWizard) {
+    let response = await wizard.getResponse(message)
+
+    // TODO switching wizard
+    // const switchWizard = await this.switchWizard(response, wizard)
+    // if (switchWizard) {
+    // }
+
+    for (let msg of response??[]) {
+      this.bot.sendMessage(wizard.chatId, msg)
+    }
+    this.stopWizardIfFinished(wizard)
+  }
 
   private async newWizard(message: BotMessage) {
     const wizard = await this.createWizard(message.chat.id)
@@ -126,6 +134,13 @@ export class BotService implements OnModuleInit {
     expiredWizardChatIds.forEach(chatId => {
       this.sendUnitMessage(chatId, `Dialog expired`)
     })
+  }
+
+
+  private switchWizards(): string[] {
+    return [
+      BotUtil.USDT_PER_TRANSACTION_WIZARD
+    ]
   }
 
 }

@@ -1,7 +1,6 @@
 import { UnitService } from "src/unit/unit.service";
 import { BotWizard, WizardAnswer, WizardStep } from "./bot-wizard";
 import { Unit } from "src/unit/unit";
-import { BotUtil } from "../bot.util";
 
 export class UnitWizard extends BotWizard {
 
@@ -46,18 +45,19 @@ export class UnitWizard extends BotWizard {
         {
             order: 3,
             message: [
-                `Current value: $${this.unit.usdtPerTransaction}`, 
                 `Provide USDT amount per single transaction`,
-                `stop - to interrupt`
+                `Current amount: $${this.unit.usdtPerTransaction}`, 
             ],
             answers: [{
                 input: true,
                 result: async (text) => {
                     const usdtPerTransaction = Number(text)
                     if (isNaN(usdtPerTransaction)) {
+                        this.order = 3
                         return [`${text} is not a number`]
                     }
                     if (usdtPerTransaction < 7) {
+                        this.order = 3
                         return [`Amount should be more than $7`]
                     }
                     this.unit.usdtPerTransaction = usdtPerTransaction
@@ -91,7 +91,7 @@ export class UnitWizard extends BotWizard {
         if (this.unit.active) {
             return `deactivate - to deactivate subscription`
         } else {
-            return `dd - to activate subscription`
+            return `activate - to activate subscription`
         }
     }
 

@@ -47,13 +47,11 @@ export class BinanceService implements OnModuleInit {
 
 
     onModuleInit(): void {
-        // TODO remove mock
-        // this.signalService.tradeSubject$.subscribe({
-        //     next: signal => this.openTradesPerUnit(signal),
-        //     error: error => console.error(error)
-        // })
-        // TODO remove mock
-        // this.unitService.tradeEventSubject.subscribe(this.onTradeEvent)
+        this.signalService.tradeSubject$.subscribe({
+            next: signal => this.openTradesPerUnit(signal),
+            error: error => console.error(error)
+        })
+        this.unitService.tradeEventSubject.subscribe(this.onTradeEvent)
     }
 
     private onTradeEvent = async (tradeEvent: TradeEventData) => {
@@ -63,7 +61,9 @@ export class BinanceService implements OnModuleInit {
         if (TradeUtil.isFilledOrder(eventTradeResult)) {
             await this.waitUntilSaveTrade()
             const ctx = await this.prepareTradeContext(eventTradeResult, unit)
-            this.onFilledOrder(ctx, eventTradeResult)
+            if (ctx) {
+                this.onFilledOrder(ctx, eventTradeResult)
+            }
         }
         // TODO on closed / on error
     }
