@@ -6,6 +6,7 @@ export interface WizardStep {
     order: number
     message: string[]
     answers?: WizardAnswer[]
+    close?: boolean
 }
 
 export interface WizardAnswer {
@@ -42,13 +43,14 @@ export abstract class BotWizard {
     }
 
     public async getResponse(message: BotMessage, first = false): Promise<string[]> {
+        const step = this.step
         const text = message.text
         if (!text) {
             this.error(`Received blank message`)
         }
         this.log(`Received message: ${text}`)
 
-        if (!first) {
+        // if (!first) {
             const answer = this.getAnswer(text)
             if (answer) {
                 const result = await answer.result(text)
@@ -58,22 +60,24 @@ export abstract class BotWizard {
                 } 
                 if (Array.isArray(result)) {
                     this.log(`Response: ${result}`)
-                    return [...result, BotUtil.msgFrom(this.step.message)]
+                    return [...result, BotUtil.msgFrom(step.message)]
                 }
             }
-        }
-        this.log(`Response: ${this.step.message}`)
-        return [BotUtil.msgFrom(this.step.message)]
+        // }
+        const response = this.step.message
+        this.log(`Response: ${response}`)
+        return [BotUtil.msgFrom(response)]
     }
 
     private getAnswer(text: string): WizardAnswer  {
-        if ((this.step.answers || []).length === 1) {
-            const a = this.step.answers[0]
+        const step = this.step
+        if ((step.answers || []).length === 1) {
+            const a = step.answers[0]
             if (a.input) {
                 return a
             }
         }
-        return (this.step.answers || []).find(a => a.phrase === text)
+        return (step.answers || []).find(a => a.phrase === text)
     }
 
 }

@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
 import { TradeCtx } from 'src/binance/model/trade-variant';
-import { Telegram } from 'telegraf';
 import { BotUtil } from './bot.util';
 import { BotService } from './bot.service';
 
@@ -11,21 +10,13 @@ export class TelegramService {
 
     private readonly logger = new Logger(TelegramService.name)
 
-    private readonly bot = new Telegram(process.env.TELEGRAM_BOT_TOKEN)
-
-    private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
-
-    private readonly skipTelegram = process.env.SKIP_TELEGRAM === 'true'
-
     constructor(
         private readonly botService: BotService
     ) {}
 
-    public async sendPublicMessage(msg: string) {
-        if (this.skipTelegram) {
-            return
-        }
-        await this.bot.sendMessage(this.channelId, msg)
+
+    public sendPublicMessage(message: string) {
+        this.botService.sendPublicMessage(message)
     }
 
     public onFilledPosition(ctx: TradeCtx) {

@@ -117,6 +117,10 @@ export class UnitService implements OnModuleInit {
         return unit
     }
 
+    public findUnitByChatId(chatId: number): Promise<Unit> {
+        return this.unitModel.findOne({ telegramChannelId: chatId }).exec()
+    }
+
     private async startListeningForEveryUnit() {
         const units = this._units$.value
         await Promise.all(units.map(this.startListening))
@@ -166,8 +170,6 @@ export class UnitService implements OnModuleInit {
     }
 
 
-
-    // TODO
     public keepAliveListenKey = async (unit: Unit) =>  {
         const fetched = await this.fetchUnit(unit.identifier)
         const listenKey = fetched?.listenKey
@@ -245,7 +247,7 @@ export class UnitService implements OnModuleInit {
         }
     }
 
-    // TODO
+
     private removeListenKey(unit: Unit) {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
@@ -262,15 +264,6 @@ export class UnitService implements OnModuleInit {
     }
 
 
-    private async fetchUnitByIdentifier(identifier: string): Promise<Unit> {
-        const unit = await this.unitModel.findOne({ identifier: identifier })
-        if (unit) {
-            this.logger.log(`Found unit ${identifier}`)
-            return unit
-        }
-        this.logger.log(`Not found unit ${identifier}`)
-        return null
-    }
 
     public async addUnit(body: Unit) {
         if (!body.identifier) {
@@ -365,6 +358,26 @@ export class UnitService implements OnModuleInit {
     private async fetchListenJsons(identifier: string): Promise<string[]> {
         const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: true }).exec()
         return unit?.listenJsons ?? []
+    }
+
+    public async activation(identifier: string, active: boolean) {
+        const unit = await this.fetchUnitByIdentifier(identifier)
+        const update = await this.unitModel.updateOne(
+            { identifier: unit.identifier },
+            { $set: { active: active } }
+        ).exec()
+        this.loadUnits()
+        return update
+    } 
+    
+    private async fetchUnitByIdentifier(identifier: string): Promise<Unit> {
+        const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: false })
+        if (unit) {
+            this.logger.log(`Found unit ${identifier}`)
+            return unit
+        }
+        this.logger.log(`Not found unit ${identifier}`)
+        return null
     }
 
 }

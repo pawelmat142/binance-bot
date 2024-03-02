@@ -114,7 +114,8 @@ export class NewUnitWizard extends BotWizard {
             }]
         }, {
             order: 6,
-            message: this.getFinalMessage()
+            message: this.getFinalMessage(),
+            close: true
         }
     ]
 
