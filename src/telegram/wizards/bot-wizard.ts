@@ -25,6 +25,8 @@ export abstract class BotWizard {
     public chatId: number
     public order: number
 
+    public modified: Date
+
     constructor(
         chatId: number,
     ) {
@@ -50,6 +52,7 @@ export abstract class BotWizard {
         }
         this.log(`Received message: ${text}`)
 
+        this.modified = new Date()
         // if (!first) {
             const answer = this.getAnswer(text)
             if (answer) {

@@ -6,6 +6,8 @@ import { BehaviorSubject } from 'rxjs';
 import { BotWizard } from './wizards/bot-wizard';
 import { NewUnitWizard } from './wizards/new-unit-wizard';
 import { UnitWizard } from './wizards/unit-wizard';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { BotUtil } from './bot.util';
 
 const telegramBot = require('node-telegram-bot-api')
 
@@ -46,6 +48,16 @@ export class BotService implements OnModuleInit {
     this.bot?.sendMessage(chatId, message)
   }
 
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  private async deactivateExpiredWizards() {
+    console.log('deactivateExpiredWizards')
+    const expiredWizardChatIds = this.wizards$.value
+      .filter(BotUtil.isExpired).map(w => w.chatId)
+    this.sendMessageToExpiredWizardChats(expiredWizardChatIds)
+    const wizards = this.wizards$.value.filter(w => expiredWizardChatIds.includes(w.chatId))
+    this.wizards$.next(wizards)
+  }
+
   get units(): Unit[] {
     return this.unitService.units
   }
@@ -58,7 +70,9 @@ export class BotService implements OnModuleInit {
         return
       }
       const wizard = this.findWizard(chatId)
-      if (wizard) {
+      // TODO mock
+      // if (wizard) {
+      if (false) {
         const response = await wizard.getResponse(message)
         for (let msg of response) {
           this.bot.sendMessage(wizard.chatId, msg)
@@ -108,6 +122,12 @@ export class BotService implements OnModuleInit {
     this.wizards$.next(wizards)
     this.logger.debug(`New wizard created: ${wizard.chatId}`)
     return wizard
+  }
+
+  private sendMessageToExpiredWizardChats(expiredWizardChatIds: number[]) {
+    expiredWizardChatIds.forEach(chatId => {
+      this.sendUnitMessage(chatId, `Dialog expired`)
+    })
   }
 
 }
