@@ -24,7 +24,8 @@ export class UnitWizard extends BotWizard {
             message: [
                 `Prompts: `,
                 this.getActivateLine(),
-                `amount - to set USDT amount per single transaction`
+                `amount - to set USDT amount per single transaction`,
+                this.defaultStopPrompt
             ],
             answers: [ 
                 this.getActivateAnswer(),

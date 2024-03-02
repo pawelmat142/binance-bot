@@ -104,4 +104,6 @@ export abstract class BotWizard {
         result: async () => -1
     }]
 
+    protected readonly defaultStopPrompt: string = `stop - interrupt dialog`
+
 }

@@ -21,7 +21,8 @@ export class NewUnitWizard extends BotWizard {
             order: 0,
             message: [
                 `Prompts: `,
-                `start - to start subscribe bot`
+                `start - to start subscribe bot`,
+                this.defaultStopPrompt
             ],
             answers: [{
                 phrase: 'start',

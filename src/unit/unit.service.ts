@@ -151,7 +151,7 @@ export class UnitService implements OnModuleInit {
         ws.onerror = (event: ErrorEvent) => {
             this.logger.debug(`Error on socket for unit: ${unit.identifier}`)
             this.logger.error(event.error)
-            this.addError(unit,event.error)
+            this.addError(unit, event.error)
             this.removeListenKey(unit)
         }
 
@@ -187,14 +187,18 @@ export class UnitService implements OnModuleInit {
 
 
     private async fetchListenKey(unit: Unit): Promise<string> {
-        const response = await this.request(unit, 'POST')
-        const listenKey = response?.listenKey
-        if (!listenKey || typeof listenKey !== 'string') {
-            throw new Error(`Listen key error response for unit: ${unit.identifier}`)
+        try {
+            const response = await this.request(unit, 'POST')
+            const listenKey = response?.listenKey
+            if (!listenKey || typeof listenKey !== 'string') {
+                throw new Error(`Listen key error response for unit: ${unit.identifier}`)
+            }
+            this.logger.log(`Found new listenKey for unit ${unit.identifier}: ${listenKey}`)
+            this.updateListenKey(unit, listenKey)
+            return listenKey
+        } catch (error) {
+            this.addError(unit, error)
         }
-        this.logger.log(`Found new listenKey for unit ${unit.identifier}: ${listenKey}`)
-        this.updateListenKey(unit, listenKey)
-        return listenKey
     }
 
     private async request(unit: Unit, method: HttpMethod) {
@@ -323,7 +327,8 @@ export class UnitService implements OnModuleInit {
         if (!Array.isArray(listenJsons)) {
             throw new BadRequestException(`Cound not find listenJsons for unit ${identifier}`)
         }
-        return listenJsons.map(j => TradeUtil.parseToFuturesResult(JSON.parse(j.split(" - ")[1])))
+        return listenJsons
+        return listenJsons.map(j => TradeUtil.parseToFuturesResult(JSON.parse(j.split("] ")[1])))
     } 
 
     public async identifierTaken(identifier: string): Promise<boolean> {
