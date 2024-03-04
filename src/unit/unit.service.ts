@@ -83,8 +83,6 @@ export class UnitService implements OnModuleInit {
     private async loadUnits() {
         const units = await this.unitModel.find({ active: true }, { 
             listenJsons: false,
-            // binanceApiKey: false,
-            // binanceApiSecret: false,
             listenKey: false
         }).exec()
         if (Array.isArray(units)) {
@@ -345,7 +343,7 @@ export class UnitService implements OnModuleInit {
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
-        const uri = sign(`${TradeUtil.futuresUri}/account`, params, unit as Unit)
+        const uri = sign(`${TradeUtil.futuresUriV2}/account`, params, unit as Unit)
         console.log(uri)
         const request = await fetch(uri, {
             method: 'GET',

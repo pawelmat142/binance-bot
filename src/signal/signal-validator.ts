@@ -49,8 +49,12 @@ export class SignalValidator {
     private readonly enteringRegex = /entering at/i;
     private readonly takeProfitRegex = /take profit/i;
     private readonly stopLossRegex = /\bstop\s*loss\b/i
-    private readonly valueDolarRegex = /\b(\d+(\.\d+)?)\$(?=\s|$)/g
-    private readonly dolarOrPercentRegex = /(\$|\%)\s*\d+(\.\d+)?|\d+(\.\d+)?\s*(\$|\%)/g
+    // private readonly valueDolarRegex = /\b(\d+(\.\d+)?)\$(?=\s|$)/g
+    private readonly valueDolarRegex = /\d{1,3}(?:\s\d{3})*(?:\.\d{1,2})?\$/g
+    
+
+    // private readonly dolarOrPercentRegex = /(\$|\%)\s*\d+(\.\d+)?|\d+(\.\d+)?\s*(\$|\%)/g
+    private readonly dolarOrPercentRegex = /(?:\d{1,3}(?:\s\d{3})*|\d+)(?:\.\d+)?(?:[$%])/g
     private readonly leverRegex = /max (\d+)x/i
     private readonly riskRegex = /risk/i;
     private readonly highRiskRegex = /high risk/i;
@@ -84,6 +88,12 @@ export class SignalValidator {
         }
         if (this.takeProfitLineIndex !== -1) {
             this.findTakeProfit()
+            if (this.variant.takeProfits.length) {
+                this.setTakeProfitsPercentageIfNotValid()
+                this.takeProfitsOk = this.validateTakeProfits()
+            } else {
+                this.signalError(`take profit length = ${this.variant.takeProfits.length}`)
+            }
             this.findLeverage()
         } else {
             this.signalError('take profit could not be found')
@@ -182,8 +192,6 @@ export class SignalValidator {
             this.variant.takeProfits = this.variant.takeProfits.filter(tp => {
                 return !!tp.price
             })
-            this.setTakeProfitsPercentageIfNotValid()
-            this.takeProfitsOk = this.validateTakeProfits()
         }
     }
 
@@ -383,7 +391,7 @@ export class SignalValidator {
     }
 
     private withoutDollar(input: string): number {
-        return Number(input?.replace(/\$/g, ''))
+        return Number(input?.replace(/\$/g, '').replace(' ', ''))
     }
 
     private withoutPercent(input: string): number {

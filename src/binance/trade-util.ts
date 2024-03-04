@@ -11,6 +11,7 @@ import Decimal from "decimal.js"
 export abstract class TradeUtil {
 
     public static readonly futuresUri = 'https://fapi.binance.com/fapi/v1'
+    public static readonly futuresUriV2 = 'https://fapi.binance.com/fapi/v2'
 
     public static readonly apiUri = 'https://api.binance.com/api/v3'
 

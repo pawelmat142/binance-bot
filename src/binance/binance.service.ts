@@ -102,6 +102,7 @@ export class BinanceService implements OnModuleInit {
             }
             TradeUtil.addLog('NOW IM TRADE', ctx, this.logger)
             trade.timestamp = new Date()
+
             await this.openTradeForUnit(ctx)
         }
     }
@@ -123,6 +124,10 @@ export class BinanceService implements OnModuleInit {
 
 
     private async openTradeForUnit(ctx: TradeCtx) {
+        if (process.env.SKIP_TRADE === 'true') {
+            this.logger.debug('SKIP TRADE')
+            return
+        }
         try {
             await this.tradeService.setIsolatedMode(ctx)
             await this.tradeService.setPositionLeverage(ctx)

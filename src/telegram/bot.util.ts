@@ -10,7 +10,6 @@ export abstract class BotUtil {
 
     public static readonly WiZARD_EXPIRATION_MINUTES = 15 
 
-
     public static isExpired = (wizard: BotWizard): boolean => {
         const expirationTime = new Date(wizard.modified)
         expirationTime.setMinutes(expirationTime.getMinutes() + this.WiZARD_EXPIRATION_MINUTES)

@@ -24,23 +24,22 @@ export class SignalService {
 
     testOnReceiveMessage() {
         const msg = `
-        LONG SEI 
-
-SWING 
+        LONG BTC 
 
 Very risky signal
 
 Entry Zone: 
-0.86$ - 0.87$ 
+64 600$ - 65 600$ 
 
 Take profits: 
-1️⃣0.8622$
-1️⃣0.865$
-1️⃣0.867$
+1️⃣67 000$
+2️⃣68 000$
+3️⃣69 000$
+4️⃣70 000$
 
-Open with 5x leverage
+Open with 20x leverage
 
-Stop Loss: 0.85$
+Stop Loss: 64 000$
         `
         this.onReceiveTelegramMessage({
             message: msg,
@@ -117,6 +116,10 @@ Stop Loss: 0.85$
     }
 
     private async verifyIfDuplicate(signal: SignalMessage) {
+        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
+            this.logger.log('SKIP PREVENT DUPLICATE')
+            return
+        } 
         const found = await this.signalModel.findOne(
             { telegramMessageId: signal.telegramMessageId },
             { telegramMessageId: true }
