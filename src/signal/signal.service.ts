@@ -24,22 +24,22 @@ export class SignalService {
 
     testOnReceiveMessage() {
         const msg = `
-        LONG BTC 
+        LONG ETH 
 
 Very risky signal
 
 Entry Zone: 
-64 600$ - 65 600$ 
+3450$ - 3550$ 
 
 Take profits: 
-1️⃣67 000$
-2️⃣68 000$
-3️⃣69 000$
-4️⃣70 000$
+1️⃣3700$
+2️⃣3800$
+3️⃣3900$
+4️⃣4000$
 
-Open with 20x leverage
+Open with 10x leverage
 
-Stop Loss: 64 000$
+Stop Loss: 3350$
         `
         this.onReceiveTelegramMessage({
             message: msg,

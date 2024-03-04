@@ -50,12 +50,13 @@ export class SignalValidator {
     private readonly takeProfitRegex = /take profit/i;
     private readonly stopLossRegex = /\bstop\s*loss\b/i
     // private readonly valueDolarRegex = /\b(\d+(\.\d+)?)\$(?=\s|$)/g
-    private readonly valueDolarRegex = /\d{1,3}(?:\s\d{3})*(?:\.\d{1,2})?\$/g
-    
+    // private readonly valueDolarRegex = /\d{1,3}(?:\s\d{3})*(?:\.\d{1,2})?\$/g
+    // private readonly valueDolarRegex = /(?:\d{1,3}(?:[ ,]\d{3})*(?:[.,]\d+)?)/g
+    private readonly valueDolarRegex = /([\d\s]+([.,]\d+)?\s*\$)/g
 
+    
     // private readonly dolarOrPercentRegex = /(\$|\%)\s*\d+(\.\d+)?|\d+(\.\d+)?\s*(\$|\%)/g
     private readonly dolarOrPercentRegex = /(?:\d{1,3}(?:\s\d{3})*|\d+)(?:\.\d+)?(?:[$%])/g
-    private readonly leverRegex = /max (\d+)x/i
     private readonly riskRegex = /risk/i;
     private readonly highRiskRegex = /high risk/i;
     
@@ -180,6 +181,7 @@ export class SignalValidator {
 
     private findTakeProfit() {
         let textToScan = this.prepareTextToScanTakeProfit()
+
         if (textToScan) {
             const takeProfitValues: string[] = textToScan.match(this.dolarOrPercentRegex)
             do {
@@ -384,18 +386,16 @@ export class SignalValidator {
     }
 
 
-
-
     public get entryZoneValuesOk() {
         return !isNaN(this.variant.entryZoneStart) && !isNaN(this.variant.entryZoneEnd)
     }
 
     private withoutDollar(input: string): number {
-        return Number(input?.replace(/\$/g, '').replace(' ', ''))
+        return Number(input?.trim().replace(' ', '').replace(/\$/g, ''))
     }
 
     private withoutPercent(input: string): number {
-        return Number(input?.replace(/\%/g, ''))
+        return Number(input?.trim().replace(/\%/g, ''))
     }
 
     private get takeProfitValuesSumOk(): boolean {

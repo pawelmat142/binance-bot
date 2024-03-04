@@ -344,13 +344,11 @@ export class UnitService implements OnModuleInit {
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
         const uri = sign(`${TradeUtil.futuresUriV2}/account`, params, unit as Unit)
-        console.log(uri)
         const request = await fetch(uri, {
             method: 'GET',
             headers: getHeaders(unit as Unit)
         })
         const response = await request.json()
-        console.log(response)
         if (isBinanceError(response)) {
             return response
         }

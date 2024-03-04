@@ -119,7 +119,6 @@ export class NewUnitWizard extends BotWizard {
     private async addUnit() {
         this.unit.telegramChannelId = `${this.chatId}`
         const unit = await this.unitService.addUnit(this.unit as Unit)
-        console.log(unit)
     }
 
     private getFinalMessage(): string[] {
