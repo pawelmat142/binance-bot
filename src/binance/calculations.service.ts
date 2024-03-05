@@ -139,7 +139,7 @@ export class CalculationsService implements OnModuleInit {
         }
         const minNotional = this.getMinNotional(symbolInfo)
         if (usdtAmount.lessThan(minNotional)) {
-            throw new Error(`usdtPerTransaction ${usdtAmount}  < MIN_NOTIONAL ${minNotional}`)
+            throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
         }
         TradeUtil.addLog(`Calculated quantity: ${quantity}, step: ${stepSize}, minNotional: ${minNotional}`, ctx, this.logger)
         ctx.trade.quantity = quantity.toNumber()

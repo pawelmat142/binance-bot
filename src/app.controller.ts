@@ -37,14 +37,12 @@ export class AppController {
   }
 
 
-  // TELEGRAM
+  // SIGNALS INPUT
   @Post('/signal/telegram')
   postTelegramMessage(@Body() body: TelegramMessage) {
     return this.signalService.onReceiveTelegramMessage(body)
   }
   
-
-
 
   // LOGS
   @Get('/signal/list')

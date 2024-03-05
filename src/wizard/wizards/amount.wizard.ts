@@ -1,18 +1,12 @@
 import { Unit } from "src/unit/unit"
 import { ServicesService } from "../services.service"
-import { Wizard, WizardStep } from "../wizard"
+import { WizardStep } from "../wizard"
+import { UnitWizard } from "./unit-wizard"
 
-export class AmountWizard extends Wizard {
+export class AmountWizard extends UnitWizard {
 
-    private unit: Unit
-
-    constructor(chatId: number, services: ServicesService) {
-        super(chatId, services)
-        this.initUnit()
-    }
-
-    private async initUnit() {
-        this.unit = await this.services.unitService.findUnitByChatId(this.chatId)
+    constructor(unit: Unit, services: ServicesService) {
+        super(unit, services)
     }
 
     public getSteps(): WizardStep[] {

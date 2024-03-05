@@ -7,6 +7,8 @@ import { NewUnitWizard } from './wizards/new-unit.wizard';
 import { ServicesService } from './services.service';
 import { UnitWizard } from './wizards/unit-wizard';
 import { AmountWizard } from './wizards/amount.wizard';
+import { LogsWizard } from './wizards/logs.wizard';
+import { StartWizard } from './wizards/start.wizard';
 
 export interface WizardResponse {
     chatId: number
@@ -51,7 +53,7 @@ export class WizardService {
 
         const response = await this.processWizardStep(wizard, message)
 
-        if (response.switch) {
+        if (response.switch && wizard instanceof UnitWizard) {
             this.stopWizard(wizard)
             wizard = this.switchWizard(response.switch, wizard)
             return await this.processWizardStep(wizard, message)
@@ -65,6 +67,7 @@ export class WizardService {
         if (!input) {
             return
         }
+        wizard.modified = new Date()
 
         if (input.toLowerCase() === 'stop') {
             this.stopWizard(wizard)
@@ -122,9 +125,9 @@ export class WizardService {
         const unit = await this.service.unitService.findUnitByChatId(chatId)
 
         const wizard = !!unit 
-            ? new UnitWizard(unit, this.service) 
+            ? new StartWizard(unit, this.service) 
             : new NewUnitWizard(chatId, this.service)
-
+        
         const wizards = this.wizards$.value
         wizards.push(wizard)
         this.wizards$.next(wizards)
@@ -148,7 +151,7 @@ export class WizardService {
         return null
     }
     
-    private switchWizard(name: string, currentWizard: Wizard): Wizard {
+    private switchWizard(name: string, currentWizard: UnitWizard): UnitWizard {
         const wizard = this.selectSWitchWizard(name, currentWizard)
         const wizards = this.wizards$.value.filter(w => w.chatId === currentWizard.chatId)
         wizards.push(wizard)
@@ -156,10 +159,12 @@ export class WizardService {
         return wizard
     }
 
-    private selectSWitchWizard(name: string, currentWizard: Wizard): Wizard {
+    private selectSWitchWizard(name: string, currentWizard: UnitWizard): UnitWizard {
         switch (name) {
             case AmountWizard.name:
-                return new AmountWizard(currentWizard.chatId, this.service)
+                return new AmountWizard(currentWizard.getUnit(), this.service)
+            case LogsWizard.name:
+                return new LogsWizard(currentWizard.getUnit(), this.service)
             default: throw new Error('switch wizard error')
         }
     }

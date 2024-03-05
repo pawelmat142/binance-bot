@@ -119,7 +119,14 @@ export class UnitService implements OnModuleInit {
     }
 
     public findUnitByChatId(chatId: number): Promise<Unit> {
-        return this.unitModel.findOne({ telegramChannelId: chatId }).exec()
+        return this.unitModel.findOne({ telegramChannelId: chatId }, 
+            { listenJsons: false, tradeObjectIds: false }).exec()
+    }
+
+    public async fetchLogs(identifier: string): Promise<string[]> {
+        const unit = await this.unitModel.findOne({ identifier },
+             { listenJsons: true }).exec()
+        return unit.listenJsons
     }
 
     private async startListeningForEveryUnit() {
@@ -370,7 +377,7 @@ export class UnitService implements OnModuleInit {
     public async activation(identifier: string, active: boolean) {
         const unit = await this.fetchUnitByIdentifier(identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: unit?.identifier },
             { $set: { active: active } }
         ).exec()
         this.loadUnits()
