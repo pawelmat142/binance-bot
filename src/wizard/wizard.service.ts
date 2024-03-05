@@ -143,10 +143,13 @@ export class WizardService {
 
     // SWITCH
     private getWizardNameIfSwitch(response: string[]): string {
-        const split = response[0].split(' ')
-        const isSwitch = split[0] === 'switch'
-        if (isSwitch) {
-            return split[1]
+        const first = response[0]
+        if (typeof first === 'string') {
+            const split = response[0].split(' ')
+            const isSwitch = split[0] === 'switch'
+            if (isSwitch) {
+                return split[1]
+            }
         }
         return null
     }

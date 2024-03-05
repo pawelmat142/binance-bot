@@ -314,7 +314,7 @@ export class UnitService implements OnModuleInit {
             const listenJsons = await this.fetchListenJsons(unit.identifier)
             let msg = typeof data === 'string' ? data : JSON.stringify(data)
             this.logger.log(msg)
-            const log = `[${new Date().toDateString()}] ${_prefix} ${msg}`
+            const log = `[${this.getDateString()}] ${_prefix} ${msg}`
             unit.listenJsons = listenJsons
             unit.listenJsons.push(log)
             this.unitModel.updateOne(
@@ -322,6 +322,11 @@ export class UnitService implements OnModuleInit {
                 { $set: { listenJsons: unit.listenJsons } }
             ).exec()
         }
+    }
+
+    private getDateString() {
+        const now = new Date()
+        return `${now.toLocaleDateString()} ${now.toLocaleDateString()}`
     }
 
     
