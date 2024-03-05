@@ -89,7 +89,7 @@ export class UnitService implements OnModuleInit {
             this._units$.next(units)
             const list = units.map(u => u.identifier).join(', ')
             this.logger.log(`Loaded ${units.length} units: [ ${list} ]`)
-            this.startListeningForEveryUnit()
+            this. startListeningForEveryUnit()
         }
     }
 
@@ -120,12 +120,14 @@ export class UnitService implements OnModuleInit {
     }
 
     private async startListeningForEveryUnit() {
+        if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
+            this.logger.debug(`[SKIP] listening websockets ]`)
+            return
+        }
         const units = this._units$.value
         await Promise.all(units.map(this.startListening))
         this.logger.log(`Stared listening for ${units.length} units: [ ${units.map(u=>u.identifier).join(', ')} ]`)
     }
-
-
 
 
     public startListening = async (unit: Unit) => {

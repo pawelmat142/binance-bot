@@ -25,6 +25,10 @@ export class CalculationsService implements OnModuleInit {
     
     @Cron(CronExpression.EVERY_HOUR)
     private async loadExchangeInfo() {
+        if (process.env.SKIP_TRADE) {
+            this.logger.debug(`[SKIP] EXCHANGE INFO LOADING`)
+            return
+        }
         try {
             const request = await fetch(`${TradeUtil.futuresUri}/exchangeInfo`)
             this._exchangeInfo$.next(await request.json())

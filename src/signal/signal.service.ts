@@ -57,7 +57,6 @@ Stop Loss: 3350$
 
             await this.save(signal)
 
-            // TODO temporary
             this.telegramService.sendPublicMessage(telegramMessage?.message)
 
             if (signal.valid) {

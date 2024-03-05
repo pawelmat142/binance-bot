@@ -26,7 +26,7 @@ export class TradeService {
         }
         const status = ctx.trade.futuresResult?.status
         if ([TradeStatus.NEW, TradeStatus.FILLED].includes(status)) {
-            TradeUtil.addLog(`Opened position with status: ${status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
+            TradeUtil.addLog(`Opened position for unit: ${ctx.unit.identifier} with status: ${status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
         } else {
             TradeUtil.addError(`Wrong trade status! ${status}`, ctx, this.logger)
         }

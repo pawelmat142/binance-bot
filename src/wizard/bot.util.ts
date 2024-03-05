@@ -1,4 +1,4 @@
-import { BotWizard } from "./wizards/bot-wizard"
+import { Wizard } from "./wizard"
 
 export abstract class BotUtil {
 
@@ -10,11 +10,14 @@ export abstract class BotUtil {
 
     public static readonly WiZARD_EXPIRATION_MINUTES = 15 
 
-    public static isExpired = (wizard: BotWizard): boolean => {
+    public static isExpired = (wizard: Wizard): boolean => {
         const expirationTime = new Date(wizard.modified)
         expirationTime.setMinutes(expirationTime.getMinutes() + this.WiZARD_EXPIRATION_MINUTES)
         return expirationTime < new Date()
     }
-
+    
+    public static switchResponse = (wizardName: string) => {
+        return [`switch ${wizardName}`]
+    }
 
 }

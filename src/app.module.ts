@@ -7,6 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { BinanceModule } from './binance/binance.module';
 import { AppTelegramModule } from './telegram/telegram.module';
 import { UnitModule } from './unit/unit.module';
+import { WizardModule } from './wizard/wizard.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UnitModule } from './unit/unit.module';
       // useUnifiedTopology: true
     }),
     UnitModule,
+    WizardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

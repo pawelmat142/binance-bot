@@ -2,22 +2,55 @@ import { Injectable, Logger } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
 import { TradeCtx } from 'src/binance/model/trade-variant';
-import { BotUtil } from './bot.util';
-import { BotService } from './bot.service';
+import { BotUtil } from '../wizard/bot.util';
+import { BotWizardService } from 'src/wizard/bot-wizard.service';
+import { Observable, Subject } from 'rxjs';
+
+export interface TelegramMsg {
+    message: string
+    chatId: number
+}
 
 @Injectable()
 export class TelegramService {
 
     private readonly logger = new Logger(TelegramService.name)
 
+    private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
+
+
     constructor(
-        private readonly botService: BotService
     ) {}
 
+    private messageSubject$ = new Subject<TelegramMsg>
+
+    public get messageObs$(): Observable<TelegramMsg> {
+        return this.messageSubject$.asObservable()
+    }
 
     public sendPublicMessage(message: string) {
-        this.botService.sendPublicMessage(message)
+        this.messageSubject$.next({
+            message: message,
+            chatId: Number(this.channelId)
+        })
+        // this.botWizardService.sendPublicMessage(message)
     }
+
+    private async sendUnitMessage(ctx: TradeCtx, lines: string[]): Promise<void> {
+        const chatId = Number(ctx.unit.telegramChannelId)
+        if (isNaN(chatId)) {
+            throw new Error(`Invalid chat id: ${chatId}`)
+        }
+        this.sendChatMessage(chatId, lines)
+    }
+
+    private async sendChatMessage(chatId: number, lines: string[]) {
+        this.messageSubject$.next({
+            message: BotUtil.msgFrom(lines),
+            chatId: chatId
+        })
+    }
+
 
     public onFilledPosition(ctx: TradeCtx) {
         const lines = [
@@ -98,16 +131,15 @@ export class TelegramService {
         return this.sendUnitMessage(ctx, lines)
     }
 
-    private async sendUnitMessage(ctx: TradeCtx, lines: string[]): Promise<void> {
-        const chatId = Number(ctx.unit.telegramChannelId)
-        if (isNaN(chatId)) {
-            throw new Error(`Invalid chat id: ${chatId}`)
-        }
-        this.botService.sendUnitMessage(chatId, BotUtil.msgFrom(lines))
-    }
 
     private print$(input) {
         return `$${parseFloat(input)}`
+    }
+
+    private sendMessageToExpiredWizardChats(expiredWizardChatIds: number[]) {
+        expiredWizardChatIds.forEach(chatId => {
+          this.sendChatMessage(chatId, [`Dialog expired`])
+        })
     }
 
 }

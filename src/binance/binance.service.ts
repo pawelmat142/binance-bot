@@ -96,10 +96,6 @@ export class BinanceService implements OnModuleInit {
         }
         const units = this.unitService.units || []
         for (let unit of units) {
-            // TODO remove mock
-            if (unit.identifier !== 'ppp') {
-                return
-            }
             trade.unitIdentifier = unit.identifier
             const ctx = new TradeCtx({ trade, unit })
             if (await this.findInProgressTrade(ctx)) {
