@@ -227,8 +227,9 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             } 
             else {
                 await this.tradeService.openNextTakeProfit(ctx)
+                TradeUtil.addLog(`Opened next take profit ${ctx.trade._id}`, ctx, this.logger)
                 await this.tradeService.updateStopLoss(ctx)
-                TradeUtil.addLog(`Opened next take profit, moved stop loss ${ctx.trade._id}`, ctx, this.logger)
+                TradeUtil.addLog(`Moved stop loss ${ctx.trade._id}`, ctx, this.logger)
             }
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
