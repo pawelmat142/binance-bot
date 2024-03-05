@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { SignalMessage } from 'src/signal/signal-message';
 import { TradeUtil } from './trade-util';
 import { FuturesResult, Trade, TradeStatus } from './model/trade';
@@ -13,12 +13,14 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
+import { Subscription } from 'rxjs';
+import { error } from 'console';
 
 // TODO close the trade signal 
 
 
 @Injectable()
-export class BinanceService implements OnModuleInit {
+export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private readonly logger = new Logger(BinanceService.name)
 
@@ -31,8 +33,6 @@ export class BinanceService implements OnModuleInit {
         private readonly unitService: UnitService,
     ) {}
 
-    testTakeProfit() {
-    }
 
     async listSignalsTest(): Promise<SignalMessage[]> {
         const uri = 'http://193.56.240.228:8008/signal/list'
@@ -40,18 +40,34 @@ export class BinanceService implements OnModuleInit {
         return request.json()
     }
 
-    public listTrades() {
-        return this.
-        tradeModel.find().exec()
-    }
+    private signalSubscription: Subscription
+    private tradeEventSubscription: Subscription
 
 
     onModuleInit(): void {
-        this.signalService.tradeSubject$.subscribe({
-            next: signal => this.openTradesPerUnit(signal),
-            error: error => console.error(error)
-        })
-        this.unitService.tradeEventSubject.subscribe(this.onTradeEvent)
+        if (!this.signalSubscription) {
+            this.signalSubscription = this.signalService.tradeObservable$.subscribe({
+                next: this.openTradesPerUnit,
+                error: this.logger.error
+            })
+        }
+        if (!this.tradeEventSubscription) {
+            this.tradeEventSubscription = this.unitService.tradeEventObservable$.subscribe({
+                next: this.onTradeEvent,
+                error: console.error
+            })
+        }
+    }
+
+    onModuleDestroy() {
+        if (this.signalSubscription) {
+            this.signalSubscription.unsubscribe()
+            this.signalSubscription = undefined
+        }
+        if (this.tradeEventSubscription) {
+            this.tradeEventSubscription.unsubscribe()
+            this.tradeEventSubscription = undefined
+        }
     }
 
     private onTradeEvent = async (tradeEvent: TradeEventData) => {
@@ -59,7 +75,6 @@ export class BinanceService implements OnModuleInit {
         const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
 
         if (TradeUtil.isFilledOrder(eventTradeResult)) {
-            await this.waitUntilSaveTrade()
             const ctx = await this.prepareTradeContext(eventTradeResult, unit)
             if (ctx) {
                 this.onFilledOrder(ctx, eventTradeResult)
@@ -68,27 +83,7 @@ export class BinanceService implements OnModuleInit {
         // TODO on closed / on error
     }
 
-    private async prepareTradeContext(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
-        const trade = await this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            $or: [
-                { "futuresResult.orderId": eventTradeResult.orderId },
-                { "stopLossResult.orderId": eventTradeResult.orderId },
-                { "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId },
-            ]
-        }).exec()
-        if (!trade) {
-            this.unitService.addError(unit, `Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
-        }
-        return new TradeCtx({ unit, trade })
-    }
-
-    private async waitUntilSaveTrade() {
-        return new Promise(resolve => setTimeout(resolve, 1000))
-    }
-
-    private async openTradesPerUnit(signal: SignalMessage) {
+    private openTradesPerUnit = async (signal: SignalMessage) => {
         this.logger.debug('openTradesPerUnit')
         const trade = this.prepareTrade(signal)
         if (!trade.logs) {
@@ -108,6 +103,27 @@ export class BinanceService implements OnModuleInit {
         }
     }
 
+    private async prepareTradeContext(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
+        await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
+        const trade = await this.tradeModel.findOne({
+            unitIdentifier: unit.identifier,
+            $or: [
+                { "futuresResult.orderId": eventTradeResult.orderId },
+                { "stopLossResult.orderId": eventTradeResult.orderId },
+                { "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId },
+            ]
+        }).exec()
+        if (!trade) {
+            this.unitService.addError(unit, `Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
+            return
+        }
+        return new TradeCtx({ unit, trade })
+    }
+
+    private async waitUntilSaveTrade() {
+        return new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
     private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
         const trade = await this.tradeModel.findOne({
             "unitIdentifier": ctx.unit.identifier,
@@ -122,7 +138,6 @@ export class BinanceService implements OnModuleInit {
         }
         return false
     }
-
 
     private async openTradeForUnit(ctx: TradeCtx) {
         if (process.env.SKIP_TRADE === 'true') {
@@ -251,6 +266,7 @@ export class BinanceService implements OnModuleInit {
     }
 
     private async update(trade: Trade) {
+        trade.timestamp = new Date()
         return this.tradeModel.updateOne(
             { _id: trade._id },
             { $set: trade }

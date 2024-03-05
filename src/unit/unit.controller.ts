@@ -8,27 +8,6 @@ export class UnitController {
         private readonly unitService: UnitService,
     ) {}
 
-    @Get('test')
-    test() {
-        // return this.unitService.loadUnits()
-        const unit = this.unitService.getUnit('ppp')
-        return this.unitService.startListening(unit)
-
-        // return this.unitService.keepAliveListenKey(unit)
-        // return this.unitService.removeListenKey(unit.identifier)
-    }
-
-    @Get('socket/keepalive/:identifier')
-    keepAlive(@Param('identifier') identifier: string) {
-        const unit = this.unitService.getUnit(identifier)
-        return this.unitService.keepAliveListenKey(unit)
-    }
-
-
-    @Post('add-unit')
-    addUnit(@Body() body: any) {
-        return this.unitService.addUnit(body)
-    }
 
     @Get('clean-log/:identifier')
     cleanLogs(@Param('identifier') identifier: string) {
@@ -41,13 +20,16 @@ export class UnitController {
     }
 
 
+    @Get('socket/keepalive/:identifier')
+    keepAlive(@Param('identifier') identifier: string) {
+        const unit = this.unitService.getUnit(identifier)
+        return this.unitService.keepAliveListenKey(unit)
+    }
+
     @Get('socket/close/:identifier')
     socketClose(@Param('identifier') identifier: string) {
         const unit = this.unitService.getUnit(identifier)
         return this.unitService.stopListening(unit)
     }
-
-
-
 
 }

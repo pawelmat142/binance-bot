@@ -37,7 +37,6 @@ export class Unit {
     telegramChannelId?: string
 
 
-
     @Prop()
     listenKey?: string
 

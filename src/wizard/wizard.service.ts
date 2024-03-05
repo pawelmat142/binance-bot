@@ -37,7 +37,7 @@ export class WizardService {
     }
 
 
-    public onMessage = async (message: BotMessage): Promise<WizardResponse> => {
+    public onBotMessage = async (message: BotMessage): Promise<WizardResponse> => {
         const chatId = message.chat.id
         if (!chatId) {
           this.logger.error('Chat id not found')
@@ -75,7 +75,6 @@ export class WizardService {
         }
 
         var step = this.getStep(wizard)
-        console.log(step)
         const response = message.text 
             ? await step.process(message.text)
             : step.order
@@ -86,7 +85,7 @@ export class WizardService {
             wizard.order = response
 
         } else if (Array.isArray(response)) {
-            const switchWizardName = this.getWizardNameIfSwitch(response, wizard)
+            const switchWizardName = this.getWizardNameIfSwitch(response)
             if (switchWizardName) {
                 return { switch: switchWizardName, chatId: wizard.chatId }
             }
@@ -140,7 +139,7 @@ export class WizardService {
 
 
     // SWITCH
-    private getWizardNameIfSwitch(response: string[], currentWizard: Wizard): string {
+    private getWizardNameIfSwitch(response: string[]): string {
         const split = response[0].split(' ')
         const isSwitch = split[0] === 'switch'
         if (isSwitch) {

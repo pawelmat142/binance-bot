@@ -52,21 +52,4 @@ export class AppController {
     return this.signalService.list()
   }
 
-  @Get('/signal/list-valid')
-  listValidSignals() {
-    return this.signalService.listValid()
-  }
-
-  @Get('/trade/list')
-  listTrades() {
-    return this.binanceService.listTrades()
-  }
-
-
-  // FUTURES
-  @Get('/futures/test')
-  testFutures() {
-    return this.binanceService.testTakeProfit()
-  }
-
 }

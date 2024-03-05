@@ -45,7 +45,7 @@ export class BotWizardService implements OnModuleInit, OnModuleDestroy {
 
     onModuleInit() {
         if (!this.listener) {
-            this.listener = this.bot.on('message', this.onMessage)
+            this.listener = this.bot.on('message', this.onBotMessage)
         }
         if (!this.subscription) {
             this.subscription = this.telegramService.messageObs$.subscribe({
@@ -65,11 +65,10 @@ export class BotWizardService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-
-    private onMessage = async (message: BotMessage) => {
+    private onBotMessage = async (message: BotMessage) => {
         this.logger.debug(message.text)
 
-        const response = await this.wizardService.onMessage(message)
+        const response = await this.wizardService.onBotMessage(message)
         if (!response.chatId) return
 
         for(let message of (response.messages || [])) {

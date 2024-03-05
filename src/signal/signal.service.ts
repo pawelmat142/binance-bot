@@ -5,7 +5,7 @@ import { Model, Types } from 'mongoose';
 import { TelegramMessage } from 'src/telegram/message';
 import { SignalValidator } from './signal-validator';
 import { SignalUtil } from './signal-util';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { TelegramService } from 'src/telegram/telegram.service';
 
 @Injectable()
@@ -18,7 +18,11 @@ export class SignalService {
         private readonly telegramService: TelegramService,
     ) {}
 
-    tradeSubject$ = new Subject<SignalMessage>()
+    private tradeSubject$ = new Subject<SignalMessage>()
+
+    public get tradeObservable$(): Observable<SignalMessage> {
+        return this.tradeSubject$.asObservable()
+    }
 
     // messageFrom telegram -> new Signal -> validate -> save signal -> if valid -> new Trade -> open position per unit -> save per unit
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Unit } from './unit';
 import { Model } from 'mongoose';
 import { EVERY_45_MINUTES, getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
@@ -24,7 +24,11 @@ export class UnitService implements OnModuleInit {
 
     private _units$ = new BehaviorSubject<Unit[]>([])
 
-    public tradeEventSubject = new Subject<TradeEventData>()
+    private tradeEventSubject$ = new Subject<TradeEventData>()
+
+    public get tradeEventObservable$(): Observable<TradeEventData> {
+        return this.tradeEventSubject$.asObservable()
+    }
 
     public testBinanceSocketMessage() {
         const msg = {
@@ -87,9 +91,8 @@ export class UnitService implements OnModuleInit {
         }).exec()
         if (Array.isArray(units)) {
             this._units$.next(units)
-            const list = units.map(u => u.identifier).join(', ')
-            this.logger.log(`Loaded ${units.length} units: [ ${list} ]`)
-            this. startListeningForEveryUnit()
+            this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
+            this.startListeningForEveryUnit()
         }
     }
 
@@ -136,32 +139,31 @@ export class UnitService implements OnModuleInit {
             return
         }
         const listenKey = await this.fetchListenKey(unit)
-        const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
-        unit.socket = ws
+        unit.socket = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
 
-        ws.onopen = (event: Event) => {
+        unit.socket.onopen = (event: Event) => {
             this.logger.debug(`Opened socket for unit: ${unit.identifier}`)
         }
         
-        ws.onclose = (event: CloseEvent) => {
+        unit.socket.onclose = (event: CloseEvent) => {
             this.logger.debug(`Closed socket for unit ${unit.identifier}`)
             this.removeListenKey(unit)
         }
         
-        ws.onerror = (event: ErrorEvent) => {
+        unit.socket.onerror = (event: ErrorEvent) => {
             this.logger.debug(`Error on socket for unit: ${unit.identifier}`)
             this.logger.error(event.error)
             this.addError(unit, event.error)
             this.removeListenKey(unit)
         }
 
-        ws.onmessage = (event: MessageEvent) => {
+        unit.socket.onmessage = (event: MessageEvent) => {
             this.logger.log(`ON MESSAGE for ${unit.identifier}`)
             this.removeListenKeyIfMessageIsAboutClose(event, unit)
             const tradeEvent: TradeEventData = JSON.parse(event.data as string)
             if (TradeUtil.isTradeEvent(tradeEvent)) {
                 tradeEvent.unitIdentifier = unit.identifier
-                this.tradeEventSubject.next(tradeEvent)
+                this.tradeEventSubject$.next(tradeEvent)
             } else {
                 console.error('nottradeevent')
             }
@@ -222,7 +224,9 @@ export class UnitService implements OnModuleInit {
     }
 
     private async fetchUnit(identifier: string): Promise<Unit> {
-        const found = await this.unitModel.findOne({ identifier: identifier}).exec()
+        const found = await this.unitModel.findOne(
+            { identifier: identifier }, 
+            { listenJsons: false, tradeObjectIds: false }).exec()
         if (!found) throw new Error(`Could not found unit ${identifier}`)
         return found
     }
