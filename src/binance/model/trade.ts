@@ -29,6 +29,7 @@ export class FuturesResult {
     @Expose() @Prop() priceProtect: boolean // A boolean indicating if the order has price protection
     @Expose() @Prop() origType: string // The original type of the order
     @Expose() @Prop() updateTime: number // The time the order was last updated
+    @Expose() @Prop() timestamp: Date
 }
 
 @Schema()

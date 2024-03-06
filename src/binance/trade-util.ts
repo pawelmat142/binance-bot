@@ -121,6 +121,7 @@ export abstract class TradeUtil {
             stopPrice: tradeEvent.o?.sp,
             origType: tradeEvent.o?.ot,
             updateTime: tradeEvent.o?.t,
+            timestamp: new Date(tradeEvent.T)
         } as FuturesResult
     }
 

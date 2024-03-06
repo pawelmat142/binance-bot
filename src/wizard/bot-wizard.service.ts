@@ -34,8 +34,10 @@ export class BotWizardService implements OnModuleInit, OnModuleDestroy {
         await this.bot?.sendMessage(this.channelId, msg)
     }
   
-    public async sendUnitMessage(chatId: number, message: string) {
+    public async sendUnitMessage(chatId: number, _message: string) {
+        const message = _message
         await this.bot?.sendMessage(chatId, message)
+        // await this.bot?.sendMessage(chatId, message)
     }
 
     private listener: any
@@ -48,6 +50,7 @@ export class BotWizardService implements OnModuleInit, OnModuleDestroy {
             this.listener = this.bot.on('message', this.onBotMessage)
         }
         if (!this.subscription) {
+
             this.subscription = this.telegramService.messageObs$.subscribe({
                 next: (msg: TelegramMsg) => this.sendUnitMessage(msg.chatId, msg.message)
             })

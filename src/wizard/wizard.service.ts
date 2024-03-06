@@ -1,7 +1,7 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BotMessage } from './bot-message';
 import { BotUtil } from './bot.util';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { Wizard, WizardStep } from './wizard';
 import { NewUnitWizard } from './wizards/new-unit.wizard';
 import { ServicesService } from './services.service';
@@ -55,7 +55,8 @@ export class WizardService {
 
         if (response.switch && wizard instanceof UnitWizard) {
             this.stopWizard(wizard)
-            wizard = this.switchWizard(response.switch, wizard)
+            wizard = this.switchWizard(response.switch, wizard) as UnitWizard
+            await wizard.init()
             return await this.processWizardStep(wizard, message)
         }
 
@@ -77,9 +78,13 @@ export class WizardService {
             }
         }
 
+        if (input.toLowerCase() === 'back') {
+            wizard.order = 0
+        }
+
         var step = this.getStep(wizard)
         const response = message.text 
-            ? await step.process(message.text)
+            ? await step.process(message.text.toLowerCase())
             : step.order
 
 
@@ -93,7 +98,7 @@ export class WizardService {
                 return { switch: switchWizardName, chatId: wizard.chatId }
             }
 
-            messages.push(BotUtil.msgFrom(response))
+            messages.push(...response)
         }
 
         step = this.getStep(wizard)
@@ -128,6 +133,7 @@ export class WizardService {
             ? new StartWizard(unit, this.service) 
             : new NewUnitWizard(chatId, this.service)
         
+        await wizard.init()
         const wizards = this.wizards$.value
         wizards.push(wizard)
         this.wizards$.next(wizards)

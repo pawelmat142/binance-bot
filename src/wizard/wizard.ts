@@ -43,4 +43,15 @@ export class Wizard {
 
     protected readonly defaultStopPrompt = 'stop - to interrupt dialog'
 
+    private initialized = false
+
+    public init = async ()  => {
+        if (!this.initialized) {
+            await this._init()
+            this.initialized = true
+        }
+    }
+
+    protected _init = async () => {}
+
 }
