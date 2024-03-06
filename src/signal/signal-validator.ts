@@ -71,7 +71,7 @@ export class SignalValidator {
 
     public validate() {
         for(let i=0; i < this.lines.length; i++) {
-            this.findSignalSineAndSymbol(i)
+            this.findSignalSdneAndSymbol(i)
             this.findEntryZoneIndex(i)
             this.findTakeProfitLineIndex(i)
             this.findStopLossLineIndex(i)
@@ -112,7 +112,7 @@ export class SignalValidator {
         this.signal.tradeVariant = this.variant as TradeVariant
     }
 
-    private findSignalSineAndSymbol(lineIndex: number) {
+    private findSignalSdneAndSymbol(lineIndex: number) {
         if (this.tokenNameLineIndex !== -1) {
             return
         }
@@ -134,14 +134,29 @@ export class SignalValidator {
         if (line) {
             let words = line.split(' ')
                 .filter(word => !!word)
-                .filter(word => !word.toLowerCase().includes('short'))
-                .filter(word => !word.toLowerCase().includes('long'))
             if (words.length > 0) {
-                const token = words[0]
-                this.variant.symbol = TradeUtil.getSymbolByToken(token)
+                const sideIndex = words.findIndex(w => this.isShort(w) || this.isLong(w))
+                if (sideIndex !== -1) {
+                    const token = words[sideIndex + 1]
+                    this.variant.symbol = TradeUtil.getSymbolByToken(token)
+                }
             }
         }
     }
+
+
+    // private findSymbol(line: string) {
+    //     if (line) {
+    //         let words = line.split(' ')
+    //             .filter(word => !!word)
+    //             .filter(word => !word.toLowerCase().includes('short'))
+    //             .filter(word => !word.toLowerCase().includes('long'))
+    //         if (words.length > 0) {
+    //             const token = words[0]
+    //             this.variant.symbol = TradeUtil.getSymbolByToken(token)
+    //         }
+    //     }
+    // }
 
     private findEntryZoneIndex(lineIndex: number) {
         const line = this.lines[lineIndex]
