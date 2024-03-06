@@ -10,6 +10,7 @@ import { AmountWizard } from './wizards/amount.wizard';
 import { LogsWizard } from './wizards/logs.wizard';
 import { StartWizard } from './wizards/start.wizard';
 import { TradesWizard } from './wizards/trades.wizard';
+import { AdminWizard } from './wizards/admin.wizard';
 
 export interface WizardResponse {
     chatId: number
@@ -177,6 +178,8 @@ export class WizardService {
                 return new LogsWizard(currentWizard.getUnit(), this.service)
             case TradesWizard.name:
                 return new TradesWizard(currentWizard.getUnit(), this.service)
+            case AdminWizard.name:
+                return new AdminWizard(currentWizard.getUnit(), this.service)
             default: throw new Error('switch wizard error')
         }
     }

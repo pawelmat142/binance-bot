@@ -20,4 +20,8 @@ export abstract class BotUtil {
         return [`switch ${wizardName}`]
     }
 
+    public static isAdmin = (chatId: string): boolean => {
+        return chatId.toString() === process.env.ADMIN_CHAT_ID
+    }
+
 }

@@ -6,6 +6,7 @@ import { BotUtil } from "../bot.util";
 import { AmountWizard } from "./amount.wizard";
 import { LogsWizard } from "./logs.wizard";
 import { TradesWizard } from "./trades.wizard";
+import { AdminWizard } from "./admin.wizard";
 
 export class StartWizard extends UnitWizard {
 
@@ -42,6 +43,9 @@ export class StartWizard extends UnitWizard {
                 }
                 if (['trade', 't'].includes(input)) {
                     return BotUtil.switchResponse(TradesWizard.name)
+                }
+                if (BotUtil.isAdmin(this.unit.telegramChannelId) && ['admin', 'a'].includes(input)) {
+                    return BotUtil.switchResponse(AdminWizard.name)
                 }
                 return 0
             }

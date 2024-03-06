@@ -64,6 +64,7 @@ Stop Loss: 10.40$
 
             if (signal.valid) {
                 SignalUtil.addLog(`Signal is valid, openin trade... `, signal, this.logger)
+                
                 this.tradeSubject$.next(signal)
             } else {
                 throw new Error('Signal is not valid')
