@@ -27,23 +27,22 @@ export class SignalService {
     // messageFrom telegram -> new Signal -> validate -> save signal -> if valid -> new Trade -> open position per unit -> save per unit
 
     testOnReceiveMessage() {
+        this.logger.log('testOnReceiveMessage')
         const msg = `
-        LONG ETH 
-
-Very risky signal
-
+        Long АТОМ
+ 
 Entry Zone: 
-3450$ - 3550$ 
+12.50$ - 13.50$ 
 
 Take profits: 
-1️⃣3700$
-2️⃣3800$
-3️⃣3900$
-4️⃣4000$
+1️⃣15.50$
+2️⃣18.60$
+3️⃣21.20$
+4️⃣25.10$
 
-Open with 10x leverage
+Open with 5x leverage
 
-Stop Loss: 3350$
+Stop Loss: 10.40$   
         `
         this.onReceiveTelegramMessage({
             message: msg,
@@ -120,7 +119,7 @@ Stop Loss: 3350$
 
     private async verifyIfDuplicate(signal: SignalMessage) {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.log('SKIP PREVENT DUPLICATE')
+            this.logger.debug('SKIP PREVENT DUPLICATE')
             return
         } 
         const found = await this.signalModel.findOne(

@@ -47,10 +47,11 @@ export class BotWizardService implements OnModuleInit, OnModuleDestroy {
 
     onModuleInit() {
         if (!this.listener) {
-            this.listener = this.bot.on('message', this.onBotMessage)
+            if (process.env.SKIP_TELEGRAM !== 'true') {
+                this.listener = this.bot.on('message', this.onBotMessage)
+            }
         }
         if (!this.subscription) {
-
             this.subscription = this.telegramService.messageObs$.subscribe({
                 next: (msg: TelegramMsg) => this.sendUnitMessage(msg.chatId, msg.message)
             })

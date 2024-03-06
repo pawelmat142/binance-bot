@@ -74,7 +74,7 @@ export abstract class TradeUtil {
             throw new Error(`origQuantity could not be found`)
         }
         return queryParams({
-            symbol: ctx.trade.variant.symbol,
+            symbol: ctx.symbol,
             side: ctx.stopLossSide,
             type: TradeType.STOP_MARKET,
             quantity: quantity.toNumber(),
@@ -88,7 +88,7 @@ export abstract class TradeUtil {
 
     public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): string => {
         return queryParams({
-            symbol: ctx.trade.variant.symbol,
+            symbol: ctx.symbol,
             side: ctx.takeProfitSide,
             type: TradeType.TAKE_PROFIT_MARKET,
             quantity: quantity,

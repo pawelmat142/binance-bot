@@ -5,6 +5,7 @@ import { WizardStep } from "../wizard";
 import { BotUtil } from "../bot.util";
 import { AmountWizard } from "./amount.wizard";
 import { LogsWizard } from "./logs.wizard";
+import { TradesWizard } from "./trades.wizard";
 
 export class StartWizard extends UnitWizard {
 
@@ -20,6 +21,7 @@ export class StartWizard extends UnitWizard {
                 this.getActivateLine(),
                 `amount - to manage USDT`,
                 `log - to see logs`,
+                `trade - to see trades`,
                 this.defaultStopPrompt
             ],
             process: async (_input: string) => {
@@ -37,6 +39,9 @@ export class StartWizard extends UnitWizard {
                 }
                 if (input === 'log') {
                     return BotUtil.switchResponse(LogsWizard.name)
+                }
+                if (['trade', 't'].includes(input)) {
+                    return BotUtil.switchResponse(TradesWizard.name)
                 }
                 return 0
             }

@@ -25,7 +25,7 @@ export class CalculationsService implements OnModuleInit {
     
     @Cron(CronExpression.EVERY_HOUR)
     private async loadExchangeInfo() {
-        if (process.env.SKIP_TRADE) {
+        if (process.env.SKIP_TRADE === 'true') {
             this.logger.debug(`[SKIP] EXCHANGE INFO LOADING`)
             return
         }
@@ -71,11 +71,10 @@ export class CalculationsService implements OnModuleInit {
 
     public async getCurrentPrice(ctx: TradeCtx): Promise<number> {
         const uri = sign(`${TradeUtil.futuresUri}/ticker/24hr`, queryParams({
-            symbol: ctx.trade.variant.symbol,
+            symbol: ctx.symbol,
             timestamp: Date.now()
         }), ctx.unit)
 
-        
         const request = await fetch(uri, {
             headers: getHeaders(ctx.unit)
         })

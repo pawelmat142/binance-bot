@@ -29,7 +29,15 @@ export const getHeaders = (unit: Unit) => {
 }
 
 export const queryParams = (params: Object): string => {
-    return Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')
+    // return Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
+    // return Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')
+    const queryString = Object.keys(params).map(key => {
+        const value = params[key].toString()
+        const encoded = encodeURIComponent(value)
+        const keyValue = key + '=' + encoded
+        return keyValue
+    }).join('&')
+    return queryString
 }
 
 export const EVERY_45_MINUTES = '0 */45 * * * *'

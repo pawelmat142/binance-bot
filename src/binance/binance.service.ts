@@ -14,7 +14,6 @@ import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
 import { Subscription } from 'rxjs';
-import { error } from 'console';
 
 // TODO close the trade signal 
 
@@ -96,9 +95,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             if (await this.findInProgressTrade(ctx)) {
                 return
             }
-            TradeUtil.addLog('NOW IM TRADE', ctx, this.logger)
+            TradeUtil.addLog(`Opening trade ${ctx.side} ${ctx.symbol}`, ctx, this.logger)
             trade.timestamp = new Date()
-
             await this.openTradeForUnit(ctx)
         }
     }
@@ -125,6 +123,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
+        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
+            this.logger.debug('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
+            return false
+        } 
         const trade = await this.tradeModel.findOne({
             "unitIdentifier": ctx.unit.identifier,
             "futuresResult.side": ctx.side,
@@ -154,8 +156,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             TradeUtil.addError(error, ctx, this.logger)
             this.telegramService.tradeErrorMessage(ctx)
         } finally {
-            const saved = await this.save(ctx.trade)
-            TradeUtil.addLog(`Saved trade ${saved._id}`, ctx, this.logger)
+            const saved = await this.save(ctx)
         }
     }
 
@@ -190,8 +191,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
-            const saved = await this.update(ctx.trade)
-            TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
+            const saved = await this.update(ctx)
             this.telegramService.onFilledPosition(ctx)
         }
     }
@@ -211,8 +211,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
-            const saved = await this.update(ctx.trade)
-            TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
+            const saved = await this.update(ctx)
             this.telegramService.onFilledStopLoss(ctx)
         }
     }
@@ -234,8 +233,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
-            const saved = await this.update(ctx.trade)
-            TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
+            const saved = await this.update(ctx)
             this.telegramService.onFilledTakeProfit(ctx)
         }
     }
@@ -258,21 +256,29 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         return trade
     }
 
-    private async save(trade: Trade) {
-        trade._id = newObjectId()
-        const newTrade = new this.tradeModel(trade)
+    private async save(ctx: TradeCtx) {
+        if (process.env.SKIP_SAVE_TRADE === 'true') {
+            this.logger.debug('[SKIP] Saved trade')
+        }
+        ctx.trade._id = newObjectId()
+        const newTrade = new this.tradeModel(ctx.trade)
         newTrade.testMode = process.env.TEST_MODE === 'true'
         const saved = await newTrade.save()
+        TradeUtil.addLog(`Saved trade ${saved._id}`, ctx, this.logger)
         return saved
     }
 
-    private async update(trade: Trade) {
-        trade.timestamp = new Date()
-        return this.tradeModel.updateOne(
-            { _id: trade._id },
-            { $set: trade }
+    private async update(ctx: TradeCtx) {
+        if (process.env.SKIP_SAVE_TRADE === 'true') {
+            this.logger.debug('[SKIP] Updated trade')
+        }
+        ctx.trade.timestamp = new Date()
+        const updated = await this.tradeModel.updateOne(
+            { _id: ctx.trade._id },
+            { $set: ctx.trade }
         ).exec()
-
+        TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
+        return updated
     }
 
 }

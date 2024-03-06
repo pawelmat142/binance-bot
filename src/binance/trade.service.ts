@@ -6,7 +6,6 @@ import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
-import { Unit } from 'src/unit/unit';
 
 @Injectable()
 export class TradeService {
@@ -176,6 +175,7 @@ export class TradeService {
             headers: getHeaders(ctx.unit)
         })
         const response: FuturesResult = await request.json()
+        TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
         return response
     }
 
@@ -208,12 +208,13 @@ export class TradeService {
     public async setPositionLeverage(ctx: TradeCtx) {
         const lever = TradeUtil.getLever(ctx).toNumber()
         const params = queryParams({
-            symbol: ctx.trade.variant.symbol,
+            symbol: ctx.symbol,
             leverage: lever,
             timestamp: Date.now(),
             timeInForce: 'GTC',
         })
-        const request = await fetch(this.signUrlWithParams(`/leverage`, ctx, params), {
+        const url = this.signUrlWithParams(`/leverage`, ctx, params)
+        const request = await fetch(url, {
             method: 'POST',
             headers: getHeaders(ctx.unit)
         })
