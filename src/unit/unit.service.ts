@@ -131,7 +131,7 @@ export class UnitService implements OnModuleInit {
 
     private async startListeningForEveryUnit() {
         if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
-            this.logger.debug(`[SKIP] listening websockets ]`)
+            this.logger.debug(`[SKIP] listening websockets`)
             return
         }
         const units = this._units$.value
@@ -148,23 +148,23 @@ export class UnitService implements OnModuleInit {
         const listenKey = await this.fetchListenKey(unit)
         unit.socket = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
 
-        unit.socket.onopen = function (event: Event) {
+        unit.socket.onopen = (event: Event) => {
             this.logger.debug(`Opened socket for unit: ${unit.identifier}`)
         }
         
-        unit.socket.onclose = function (event: CloseEvent) {
+        unit.socket.onclose = (event: CloseEvent) => {
             this.logger.debug(`Closed socket for unit ${unit.identifier}`)
             this.removeListenKey(unit)
         }
         
-        unit.socket.onerror = function (event: ErrorEvent) {
+        unit.socket.onerror = (event: ErrorEvent) => {
             this.logger.debug(`Error on socket for unit: ${unit.identifier}`)
             this.logger.error(event.error)
             this.addError(unit, event.error)
             this.removeListenKey(unit)
         }
 
-        unit.socket.onmessage = function (event: MessageEvent) {
+        unit.socket.onmessage = (event: MessageEvent) => {
             this.logger.log(`ON MESSAGE for ${unit.identifier}`)
             this.removeListenKeyIfMessageIsAboutClose(event, unit)
             const tradeEvent: TradeEventData = JSON.parse(event.data as string)
