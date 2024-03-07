@@ -121,6 +121,7 @@ export abstract class TradeUtil {
             stopPrice: tradeEvent.o?.sp,
             origType: tradeEvent.o?.ot,
             updateTime: tradeEvent.o?.t,
+            averagePrice: tradeEvent.o?.ap,
             timestamp: new Date(tradeEvent.T)
         } as FuturesResult
     }
@@ -156,8 +157,7 @@ export abstract class TradeUtil {
             return null
         }
         filledTakeProfits.sort((a, b) => b.order - a.order)
-        const lastFilledTakeProfit = filledTakeProfits[0]
-        return lastFilledTakeProfit
+        return filledTakeProfits[0]
     }
 
     public static getLever(ctx: TradeCtx): Decimal {
@@ -171,6 +171,8 @@ export abstract class TradeUtil {
 
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
+
+
         const takeProfits = ctx.trade.variant.takeProfits ?? []
         let stopLossQuantity = new Decimal(ctx.origQuantity)
         for (let takeProfit of takeProfits) {
@@ -187,21 +189,20 @@ export abstract class TradeUtil {
     public static getStopLossPrice = (ctx: TradeCtx): number => {
         const lastFilledTakeProfit = TradeUtil.lastFilledTakeProfit(ctx)
         if (lastFilledTakeProfit) {
-            const order = lastFilledTakeProfit.order
+            const order = Number(lastFilledTakeProfit.order)
             if (order === 0) {
-                const entryPrice = Number(ctx.trade.futuresResult.price)
+                const entryPrice = Number(ctx.trade.entryPrice)
                 if (!isNaN(entryPrice)) {
                     return entryPrice
                 }
-            }
-            if (order > 0) {
-                const stopLossPrice = ctx.trade.variant.takeProfits[order-1].price
+            } else if (order > 0) {
+                const stopLossPrice = Number(ctx.trade.variant.takeProfits[order-1].price)
                 if (!isNaN(stopLossPrice)) {
                     return stopLossPrice
                 }
             }
         }
-        return ctx.trade.variant.stopLoss
+        return Number(ctx.trade.variant.stopLoss)
     }
 
  

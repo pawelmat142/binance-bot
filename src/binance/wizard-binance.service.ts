@@ -48,7 +48,7 @@ export class WizardBinanceService {
     }
 
 
-    public async moveStopLoss(order: FuturesResult, price: number, unit: Unit): Promise<string> {
+    public async moveStopLoss(order: FuturesResult, stopLossPrice: number, unit: Unit): Promise<string> {
         try {
             const trade = await this.tradeModel.findOne({
                 unitIdentifier: unit.identifier,
@@ -57,25 +57,9 @@ export class WizardBinanceService {
             if (!trade) {
                 return `Trade not found`
             }
-            console.log(trade)
-    
             const ctx = new TradeCtx({ unit, trade })
-            const closeResult = await this.tradeService.closeOrder(ctx, trade.stopLossResult.orderId)
-            console.log('closeResult')
-            console.log(closeResult)
-            const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
-            console.log('stopLossQuantity')
-            console.log(stopLossQuantity)
-            const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, price)
-            console.log('params')
-            console.log(params)
-            const result = await this.tradeService.placeOrder(params, ctx)
-            console.log('result')
-            console.log(result)
-            trade.stopLossResult = result
+            await this.tradeService.moveStopLoss(ctx, stopLossPrice)
             const update = await this.binanceService.update(ctx)
-            console.log('update')
-            console.log(update)
             return 'success'
         } catch(error) {
             return 'error'

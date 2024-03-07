@@ -218,7 +218,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private async onFilledTakeProfit(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         try {
-            this.updateTakeProfit(eventTradeResult, ctx)
+            this.updateFilledTakeProfit(eventTradeResult, ctx)
 
             if (TradeUtil.everyTakeProfitFilled(ctx)) {
                 await this.tradeService.closeStopLoss(ctx)
@@ -227,8 +227,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             else {
                 await this.tradeService.openNextTakeProfit(ctx)
                 TradeUtil.addLog(`Opened next take profit ${ctx.trade._id}`, ctx, this.logger)
-                await this.tradeService.updateStopLoss(ctx)
-                TradeUtil.addLog(`Moved stop loss ${ctx.trade._id}`, ctx, this.logger)
+                await this.tradeService.moveStopLoss(ctx)
+                TradeUtil.addLog(`Moved stop loss with price ${ctx.trade._id}`, ctx, this.logger)
             }
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
@@ -238,11 +238,11 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private updateTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx) {
+    private updateFilledTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx) {
         const takeProfits = ctx.trade.variant.takeProfits
         const tp = takeProfits.find(t => t.reuslt?.orderId === eventTradeResult.orderId)
         if (!tp) throw new Error(`Could not find TP with orderId: ${eventTradeResult.orderId} in found trade ${ctx.trade._id}`)
-        TradeUtil.addLog(`Filled take profit: ${tp.order} for trade: ${ctx.trade._id}`, ctx, this.logger)
+        TradeUtil.addLog(`Filled take profit: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`, ctx, this.logger)
         tp.reuslt = eventTradeResult
     }
 
@@ -261,10 +261,12 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.logger.debug('[SKIP] Saved trade')
         }
         ctx.trade._id = newObjectId()
+        ctx.trade.timestamp = new Date()
         const newTrade = new this.tradeModel(ctx.trade)
         newTrade.testMode = process.env.TEST_MODE === 'true'
+
+        TradeUtil.addLog(`Saving trade ${newTrade._id}`, ctx, this.logger)
         const saved = await newTrade.save()
-        TradeUtil.addLog(`Saved trade ${saved._id}`, ctx, this.logger)
         return saved
     }
 
@@ -273,11 +275,11 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.logger.debug('[SKIP] Updated trade')
         }
         ctx.trade.timestamp = new Date()
+        TradeUtil.addLog(`Updating trade ${ctx.trade._id}`, ctx, this.logger)
         const updated = await this.tradeModel.updateOne(
             { _id: ctx.trade._id },
             { $set: ctx.trade }
         ).exec()
-        TradeUtil.addLog(`Updated trade ${ctx.trade._id}`, ctx, this.logger)
         return updated
     }
 

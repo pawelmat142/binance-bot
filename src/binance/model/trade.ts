@@ -17,6 +17,7 @@ export class FuturesResult {
     @Expose() @Prop() status: string // The current status of the order (e.g., ‘FILLED’, ‘NEW’).
     @Expose() @Prop() clientOrderId: string //The unique identifier for the order provided by the client
     @Expose() @Prop() price: string // The price per unit for the order
+    @Expose() @Prop() averagePrice: string // The time the order was last updated
     @Expose() @Prop() origQty: string //The original quantity of the order
     @Expose() @Prop() executedQty: string // The quantity of the order that has been executed
     @Expose() @Prop() cumQuote: string // The cumulative quote asset transacted quantity

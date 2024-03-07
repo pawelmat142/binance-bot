@@ -64,13 +64,13 @@ export class TradeService {
         }
     }
 
-    public async stopLossRequest(ctx: TradeCtx): Promise<void> {
+    public async stopLossRequest(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         if (!ctx.trade.variant.stopLoss) {
             return
         }
 
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
-        const stopLossPrice = TradeUtil.getStopLossPrice(ctx)
+        const stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : Number(forcedPrice)
         TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
 
         const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)
@@ -86,32 +86,20 @@ export class TradeService {
     }
 
 
-
-
-    public async updateStopLoss(ctx: TradeCtx): Promise<void> {
+    public async moveStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         await this.closeStopLoss(ctx)
-        await this.stopLossRequest(ctx)
+        await this.stopLossRequest(ctx, forcedPrice)
     }
+
 
     public async closeStopLoss(ctx: TradeCtx): Promise<void> {
         const trade = ctx.trade
         const stopLossOrderId = trade.stopLossResult?.orderId
         if (!stopLossOrderId) {
-            throw new Error(`Could not find SL result in found trade ${trade._id}`)
+            throw new Error(`Could not find SL with id: ${stopLossOrderId}, result in trade ${trade._id}`)
         }
         trade.stopLossResult = await this.closeOrder(ctx, stopLossOrderId)
-        TradeUtil.addLog(`Closed stop loss for trade: ${trade._id}`, ctx, this.logger)
-    }
-
-    public async takeProfitRequests(ctx: TradeCtx) {
-        if (!ctx.origQuantity.equals(new Decimal(ctx.takeProfitQuentitesSum))) {
-            TradeUtil.addWarning(`takeProfitQuentitesSum ${ctx.takeProfitQuentitesSum} !== origQuantity ${ctx.origQuantity}`, ctx, this.logger)
-            await this.takeProfitRequest(ctx, ctx.trade?.variant?.takeProfits[0], ctx.origQuantity.toNumber())
-        } else {
-            for (let tp of ctx.trade?.variant?.takeProfits ?? []) {
-                await this.takeProfitRequest(ctx, tp)
-            }
-        }
+        TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
 
@@ -221,5 +209,21 @@ export class TradeService {
         const url = `${TradeUtil.futuresUri}${urlPath}`
         return sign(url, params, tradeContext.unit)
     }
+
+
+
+
+    
+    public async takeProfitRequests(ctx: TradeCtx) {
+        if (!ctx.origQuantity.equals(new Decimal(ctx.takeProfitQuentitesSum))) {
+            TradeUtil.addWarning(`takeProfitQuentitesSum ${ctx.takeProfitQuentitesSum} !== origQuantity ${ctx.origQuantity}`, ctx, this.logger)
+            await this.takeProfitRequest(ctx, ctx.trade?.variant?.takeProfits[0], ctx.origQuantity.toNumber())
+        } else {
+            for (let tp of ctx.trade?.variant?.takeProfits ?? []) {
+                await this.takeProfitRequest(ctx, tp)
+            }
+        }
+    }
+
 
 }
