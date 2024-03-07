@@ -17,8 +17,11 @@ export const sign = (uri: string, queryString: string, unit: Unit): string => {
     return `${uri}?${queryString}${andSeparator}signature=${getSignature(queryString, unit)}`
 }
 
-export const newObjectId = (): string => new Types.ObjectId().toHexString()
+export const uriWith = (uri: string, queryString: string): string => {
+    return `${uri}?${queryString}`
+}
 
+export const newObjectId = (): string => new Types.ObjectId().toHexString()
 
 
 export const getHeaders = (unit: Unit) => {

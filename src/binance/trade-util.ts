@@ -168,5 +168,41 @@ export abstract class TradeUtil {
         const takeProfits = ctx.trade.variant.takeProfits
         return takeProfits.every(tp => tp.reuslt?.status === TradeStatus.FILLED)
     }
+
+
+    public static calculateStopLossQuantity = (ctx: TradeCtx) => {
+        const takeProfits = ctx.trade.variant.takeProfits ?? []
+        let stopLossQuantity = new Decimal(ctx.origQuantity)
+        for (let takeProfit of takeProfits) {
+            if (takeProfit.reuslt?.status === TradeStatus.FILLED) {
+                const executedTakeProfitQuantity = Number(takeProfit.reuslt?.origQty)
+                if (!isNaN(executedTakeProfitQuantity)) {
+                    stopLossQuantity = stopLossQuantity.minus(new Decimal(executedTakeProfitQuantity))
+                }
+            }
+        }
+        return stopLossQuantity
+    }
+
+    public static getStopLossPrice = (ctx: TradeCtx): number => {
+        const lastFilledTakeProfit = TradeUtil.lastFilledTakeProfit(ctx)
+        if (lastFilledTakeProfit) {
+            const order = lastFilledTakeProfit.order
+            if (order === 0) {
+                const entryPrice = Number(ctx.trade.futuresResult.price)
+                if (!isNaN(entryPrice)) {
+                    return entryPrice
+                }
+            }
+            if (order > 0) {
+                const stopLossPrice = ctx.trade.variant.takeProfits[order-1].price
+                if (!isNaN(stopLossPrice)) {
+                    return stopLossPrice
+                }
+            }
+        }
+        return ctx.trade.variant.stopLoss
+    }
+
  
 }

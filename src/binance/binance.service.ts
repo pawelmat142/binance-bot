@@ -268,7 +268,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         return saved
     }
 
-    private async update(ctx: TradeCtx) {
+    public async update(ctx: TradeCtx) {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
             this.logger.debug('[SKIP] Updated trade')
         }

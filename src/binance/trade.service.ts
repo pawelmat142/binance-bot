@@ -68,16 +68,11 @@ export class TradeService {
         if (!ctx.trade.variant.stopLoss) {
             return
         }
-        const takeProfits = ctx.trade.variant.takeProfits ?? []
-        let stopLossQuantity = new Decimal(ctx.origQuantity)
-        for (let takeProfit of takeProfits) {
-            const executedTakeProfitQuantity = Number(takeProfit.reuslt?.origQty)
-            if (!isNaN(executedTakeProfitQuantity)) {
-                stopLossQuantity = stopLossQuantity.minus(new Decimal(executedTakeProfitQuantity))
-            }
-        }
 
-        const stopLossPrice = this.getStopLossPrice(ctx)
+        const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
+        const stopLossPrice = TradeUtil.getStopLossPrice(ctx)
+        TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
+
         const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)
         const result = await this.placeOrder(params, ctx)
         ctx.trade.stopLossTime = new Date()
@@ -90,25 +85,7 @@ export class TradeService {
         TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
     }
 
-    private getStopLossPrice(ctx: TradeCtx): number {
-        const lastFilledTakeProfit = TradeUtil.lastFilledTakeProfit(ctx)
-        if (lastFilledTakeProfit) {
-            const order = lastFilledTakeProfit.order
-            if (order === 0) {
-                const entryPrice = Number(ctx.trade.futuresResult.price)
-                if (!isNaN(entryPrice)) {
-                    return entryPrice
-                }
-            }
-            if (order > 0) {
-                const stopLossPrice = ctx.trade.variant.takeProfits[order-1].price
-                if (!isNaN(stopLossPrice)) {
-                    return stopLossPrice
-                }
-            }
-        }
-        return ctx.trade.variant.stopLoss
-    }
+
 
 
     public async updateStopLoss(ctx: TradeCtx): Promise<void> {
@@ -151,7 +128,7 @@ export class TradeService {
         }
     }
 
-    public closeOrder(ctx: TradeCtx, orderId: number) {
+    public closeOrder(ctx: TradeCtx, orderId: number): Promise<FuturesResult> {
         const params = queryParams({
             symbol: ctx.symbol,
             orderId: orderId,
@@ -226,7 +203,7 @@ export class TradeService {
     } 
 
 
-    private async placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
+    public async placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
         const request = await fetch(this.signUrlWithParams(path, ctx, params), {
             method: method ?? 'POST',

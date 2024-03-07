@@ -44,7 +44,6 @@ export class CalculationsService implements OnModuleInit {
     }
 
 
-
     public getExchangeInfo(symbol: string): FuturesExchangeInfoSymbol {
         this.checkInitialized()
         const symbolInfo = this._exchangeInfo$.value?.symbols.find(s => s.symbol === symbol)

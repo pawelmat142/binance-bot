@@ -8,6 +8,7 @@ import { CalculationsService } from './calculations.service';
 import { SignalModule } from 'src/signal/signal.module';
 import { TradeService } from './trade.service';
 import { UnitModule } from 'src/unit/unit.module';
+import { WizardBinanceService } from './wizard-binance.service';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { UnitModule } from 'src/unit/unit.module';
       schema: TradeSchema,
     }]),
   ],
-  providers: [BinanceService, CalculationsService, TradeService],
-  exports: [BinanceService, TradeService]
+  providers: [BinanceService, CalculationsService, TradeService, WizardBinanceService],
+  exports: [BinanceService, TradeService, WizardBinanceService]
 })
 export class BinanceModule {}
