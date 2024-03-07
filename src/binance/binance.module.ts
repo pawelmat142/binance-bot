@@ -9,6 +9,7 @@ import { SignalModule } from 'src/signal/signal.module';
 import { TradeService } from './trade.service';
 import { UnitModule } from 'src/unit/unit.module';
 import { WizardBinanceService } from './wizard-binance.service';
+import { DuplicateService } from './duplicate.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { WizardBinanceService } from './wizard-binance.service';
       schema: TradeSchema,
     }]),
   ],
-  providers: [BinanceService, CalculationsService, TradeService, WizardBinanceService],
+  providers: [BinanceService, CalculationsService, TradeService, WizardBinanceService, DuplicateService],
   exports: [BinanceService, TradeService, WizardBinanceService]
 })
 export class BinanceModule {}

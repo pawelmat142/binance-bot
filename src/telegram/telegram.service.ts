@@ -36,7 +36,7 @@ export class TelegramService {
         // this.botWizardService.sendPublicMessage(message)
     }
 
-    private async sendUnitMessage(ctx: TradeCtx, lines: string[]): Promise<void> {
+    public async sendUnitMessage(ctx: TradeCtx, lines: string[]): Promise<void> {
         const chatId = Number(ctx.unit.telegramChannelId)
         if (isNaN(chatId)) {
             throw new Error(`Invalid chat id: ${chatId}`)

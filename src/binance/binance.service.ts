@@ -14,6 +14,7 @@ import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
 import { Observer, Subscription } from 'rxjs';
+import { DuplicateService } from './duplicate.service';
 
 // TODO close the trade signal 
 
@@ -30,6 +31,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         private readonly tradeService: TradeService,
         private readonly telegramService: TelegramService,
         private readonly unitService: UnitService,
+        private readonly duplicateService: DuplicateService,
     ) {}
 
 
@@ -66,18 +68,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    filledOrderIdsPreventDuplicateStorafe: number[] = []
-
-    private preventDuplicate(eventTradeResult: FuturesResult, unit: Unit) {
-        const orderId = eventTradeResult.orderId
-        if (this.filledOrderIdsPreventDuplicateStorafe.includes(eventTradeResult.orderId)) {
-            this.unitService.addLog(unit, `Prevented duplicate  ${eventTradeResult.side} ${eventTradeResult.symbol},orderId: ${orderId}`)
-            return true
-        }
-        this.filledOrderIdsPreventDuplicateStorafe.push(eventTradeResult.orderId)
-        return false
-    }
-
     tradeEventObserver(): Observer<TradeEventData> {
         return {
             next: async (tradeEvent: TradeEventData) => {
@@ -85,7 +75,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
         
                 if (TradeUtil.isFilledOrder(eventTradeResult)) {
-                    if (this.preventDuplicate(eventTradeResult, unit)) {
+                    if (this.duplicateService.preventDuplicate(eventTradeResult, unit)) {
                         return
                     }
                     const ctx = await this.prepareTradeContext(eventTradeResult, unit)
@@ -98,6 +88,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             complete: () => {}
         }
     }
+
+
 
     private openTradesPerUnit = async (signal: SignalMessage) => {
         this.logger.debug('openTradesPerUnit')
