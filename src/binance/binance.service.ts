@@ -13,7 +13,7 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
-import { Subscription } from 'rxjs';
+import { Observer, Subscription } from 'rxjs';
 
 // TODO close the trade signal 
 
@@ -51,10 +51,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             })
         }
         if (!this.tradeEventSubscription) {
-            this.tradeEventSubscription = this.unitService.tradeEventObservable$.subscribe({
-                next: this.onTradeEvent,
-                error: console.error
-            })
+            this.tradeEventSubscription = this.unitService.tradeEventObservable$.subscribe(this.tradeEventObserver)
         }
     }
 
@@ -69,17 +66,37 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private onTradeEvent = async (tradeEvent: TradeEventData) => {
-        const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
-        const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
+    filledOrderIdsPreventDuplicateStorafe: number[] = []
 
-        if (TradeUtil.isFilledOrder(eventTradeResult)) {
-            const ctx = await this.prepareTradeContext(eventTradeResult, unit)
-            if (ctx) {
-                this.onFilledOrder(ctx, eventTradeResult)
-            }
+    private preventDuplicate(eventTradeResult: FuturesResult, unit: Unit) {
+        const orderId = eventTradeResult.orderId
+        if (this.filledOrderIdsPreventDuplicateStorafe.includes(eventTradeResult.orderId)) {
+            this.unitService.addLog(unit, `Prevented duplicate  ${eventTradeResult.side} ${eventTradeResult.symbol},orderId: ${orderId}`)
+            return true
         }
-        // TODO on closed / on error
+        this.filledOrderIdsPreventDuplicateStorafe.push(eventTradeResult.orderId)
+        return false
+    }
+
+    tradeEventObserver(): Observer<TradeEventData> {
+        return {
+            next: async (tradeEvent: TradeEventData) => {
+                const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
+                const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
+        
+                if (TradeUtil.isFilledOrder(eventTradeResult)) {
+                    if (this.preventDuplicate(eventTradeResult, unit)) {
+                        return
+                    }
+                    const ctx = await this.prepareTradeContext(eventTradeResult, unit)
+                    if (ctx) {
+                        this.onFilledOrder(ctx, eventTradeResult)
+                    }
+                }
+            },
+            error: console.error,
+            complete: () => {}
+        }
     }
 
     private openTradesPerUnit = async (signal: SignalMessage) => {
