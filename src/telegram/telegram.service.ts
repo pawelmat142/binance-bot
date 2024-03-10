@@ -56,8 +56,6 @@ export class TelegramService {
         const lines = [
             `${ctx.side} ${ctx.symbol} FILLED`,
             `entryPrice: ${this.print$(ctx.trade.entryPrice)}`,
-            // TODO temp
-            `origQuantity: ${ctx.origQuantity}`,
             `${ctx.trade._id}`
         ]
         this.addStopLossLine(ctx, lines)
@@ -78,10 +76,8 @@ export class TelegramService {
     public onFilledStopLoss(ctx: TradeCtx) {
         const lines = [
             `Filled stop loss ${ctx.side} ${ctx.symbol}`,
-            `price: ${this.print$(ctx.trade.stopLossResult.price)}`,
+            `price: ${this.print$(ctx.trade.stopLossResult.averagePrice)}`,
             `take profits should be closed automatically`,
-            // TODO temp
-            `origQuantity: ${ctx.trade.stopLossResult.origQty}`,
             `${ctx.trade._id}`
         ]
         this.sendUnitMessage(ctx, lines)
@@ -107,8 +103,6 @@ export class TelegramService {
     public onFilledTakeProfit(ctx: TradeCtx) {
         const lines = [
             `Filled TP ${ctx.side} ${ctx.symbol}`,
-            // TODO temporary
-            `${ctx.trade._id}`
         ]
         this.addTakeProfitLines(ctx, lines)
         this.addStopLossLine(ctx, lines)

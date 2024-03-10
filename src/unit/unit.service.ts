@@ -146,25 +146,25 @@ export class UnitService implements OnModuleInit {
             return
         }
         const listenKey = await this.fetchListenKey(unit)
-        unit.socket = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
+        const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
 
-        unit.socket.onopen = (event: Event) => {
-            this.logger.debug(`Opened socket for unit: ${unit.identifier}`)
+        ws.onopen = (event: Event) => {
+            this.addLog(unit, `Opened socket for unit: ${unit.identifier}`)
         }
         
-        unit.socket.onclose = (event: CloseEvent) => {
-            this.logger.debug(`Closed socket for unit ${unit.identifier}`)
+        ws.onclose = (event: CloseEvent) => {
+            this.addLog(unit, `Closed socket for unit: ${unit.identifier}`)
             this.removeListenKey(unit)
         }
         
-        unit.socket.onerror = (event: ErrorEvent) => {
-            this.logger.debug(`Error on socket for unit: ${unit.identifier}`)
-            this.logger.error(event.error)
+        ws.onerror = (event: ErrorEvent) => {
+            this.addError(unit, `Error on socket for unit: ${unit.identifier}`)
+            this.addError(unit, `event.error`)
             this.addError(unit, event.error)
             this.removeListenKey(unit)
         }
 
-        unit.socket.onmessage = (event: MessageEvent) => {
+        ws.onmessage = (event: MessageEvent) => {
             this.logger.log(`ON MESSAGE for ${unit.identifier}`)
             this.removeListenKeyIfMessageIsAboutClose(event, unit)
             const tradeEvent: TradeEventData = JSON.parse(event.data as string)
@@ -176,6 +176,7 @@ export class UnitService implements OnModuleInit {
             }
             this.addLog(unit, event.data)
         }
+        unit.socket = ws
     }
 
 

@@ -40,7 +40,6 @@ export class AdminWizard extends UnitWizard {
 
 
     private sendSignalTelegramMessageToMe(message: string) {
-        console.log('sendSignalTelegramMessageToMe')
         const telegramMessage = {
             message: message,
             id: Date.now()

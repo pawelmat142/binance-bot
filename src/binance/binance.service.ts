@@ -13,7 +13,7 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
-import { Observer, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
 
 // TODO close the trade signal 
@@ -53,7 +53,24 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             })
         }
         if (!this.tradeEventSubscription) {
-            this.tradeEventSubscription = this.unitService.tradeEventObservable$.subscribe(this.tradeEventObserver)
+            this.tradeEventSubscription = this.unitService.tradeEventObservable$.subscribe({
+                next: async (tradeEvent: TradeEventData) => {
+                    const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
+                    const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
+            
+                    if (TradeUtil.isFilledOrder(eventTradeResult)) {
+                        if (this.duplicateService.preventDuplicate(eventTradeResult, unit)) {
+                            return
+                        }
+                        const ctx = await this.prepareTradeContext(eventTradeResult, unit)
+                        if (ctx) {
+                            this.onFilledOrder(ctx, eventTradeResult)
+                        }
+                    }
+                },
+                error: console.error,
+                complete: () => {}
+            })
         }
     }
 
@@ -68,31 +85,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    tradeEventObserver(): Observer<TradeEventData> {
-        return {
-            next: async (tradeEvent: TradeEventData) => {
-                const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
-                const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
-        
-                if (TradeUtil.isFilledOrder(eventTradeResult)) {
-                    if (this.duplicateService.preventDuplicate(eventTradeResult, unit)) {
-                        return
-                    }
-                    const ctx = await this.prepareTradeContext(eventTradeResult, unit)
-                    if (ctx) {
-                        this.onFilledOrder(ctx, eventTradeResult)
-                    }
-                }
-            },
-            error: console.error,
-            complete: () => {}
-        }
-    }
-
-
 
     private openTradesPerUnit = async (signal: SignalMessage) => {
-        this.logger.debug('openTradesPerUnit')
         const trade = this.prepareTrade(signal)
         if (!trade.logs) {
             trade.logs = []
@@ -143,7 +137,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             "futuresResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] }
         })
         if (trade) {
-            // TODO send msg to unit
             this.unitService.addLog(ctx.unit, `Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}`)
             return true
         }

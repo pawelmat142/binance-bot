@@ -46,7 +46,6 @@ export class TradesWizard extends UnitWizard {
             process: async (input: string) => {
                 const symbol = input.includes('usdt') ? input.toUpperCase() : `${input.toUpperCase()}USDT`
                 const sl = this.slOrders.find(s => s.symbol === symbol)
-                console.log(sl)
                 if (sl) {
                     this.selectedOrder = sl
                     return 2
