@@ -159,8 +159,6 @@ export abstract class TradeUtil {
 
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-
-
         const takeProfits = ctx.trade.variant.takeProfits ?? []
         let stopLossQuantity = new Decimal(ctx.origQuantity)
         for (let takeProfit of takeProfits) {

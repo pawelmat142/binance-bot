@@ -3,6 +3,8 @@ import { ServicesService } from "../services.service"
 import { WizardStep } from "../wizard"
 import { UnitWizard } from "./unit-wizard"
 import { WizBtn } from "./wizard-buttons"
+import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
+import { BotUtil } from "../bot.util"
 
 export class AmountWizard extends UnitWizard {
 
@@ -44,7 +46,11 @@ export class AmountWizard extends UnitWizard {
                         return !!result ? 5 : 0
 
                     case WizBtn.balance:
-                        return 4
+                        const usdtInfo = await this.services.binance.getBalance(this.unit)
+                        if (!usdtInfo) return 0
+                        this.order = 4
+                        // TODO show also transactions pending USDT
+                        return this.getUsdtInfoMessage(usdtInfo)
 
                     default: 
                         return 0
@@ -96,12 +102,21 @@ export class AmountWizard extends UnitWizard {
             close: true
         }, {
             order: 4,
-            message: [ `BALANCE TODO`],
             close: true
         }, {
             order: 5,
             message: [`100$ per BTC transaction is ${this.unit?.allow100perBtcTransaction ? 'ALLOWED' : 'DENIED'} now`],
             close: true
         }]
+    }
+
+    private getUsdtInfoMessage(usdtInfo: BinanceFuturesAccountInfo): string[] {
+        console.log(usdtInfo)
+        return [`TODO: experimental:
+balance: ${BotUtil.fixValue(usdtInfo.balance)}$
+crossWalletBalance: ${BotUtil.fixValue(usdtInfo.crossWalletBalance)}$
+availableBalance: ${BotUtil.fixValue(usdtInfo.availableBalance)}$
+maxWithdrawAmount: ${BotUtil.fixValue(usdtInfo.maxWithdrawAmount)}$`,
+        ]
     }
 }

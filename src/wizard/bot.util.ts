@@ -35,4 +35,11 @@ export abstract class BotUtil {
         }
     }
 
+    public static fixValue = (input: string): string => {
+        const number = Number(input)
+        if (isNaN(number)) {
+            return `00.00`
+        }
+        return `${number.toFixed(2)}`
+    }
 }

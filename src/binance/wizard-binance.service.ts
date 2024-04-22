@@ -10,6 +10,18 @@ import { BinanceError } from "./model/binance.error";
 import { TradeCtx } from "./model/trade-variant";
 import { BinanceService } from "./binance.service";
 
+export interface BinanceFuturesAccountInfo {
+    accountAlias: string;
+    asset: string;
+    balance: string;
+    crossWalletBalance: string;
+    crossUnPnl: string;
+    availableBalance: string;
+    maxWithdrawAmount: string;
+    marginAvailable: boolean;
+    updateTime: number;
+}
+
 @Injectable()
 export class WizardBinanceService {
 
@@ -66,5 +78,18 @@ export class WizardBinanceService {
             return 'error'
         }
     } 
+
+    public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
+        const params = queryParams({
+            timestamp: Date.now()
+        })
+        const url = sign(`${TradeUtil.futuresUriV2}/balance`, params, unit)
+        const request = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(unit)
+        })
+        const accountInfos: BinanceFuturesAccountInfo[] = await request.json()
+        return (accountInfos || []).find(info => info.asset === 'USDT')
+    }
 
 }
