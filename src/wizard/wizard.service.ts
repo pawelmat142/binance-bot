@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BotMessage } from './bot-message';
 import { BotUtil } from './bot.util';
 import { BehaviorSubject } from 'rxjs';
 import { Wizard, WizardStep } from './wizard';
@@ -11,12 +10,21 @@ import { LogsWizard } from './wizards/logs.wizard';
 import { StartWizard } from './wizards/start.wizard';
 import { TradesWizard } from './wizards/trades.wizard';
 import { AdminWizard } from './wizards/admin.wizard';
+import TelegramBot from 'node-telegram-bot-api';
 
 export interface WizardResponse {
     chatId: number
     messages?: string[]
     stop?: boolean
     switch?: string //wizard class name
+    html?: string,
+    buttons?: TelegramBot.InlineKeyboardButton[]
+    removeButtons?: boolean
+}
+
+export interface WizardResponseButton {
+    name: string
+    response?: string 
 }
 
 @Injectable()
@@ -41,16 +49,16 @@ export class WizardService {
     }
 
 
-    public onBotMessage = async (message: BotMessage): Promise<WizardResponse> => {
+    public onBotMessage = async (message: TelegramBot.Message): Promise<WizardResponse> => {
         const chatId = message.chat.id
         if (!chatId) {
           this.logger.error('Chat id not found')
           return
         }
 
-        let wizard = this.wizards$.value.find(w => w,chatId === chatId)
+        let wizard = this.wizards$.value.find(w => w.chatId === chatId)
         if (!wizard) {
-            wizard = await this.createWizard(chatId)
+            return this.createWizard(chatId)
         }
 
         const response = await this.processWizardStep(wizard, message)
@@ -65,7 +73,7 @@ export class WizardService {
         return response
     }
 
-    private async processWizardStep(wizard: Wizard, message: BotMessage): Promise<WizardResponse> {
+    private async processWizardStep(wizard: Wizard, message: TelegramBot.Message): Promise<WizardResponse> {
         const input = message.text
         if (!input) {
             return
@@ -76,7 +84,8 @@ export class WizardService {
             this.stopWizard(wizard)
             return {
                 messages: ['Dialog interrupted'],
-                chatId: wizard.chatId
+                chatId: wizard.chatId,
+                removeButtons: true
             }
         }
 
@@ -115,10 +124,10 @@ export class WizardService {
         return {
             messages: messages,
             chatId: wizard.chatId,
+            html: step.html,
+            buttons: step.buttons
         }
     }
-
-
 
     private getStep(wizard: Wizard): WizardStep {
         const step = wizard.getSteps().find(s => s.order === wizard.order)
@@ -128,7 +137,16 @@ export class WizardService {
         return step
     }
 
-    private async createWizard(chatId: number): Promise<Wizard> {
+    private async createWizard(chatId: number): Promise<WizardResponse> {
+        const wizard = await this.prepareWizard(chatId)
+        return {
+            chatId: wizard.chatId,
+            messages: wizard.steps[0].message,
+            buttons: wizard.steps[0].buttons
+        }
+    }
+
+    private async prepareWizard(chatId: number): Promise<Wizard> {
         const unit = await this.service.unitService.findUnitByChatId(chatId)
 
         const wizard = !!unit 

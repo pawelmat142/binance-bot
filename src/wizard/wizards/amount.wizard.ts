@@ -2,6 +2,7 @@ import { Unit } from "src/unit/unit"
 import { ServicesService } from "../services.service"
 import { WizardStep } from "../wizard"
 import { UnitWizard } from "./unit-wizard"
+import { WizBtn } from "./wizard-buttons"
 
 export class AmountWizard extends UnitWizard {
 
@@ -10,25 +11,45 @@ export class AmountWizard extends UnitWizard {
     }
 
     public getSteps(): WizardStep[] {
+
+        const message = [
+            `Current USDT per transaction: ${this.unit?.usdtPerTransaction}$`,
+            `Current USDT per BTC transaction: ${this.unit?.usdtPerTransaction}$`,
+            `Minimum USDT per BTC transaction is 100$`,
+            `You can allow/deny BTC tranaction if your USDT per transaction is less`
+        ]
+
         return [{
             order: 0,
-            message: [
-                `Current USDT per transaction ${this.unit?.usdtPerTransaction}$`,
-                `change - to change USDT per transaction`,
-                `balance - to check your balance`,
-            ],
+            message: message,
+            buttons: [{
+                text: 'Change USDT per transaction',
+                callback_data: WizBtn.usdtPerTransaction
+            }, {
+                text: 'Allow 100$ per BTC transaction if USDT per transaction is less',
+                callback_data: WizBtn.allow100perBtcTransaction
+            }, {
+                text: 'Check your balance',
+                callback_data: WizBtn.balance
+            }],
             process: async (input: string) => {
-                if (input === 'change') {
-                    return 1
+                switch (input) {
+                    case WizBtn.usdtPerTransaction:
+                        return 1
+
+                    case WizBtn.allow100perBtcTransaction:
+                        return 5
+
+                    case WizBtn.balance:
+                        return 4
+
+                    default: 
+                        return 0
                 }
-                if (input === 'balance') {
-                    return 4
-                }
-                return 0
             }
         }, {
             order: 1,
-            message: ['Provide USDT amount per transaction'],
+            message: ['Provide USDT amount per transaction...'],
             process: async (input: string) => {
                 const usdtPerTransaction = Number(input)
                 if (isNaN(usdtPerTransaction)) {
@@ -45,26 +66,38 @@ export class AmountWizard extends UnitWizard {
         }, {
             order: 2,
             message: [
-                `CONFIRM - to confirm ${this.unit?.usdtPerTransaction}$ per transaction`,
+                `Are you sure?`
             ],
+            buttons: [{
+                text: 'Yes',
+                callback_data: WizBtn.YES
+            }, {
+                text: 'No',
+                callback_data: WizBtn.STOP
+            }],
             process: async (input: string) => {
-                if (input.toLowerCase() === 'confirm') {
+                switch (input) {
+
+                    case WizBtn.YES: 
                     const result = await this.services.unitService.updateUsdtPerTransaction(this.unit)
-                    if (result) {
-                        return 3
-                    }
+                    return !!result ? 3 : 0
+
+                    default: 
+                    this.order = 0
+                    return ['Failed changing USDT per transaction']    
                 }
-                this.order = 0
-                return [`Failed...`]
             }
         }, {
             order: 3,
-            message: [`Successfully updated USDT amount per transaction: ${this.unit?.usdtPerTransaction}$`],
+            message: [`Successfully updated USDT per transaction: ${this.unit?.usdtPerTransaction}$`],
             close: true
         }, {
             order: 4,
             message: [ `BALANCE TODO`],
             close: true
+        }, {
+            order: 5,
+            message: [' TODO allow btc for 100']
         }]
     }
 }

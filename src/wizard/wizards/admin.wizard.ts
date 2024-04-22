@@ -21,6 +21,9 @@ export class AdminWizard extends UnitWizard {
                 if ('signal' === input) {
                     return 1
                 }
+                if (['test', 't'].includes(input)) {
+                    return 3
+                }
                 return 0
             }
         }, {
@@ -35,6 +38,9 @@ export class AdminWizard extends UnitWizard {
             order: 2,
             message: ['sent'],
             close: true
+        }, {
+            order: 3,
+            html: "<b>This is a bold text</b> and <i>this is an italic text</i>.",
         }]
     }
 

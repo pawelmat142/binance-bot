@@ -25,6 +25,8 @@ export class Unit {
     @Prop()
     usdtPerTransaction: number
 
+    @Prop()
+    usdtPerBtcTransaction: number
 
     @Prop()
     binanceApiKey: string

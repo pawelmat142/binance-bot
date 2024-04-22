@@ -1,5 +1,6 @@
-import { ModuleRef } from "@nestjs/core"
+import TelegramBot from "node-telegram-bot-api"
 import { ServicesService } from "./services.service"
+import { WizardResponseButton } from "./wizard.service"
 
 export interface WizardStep {
     order: number
@@ -7,6 +8,8 @@ export interface WizardStep {
     process?(text?: string): Promise<number | string[]>
     close?: boolean
     switch?: string
+    html?: string,
+    buttons?: TelegramBot.InlineKeyboardButton[]
 }
 
 export class Wizard {

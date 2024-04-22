@@ -44,6 +44,7 @@ export class WizardBinanceService {
             method: 'GET',
             headers: getHeaders(unit)
         })
+        
         return request.json()
     }
 

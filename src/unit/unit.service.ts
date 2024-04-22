@@ -81,6 +81,7 @@ export class UnitService implements OnModuleInit {
 
     onModuleInit() {
         this.loadUnits()
+        this.startListeningForEveryUnit()
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_7AM)
@@ -89,10 +90,10 @@ export class UnitService implements OnModuleInit {
             listenJsons: false,
             listenKey: false
         }).exec()
+
         if (Array.isArray(units)) {
             this._units$.next(units)
             this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
-            this.startListeningForEveryUnit()
         }
     }
 

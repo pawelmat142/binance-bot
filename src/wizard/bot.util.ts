@@ -1,3 +1,4 @@
+import TelegramBot from "node-telegram-bot-api"
 import { Wizard } from "./wizard"
 
 export abstract class BotUtil {
@@ -21,7 +22,17 @@ export abstract class BotUtil {
     }
 
     public static isAdmin = (chatId: string): boolean => {
-        return chatId.toString() === process.env.ADMIN_CHAT_ID
+        return chatId?.toString() === process.env.ADMIN_CHAT_ID
+    }
+
+    public static messageFromButtonCallback = (callback: TelegramBot.CallbackQuery): TelegramBot.Message => {
+        return{
+            message_id: callback.message.message_id,
+            from: callback.from,
+            chat: callback.message.chat,
+            text: callback.data,
+            date: callback.message.date
+        }
     }
 
 }

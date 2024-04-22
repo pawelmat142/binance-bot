@@ -3,7 +3,6 @@ import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
 import { TradeCtx } from 'src/binance/model/trade-variant';
 import { BotUtil } from '../wizard/bot.util';
-import { BotWizardService } from 'src/wizard/bot-wizard.service';
 import { Observable, Subject } from 'rxjs';
 
 export interface TelegramMsg {
@@ -33,7 +32,6 @@ export class TelegramService {
             message: message,
             chatId: Number(this.channelId)
         })
-        // this.botWizardService.sendPublicMessage(message)
     }
 
     public async sendUnitMessage(ctx: TradeCtx, lines: string[]): Promise<void> {
