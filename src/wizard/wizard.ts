@@ -36,7 +36,7 @@ export class Wizard {
         return this.order && this._steps.length === this.order+1
     }
 
-    public get steps(): WizardStep[] {
+    protected get steps(): WizardStep[] {
         return this._steps
     }
 

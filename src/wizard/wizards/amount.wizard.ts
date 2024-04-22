@@ -13,11 +13,13 @@ export class AmountWizard extends UnitWizard {
     public getSteps(): WizardStep[] {
 
         const message = [
-            `Current USDT per transaction: ${this.unit?.usdtPerTransaction}$`,
-            `Current USDT per BTC transaction: ${this.unit?.usdtPerTransaction}$`,
-            `Minimum USDT per BTC transaction is 100$`,
-            `You can allow/deny BTC tranaction if your USDT per transaction is less`
+            `Current USDT per transaction: ${this.unit?.usdtPerTransaction}$.`,
+            ``,
+            `Binance require minimum 100$ per BTC transaction,`,
+            `you can allow/deny BTC transaction for 100$ if your USDT per transaction is less`
         ]
+
+        const allow100perBtcTransactionMsg = `${this.unit?.allow100perBtcTransaction ? 'Deny' : 'Allow'} 100$ per BTC transaction if USDT per transaction is less.`
 
         return [{
             order: 0,
@@ -26,7 +28,7 @@ export class AmountWizard extends UnitWizard {
                 text: 'Change USDT per transaction',
                 callback_data: WizBtn.usdtPerTransaction
             }, {
-                text: 'Allow 100$ per BTC transaction if USDT per transaction is less',
+                text: allow100perBtcTransactionMsg,
                 callback_data: WizBtn.allow100perBtcTransaction
             }, {
                 text: 'Check your balance',
@@ -38,7 +40,8 @@ export class AmountWizard extends UnitWizard {
                         return 1
 
                     case WizBtn.allow100perBtcTransaction:
-                        return 5
+                        const result = await this.services.unitService.updateAllow100perBtcTransaction(this.unit)
+                        return !!result ? 5 : 0
 
                     case WizBtn.balance:
                         return 4
@@ -97,7 +100,8 @@ export class AmountWizard extends UnitWizard {
             close: true
         }, {
             order: 5,
-            message: [' TODO allow btc for 100']
+            message: [`100$ per BTC transaction is ${this.unit?.allow100perBtcTransaction ? 'ALLOWED' : 'DENIED'} now`],
+            close: true
         }]
     }
 }

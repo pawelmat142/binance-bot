@@ -399,6 +399,16 @@ export class UnitService implements OnModuleInit {
         ).exec()
         return update
     }
+
+    public async updateAllow100perBtcTransaction(_unit: Unit) {
+        _unit.allow100perBtcTransaction = !_unit.allow100perBtcTransaction
+        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
+        const update = await this.unitModel.updateOne(
+            { identifier: unit.identifier },
+            { $set: { allow100perBtcTransaction: _unit.allow100perBtcTransaction } }
+        ).exec()
+        return update
+    }
     
     private async fetchUnitByIdentifier(identifier: string): Promise<Unit> {
         const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: false })

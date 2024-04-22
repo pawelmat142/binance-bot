@@ -23,7 +23,7 @@ export class StartWizard extends UnitWizard {
                 text: `${this.unit?.active ? 'Deactivate' : 'Activate'} your subscription`,
                 callback_data: this.unit?.active ? WizBtn.deactivate : WizBtn.activate 
             }, { 
-                text: 'Change amount per transaction',
+                text: 'USDT management',
                 callback_data: WizBtn.amount 
             }, { 
                 text: 'Manage open positions',

@@ -26,7 +26,7 @@ export class Unit {
     usdtPerTransaction: number
 
     @Prop()
-    usdtPerBtcTransaction: number
+    allow100perBtcTransaction: boolean
 
     @Prop()
     binanceApiKey: string

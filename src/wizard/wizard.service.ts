@@ -139,10 +139,11 @@ export class WizardService {
 
     private async createWizard(chatId: number): Promise<WizardResponse> {
         const wizard = await this.prepareWizard(chatId)
+        const steps = wizard.getSteps()
         return {
             chatId: wizard.chatId,
-            messages: wizard.steps[0].message,
-            buttons: wizard.steps[0].buttons
+            messages: steps[0].message,
+            buttons: steps[0].buttons
         }
     }
 
