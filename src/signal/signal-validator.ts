@@ -23,7 +23,7 @@ export class SignalValidator {
     takeProfitsOk = false
 
     errors: string[] = []
-    valuesLogicOk = false
+    valuesLogicOk = false   
 
     signal: SignalMessage
 
@@ -64,6 +64,7 @@ export class SignalValidator {
     private entryZoneLineIndex = -1
     private takeProfitLineIndex = -1
     private stopLossLineIndex = -1
+    private leverageLineIndex = -1
 
     private prepareLines() {
         this.lines = this.message?.split(/\r?\n/) ?? []
@@ -75,6 +76,7 @@ export class SignalValidator {
             this.findEntryZoneIndex(i)
             this.findTakeProfitLineIndex(i)
             this.findStopLossLineIndex(i)
+            this.findLeverageLineIndex(i)
         }
         if (this.variant.symbol) {
             SignalUtil.addLog(`Found symbol ${this.variant.symbol}`, this.signal, this.logger)
@@ -95,7 +97,7 @@ export class SignalValidator {
             } else {
                 this.signalError(`take profit length = ${this.variant.takeProfits.length}`)
             }
-            this.findLeverage()
+            // this.findLeverage()
         } else {
             this.signalError('take profit could not be found')
         }
@@ -103,6 +105,11 @@ export class SignalValidator {
             this.findStopLoss()
         } else {
             this.signalWarning('stop loss could not be found')
+        }
+        if (this.leverageLineIndex !== -1) {
+            this.findLeverage()
+        } else {
+            this.signalWarning('leverage could not be found')
         }
         if (!this.variant.leverMin || !this.variant.leverMax) {
             this.signalWarning('Lever not found')
@@ -259,10 +266,24 @@ export class SignalValidator {
 
 
     private findStopLossLineIndex(lineIndex: number) {
+        if (this.stopLossLineIndex !== -1) {
+            return
+        }
         const line = this.lines[lineIndex]
         const isStopLoss = this.stopLossRegex.test(line)
         if (isStopLoss) {
             this.stopLossLineIndex = lineIndex
+        }
+    }
+
+    private findLeverageLineIndex(lineIndex: number) {
+        if (this.leverageLineIndex !== -1) {
+            return
+        }
+        const line = this.lines[lineIndex]
+        const isLeverageLine = line.includes('lever')
+        if (isLeverageLine) {
+            this.leverageLineIndex = lineIndex
         }
     }
 
@@ -453,27 +474,44 @@ export class SignalValidator {
     }
 
     private findLeverage() {
-        let index = this.takeProfitLineIndex + this.variant.takeProfits.length + 1
-        let iterator = 0
-        const regex = /\b(\d+)x\b/g
-        const values = []
-        let matches = [] 
-        do {
-            matches = this.lines[index+iterator].match(regex)
-            if (Array.isArray(matches)) {
-                const numberMatches = matches.map(m => Number(m.match(/(\d+)x/)[1]))
-                values.push(...numberMatches)
+        for (let i = this.leverageLineIndex; i<=this.leverageLineIndex+2; i++) {
+            const line = this.lines[i]
+            if (line) {
+                const regex = /(\d+)x/
+                const matches = line.match(regex)
+                const value = Number(matches[1])
+                if (!isNaN(value)) {
+                    this.variant.leverMin = value
+                    this.variant.leverMax = value
+                    return
+                }
             }
-            iterator++
-        } while (iterator < 3 || matches)
-
-        if (values.length) {
-            values.sort((a, b) => a - b)
-            this.variant.leverMin = values[0]
-            this.variant.leverMax = values[values.length-1]
-            SignalUtil.addLog(`Found lever ${this.variant.leverMin}x - ${this.variant.leverMax}x`, this.signal, this.logger)
         }
+
     }
+
+    // private findLeverage() {
+    //     let index = this.takeProfitLineIndex + this.variant.takeProfits.length + 1
+    //     let iterator = 0
+    //     const regex = /\b(\d+)x\b/g
+    //     const values = []
+    //     let matches = [] 
+    //     do {
+    //         matches = this.lines[index+iterator].match(regex)
+    //         if (Array.isArray(matches)) {
+    //             const numberMatches = matches.map(m => Number(m.match(/(\d+)x/)[1]))
+    //             values.push(...numberMatches)
+    //         }
+    //         iterator++
+    //     } while (iterator < 3 || matches)
+
+    //     if (values.length) {
+    //         values.sort((a, b) => a - b)
+    //         this.variant.leverMin = values[0]
+    //         this.variant.leverMax = values[values.length-1]
+    //         SignalUtil.addLog(`Found lever ${this.variant.leverMin}x - ${this.variant.leverMax}x`, this.signal, this.logger)
+    //     }
+    // }
 
     private signalError(msg: string) {
         const error = `[${toDateString(new Date())}] [ERROR] - ${msg}`

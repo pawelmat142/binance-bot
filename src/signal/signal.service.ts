@@ -56,6 +56,9 @@ Stop Loss: 10.40$
         try {
             this.validateSignal(signal)
 
+            // TODO remove
+            console.log(signal)
+
             await this.verifyIfDuplicate(signal)
 
             await this.save(signal)
