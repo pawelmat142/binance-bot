@@ -71,6 +71,7 @@ Stop Loss: 10.40$
             }
         } catch (error) {
             SignalUtil.addError(error, signal, this.logger)
+            telegramMessage.error = error
         }
         this.updateLogs(signal)
         return telegramMessage

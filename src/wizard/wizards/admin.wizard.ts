@@ -3,6 +3,7 @@ import { ServicesService } from "../services.service"
 import { WizardStep } from "../wizard"
 import { UnitWizard } from "./unit-wizard"
 import { TelegramMessage } from "src/telegram/message"
+import { WizBtn } from "./wizard-buttons"
 
 export class AdminWizard extends UnitWizard {
 
@@ -16,46 +17,43 @@ export class AdminWizard extends UnitWizard {
     public getSteps(): WizardStep[] {
         return [{
             order: 0,
-            message: [`ADMIN`],
+            message: [`ADMIN actions:`],
+            buttons: [{
+                text: `Provide signal`,
+                callback_data: WizBtn.signal
+            }, {
+                text: `TODO`,
+                callback_data: WizBtn.AVOID_BUTTON_CALLBACK
+            }],
+
             process: async (input: string) => {
-                if ('signal' === input) {
-                    return 1
+                switch (input?.toLowerCase()) {
+                    case WizBtn.signal:
+                        return 1
+                    default: 
+                        return 0
                 }
-                if (['test', 't'].includes(input)) {
-                    return 3
-                }
-                return 0
             }
         }, {
             order: 1,
-            message: [`provide signal message`],
+            message: [`Provide signal message...`],
             process: async (input: string) => {
-                console.log('PROCESS provide signal message')
-                 await this.sendSignalTelegramMessageToMe(input)
+                const result = await this.services.signalService.onReceiveTelegramMessage({
+                    message: input,
+                    id: 123
+                } as TelegramMessage)
+
+                if (result.error) {
+                    this.order = 2
+                    return [result.error?.message]
+                }
                 return 2
             },
         }, {            
             order: 2,
-            message: ['sent'],
+            message: ['Sent'],
             close: true
-        }, {
-            order: 3,
-            html: "<b>This is a bold text</b> and <i>this is an italic text</i>.",
         }]
     }
 
-
-    private sendSignalTelegramMessageToMe(message: string) {
-        const telegramMessage = {
-            message: message,
-            id: Date.now()
-        } as TelegramMessage
-
-        const path = `http://localhost:8009/signal/telegram`
-        fetch(path, {
-            headers: { 'Content-Type': 'application/json' },
-            method: 'POST',
-            body: JSON.stringify(telegramMessage)
-        })
-    }
 }

@@ -12,6 +12,8 @@ export interface TelegramMessage {
     out: boolean
 
     media: MessageMedia
+
+    error?: any
 }
 
 export interface PeerId {

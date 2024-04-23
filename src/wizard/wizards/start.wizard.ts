@@ -41,23 +41,23 @@ export class StartWizard extends UnitWizard {
                     return !!deactivationResult ? 1 : 0
                     
                     case WizBtn.activate: 
-                    if (this.unit?.active) return 1
-                    const activationResult = await this.services.unitService.activation(this.unit?.identifier, true)
-                    return !!activationResult ? 2  : 0
+                        if (this.unit?.active) return 1
+                        const activationResult = await this.services.unitService.activation(this.unit?.identifier, true)
+                        return !!activationResult ? 2  : 0
 
                     case WizBtn.amount:
-                    return BotUtil.switchResponse(AmountWizard.name)
+                        return BotUtil.switchResponse(AmountWizard.name)
                     
                     case WizBtn.log:
-                    return BotUtil.switchResponse(LogsWizard.name)
+                        return BotUtil.switchResponse(LogsWizard.name)
                     
                     case WizBtn.trade:
-                    return BotUtil.switchResponse(TradesWizard.name)
+                        return BotUtil.switchResponse(TradesWizard.name)
                     
                     case WizBtn.admin:
-                    return BotUtil.isAdmin(this.unit.telegramChannelId)
-                        ? BotUtil.switchResponse(AdminWizard.name)
-                        : 0
+                        return BotUtil.isAdmin(this.unit.telegramChannelId)
+                            ? BotUtil.switchResponse(AdminWizard.name)
+                            : 0
 
                     default: return 0
                 }
@@ -76,6 +76,10 @@ export class StartWizard extends UnitWizard {
             steps[0].buttons.push({
                 text: 'logs',
                 callback_data: WizBtn.log
+            })
+            steps[0].buttons.push({
+                text: 'ADMIN',
+                callback_data: WizBtn.admin
             })
         }
 

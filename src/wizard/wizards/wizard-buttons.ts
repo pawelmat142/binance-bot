@@ -18,10 +18,11 @@ export abstract class WizBtn {
 
     static readonly admin = 'admin' 
 
+    static readonly signal = 'signal' 
+
 
     static readonly usdtPerTransaction = 'usdtPerTransaction'.toLowerCase()
     static readonly allow100perBtcTransaction = 'allow100perBtcTransaction'.toLowerCase()
     static readonly balance = 'balance' 
-
 
 }
