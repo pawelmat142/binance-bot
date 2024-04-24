@@ -28,6 +28,7 @@ export class TradeVariant {
     @Prop() leverMax: number
     @Prop() risk: boolean
     @Prop() highRisk: boolean
+    @Prop() percentOfBalance?: number
 }
 
 export interface TradeContext {

@@ -65,6 +65,7 @@ export class SignalValidator {
     private takeProfitLineIndex = -1
     private stopLossLineIndex = -1
     private leverageLineIndex = -1
+    private percentOfBalanceLineIndex = -1
 
     private prepareLines() {
         this.lines = this.message?.split(/\r?\n/) ?? []
@@ -77,6 +78,7 @@ export class SignalValidator {
             this.findTakeProfitLineIndex(i)
             this.findStopLossLineIndex(i)
             this.findLeverageLineIndex(i)
+            this.findPercentOfBalanceLineIndex(i)
         }
         if (this.variant.symbol) {
             SignalUtil.addLog(`Found symbol ${this.variant.symbol}`, this.signal, this.logger)
@@ -110,6 +112,11 @@ export class SignalValidator {
             this.findLeverage()
         } else {
             this.signalWarning('leverage could not be found')
+        }
+        if (this.percentOfBalanceLineIndex !== -1) {
+            this.findPercentOfBalance()
+        } else {
+            this.signalWarning('percentOfBalanceLineIndex could not be found')
         }
         if (!this.variant.leverMin || !this.variant.leverMax) {
             this.signalWarning('Lever not found')
@@ -284,6 +291,17 @@ export class SignalValidator {
         const isLeverageLine = line.includes('lever')
         if (isLeverageLine) {
             this.leverageLineIndex = lineIndex
+        }
+    }
+
+    private findPercentOfBalanceLineIndex(lineIndex: number) {
+        if (this.percentOfBalanceLineIndex !== -1) {
+            return
+        }
+        const line = this.lines[lineIndex]
+        const isPercentOfBalanceLine = line.includes('your bank')
+        if (isPercentOfBalanceLine) {
+            this.percentOfBalanceLineIndex = lineIndex
         }
     }
 
@@ -479,15 +497,32 @@ export class SignalValidator {
             if (line) {
                 const regex = /(\d+)x/
                 const matches = line.match(regex)
-                const value = Number(matches[1])
-                if (!isNaN(value)) {
-                    this.variant.leverMin = value
-                    this.variant.leverMax = value
-                    return
+                if (Array.isArray(matches)) {
+                    const value = Number(matches[1])
+                    if (!isNaN(value)) {
+                        this.variant.leverMin = value
+                        this.variant.leverMax = value
+                        return
+                    }
                 }
             }
         }
+    }
 
+    private findPercentOfBalance() {
+        const line = this.lines[this.percentOfBalanceLineIndex]
+        if (line) {
+            const regex = /(\d+)\s*%/g
+            const matches = line.match(regex)
+            if (Array.isArray(matches)) {
+                let match = matches[0]
+                match = match.replace("%", "").trim()
+                const value = Number(match)
+                if (!isNaN(value)) {
+                    this.variant.percentOfBalance = value
+                }
+            }
+        }
     }
 
     // private findLeverage() {

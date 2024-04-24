@@ -111,7 +111,6 @@ export class AmountWizard extends UnitWizard {
     }
 
     private getUsdtInfoMessage(usdtInfo: BinanceFuturesAccountInfo): string[] {
-        console.log(usdtInfo)
         return [`TODO: experimental:
 balance: ${BotUtil.fixValue(usdtInfo.balance)}$
 crossWalletBalance: ${BotUtil.fixValue(usdtInfo.crossWalletBalance)}$

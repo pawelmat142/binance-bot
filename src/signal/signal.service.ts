@@ -56,8 +56,7 @@ Stop Loss: 10.40$
         try {
             this.validateSignal(signal)
 
-            // TODO remove
-            console.log(signal)
+            console.log(signal.tradeVariant)
 
             await this.verifyIfDuplicate(signal)
 
