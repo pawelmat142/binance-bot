@@ -26,7 +26,7 @@ export class StartWizard extends UnitWizard {
                 text: 'USDT management',
                 callback_data: WizBtn.amount 
             }, { 
-                text: 'Manage open positions',
+                text: 'Trades management',
                 callback_data: WizBtn.trade
             }, {
                 text: 'Interrupt dialog',

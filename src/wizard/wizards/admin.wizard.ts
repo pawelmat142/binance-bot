@@ -40,7 +40,7 @@ export class AdminWizard extends UnitWizard {
             process: async (input: string) => {
                 const result = await this.services.signalService.onReceiveTelegramMessage({
                     message: input,
-                    id: 123
+                    id: this.getRandomInt(1, 5000)
                 } as TelegramMessage)
 
                 if (result.error) {
@@ -54,6 +54,10 @@ export class AdminWizard extends UnitWizard {
             message: ['Sent'],
             close: true
         }]
+    }
+
+    private getRandomInt(min: number, max: number) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
 }

@@ -22,6 +22,27 @@ export interface BinanceFuturesAccountInfo {
     updateTime: number;
 }
 
+export interface Position {
+    symbol: string;
+    positionAmt: string;
+    entryPrice: string;
+    breakEvenPrice: string;
+    markPrice: string;
+    unRealizedProfit: string;
+    liquidationPrice: string;
+    leverage: string;
+    maxNotionalValue: string;
+    marginType: string;
+    isolatedMargin: string;
+    isAutoAddMargin: string;
+    positionSide: string;
+    notional: string;
+    isolatedWallet: string;
+    updateTime: number;
+    isolated: boolean;
+    adlQuantile: number;
+}
+
 @Injectable()
 export class WizardBinanceService {
 
@@ -34,7 +55,7 @@ export class WizardBinanceService {
     ) {}
 
 
-    public async fetchTrades(unit: Unit): Promise<FuturesResult[] | BinanceError> {
+    public async fetchAllOrders(unit: Unit): Promise<FuturesResult[] | BinanceError> {
         const params = queryParams({
             timestamp: Date.now()
         })
@@ -52,6 +73,19 @@ export class WizardBinanceService {
             timestamp: Date.now()
         })
         const url = sign(`${TradeUtil.futuresUri}/openOrders`, params, unit)
+        const request = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(unit)
+        })
+        
+        return request.json()
+    }
+
+    public async fetchPositions(unit: Unit): Promise<Position[] | BinanceError> {
+        const params = queryParams({
+            timestamp: Date.now()
+        })
+        const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit)
         const request = await fetch(url, {
             method: 'GET',
             headers: getHeaders(unit)
@@ -89,7 +123,16 @@ export class WizardBinanceService {
             headers: getHeaders(unit)
         })
         const accountInfos: BinanceFuturesAccountInfo[] = await request.json()
+        console.log(accountInfos)
         return (accountInfos || []).find(info => info.asset === 'USDT')
+    }
+
+    public async fetchTrades(unit: Unit) {
+        const trades = await this.tradeModel.find({
+            unitIdentifier: unit.identifier,
+            closed: { $ne: true }
+        }).exec()
+        return trades
     }
 
 }

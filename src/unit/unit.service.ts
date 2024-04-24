@@ -75,13 +75,10 @@ export class UnitService implements OnModuleInit {
         const event = {
             data: `{\"e\":\"ORDER_TRADE_UPDATE\",\"T\":1709219972113,\"E\":1709219972113,\"o\":{\"s\":\"APEUSDT\",\"c\":\"40cTnDBQmi765uigC6OGg5\",\"S\":\"BUY\",\"o\":\"MARKET\",\"f\":\"GTC\",\"q\":\"102\",\"p\":\"0\",\"ap\":\"1.9693\",\"sp\":\"0\",\"x\":\"TRADE\",\"X\":\"PARTIALLY_FILLED\",\"i\":14409231756,\"l\":\"17\",\"z\":\"77\",\"L\":\"1.9693\",\"n\":\"0.01673904\",\"N\":\"USDT\",\"T\":1709219972113,\"t\":469503865,\"b\":\"0\",\"a\":\"0\",\"m\":false,\"R\":false,\"wt\":\"CONTRACT_PRICE\",\"ot\":\"MARKET\",\"ps\":\"BOTH\",\"cp\":false,\"rp\":\"0\",\"pP\":false,\"si\":0,\"ss\":0,\"V\":\"NONE\",\"pm\":\"NONE\",\"gtd\":0}}`
         } as MessageEvent
-
-
     }
 
     onModuleInit() {
-        this.loadUnits()
-        this.startListeningForEveryUnit()
+        this.initUnits()
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_7AM)
@@ -95,6 +92,11 @@ export class UnitService implements OnModuleInit {
             this._units$.next(units)
             this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
         }
+    }
+
+    private async initUnits() {
+        await this.loadUnits()
+        this.startListeningForEveryUnit()
     }
 
     @Cron(EVERY_45_MINUTES)

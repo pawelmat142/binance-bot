@@ -134,7 +134,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             "unitIdentifier": ctx.unit.identifier,
             "futuresResult.side": ctx.side,
             "futuresResult.symbol": ctx.symbol,
-            "futuresResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] }
+            "futuresResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] },
+            closed: { $ne: true }
         })
         if (trade) {
             this.unitService.addLog(ctx.unit, `Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}`)

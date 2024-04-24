@@ -90,6 +90,9 @@ export class Trade {
     @Prop()
     testMode: boolean
 
+    @Expose()
+    @Prop()
+    closed: boolean
 }
 
 export const TradeSchema = SchemaFactory.createForClass(Trade)
