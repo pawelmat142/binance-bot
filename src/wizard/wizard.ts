@@ -9,7 +9,8 @@ export interface WizardStep {
     close?: boolean
     switch?: string
     html?: string,
-    buttons?: TelegramBot.InlineKeyboardButton[]
+    buttons?: TelegramBot.InlineKeyboardButton[],
+    skipRemoveButtons?: boolean
 }
 
 export class Wizard {

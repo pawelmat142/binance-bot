@@ -14,9 +14,18 @@ export abstract class WizBtn {
 
     static readonly log = 'log' 
 
+
     static readonly trade = 'trade' 
+
     static readonly pendingPositions = 'pendingPositions'.toLocaleLowerCase()
     static readonly openOrders = 'openOrders'.toLocaleLowerCase()
+    
+    static readonly slToEntryPrice = 'slToEntryPrice'.toLocaleLowerCase()
+    static readonly slTo = 'slTo'.toLocaleLowerCase()
+    static readonly takeSomeProfits = 'takeSomeProfits'.toLocaleLowerCase()
+    static readonly closePosition = 'closePosition'.toLocaleLowerCase()
+
+
 
     static readonly admin = 'admin' 
 

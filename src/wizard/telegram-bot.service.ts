@@ -141,7 +141,6 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
         return (response.buttons).map(btn => { return [{
             text: btn.text, 
             callback_data: btn.callback_data ?? btn.text,
-
         }] }) 
     }
 

@@ -171,7 +171,7 @@ export class TradeService {
 
 
     public async setPositionLeverage(ctx: TradeCtx) {
-        const lever = TradeUtil.getLever(ctx).toNumber()
+        const lever = TradeUtil.getLever(ctx.trade).toNumber()
         const params = queryParams({
             symbol: ctx.symbol,
             leverage: lever,

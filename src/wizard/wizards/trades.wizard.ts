@@ -2,13 +2,15 @@ import { Unit } from "src/unit/unit"
 import { ServicesService } from "../services.service"
 import { WizardStep } from "../wizard"
 import { UnitWizard } from "./unit-wizard"
-import { FuturesResult, Trade } from "src/binance/model/trade"
+import { FuturesResult, Trade, TradeStatus } from "src/binance/model/trade"
 import { isBinanceError } from "src/binance/model/binance.error"
 import { TradeType } from "src/binance/model/model"
-import { WizBtn } from "./wizard-buttons"
 import { Logger } from "@nestjs/common"
 import TelegramBot from "node-telegram-bot-api"
 import { Position } from "src/binance/wizard-binance.service"
+import { TradeUtil } from "src/binance/trade-util"
+import Decimal from "decimal.js"
+import { WizBtn } from "./wizard-buttons"
 
 export class TradesWizard extends UnitWizard {
 
@@ -28,12 +30,16 @@ export class TradesWizard extends UnitWizard {
 
     private trades: Trade[]
 
+
+    private selectedTrade: Trade
+
     protected _init = async () => {
         const [trades, positions, openOrders] = await Promise.all([
             this.fetchTrades(),
             this.fetchPositions(),
             this.fetchOpenOrders(),
         ])
+        this.trades = trades
 
         this.pendingPositions = positions
             .filter(p => Number(p.positionAmt) !== 0)
@@ -55,44 +61,87 @@ export class TradesWizard extends UnitWizard {
     }
 
     public getSteps(): WizardStep[] {
-        const buttons: TelegramBot.InlineKeyboardButton[] = []
-        if (this.openOrders?.length) buttons.push({
-            text: `Open orders (${this.openOrders.length})`,
-            callback_data: WizBtn.openOrders
-        })
-        if (this.pendingPositions?.length) buttons.push({
-            text: `Pending positions (${this.pendingPositions?.length})`,
-            callback_data: WizBtn.pendingPositions
-        })
-
+        const buttons: TelegramBot.InlineKeyboardButton[] = [
+            ...this.getPendingPositionsButtons(),
+            ...this.getOpenOrdersButtons()
+        ]
         return [{
             order: 0,
-            message: [buttons.length ? `Orders and positions:` : `You have no orders or positions`],
             buttons: buttons,
+            message: [`Select position or order...`],
+            process: async (input: string) => {
+                const position = this.pendingPositions.find(p => p.symbol.toLowerCase() === input)
+                if (position) {
+                    this.selectedTrade = this.findMatchingTrade(position)
+                    if (this.selectedTrade) {
+                        return 1
+                    }
+                }
+                const order = this.openOrders.find(o => o.symbol.toLowerCase() === input)
+                if (order) {
+                    this.selectedTrade = this.findMatchingOrderTrade(order)
+                    if (this.selectedTrade) {
+                        return 2
+                    }
+                }
+                return 0
+            }
+        }, {
+            order: 1,
+            message: this.selectedPositionMessage(),
+            buttons: [{
+                text: `Move stop loss to entry price`,
+                callback_data: WizBtn.slToEntryPrice
+            }, {
+                text: `Move stop loss to...`,
+                callback_data: WizBtn.slTo
+            }, {
+                text: `Take some profits`,
+                callback_data: WizBtn.takeSomeProfits
+            }, {
+                text: `Close position with market price`,
+                callback_data: WizBtn.closePosition
+            }],
             process: async (input: string) => {
                 switch (input) {
-                    case WizBtn.pendingPositions:
-                        console.log(this.pendingPositions)
-                        return 0
-                        return 1
+                    case WizBtn.slToEntryPrice:
+                        const position = this.findPosition(this.selectedTrade.variant.symbol)
+                        const entryPrice = Number(position.entryPrice)
+                        const result = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, entryPrice, this.unit)
+                        if (result === 'error') {
+                            return 3
+                        }
+                        return 4
 
-                    case WizBtn.openOrders:
-                        return 2
+                    case WizBtn.slTo:
+                        // TODO magic!
+                        return 5
+
 
                     default: return 0
                 }
             }
         }, {
-            order: 1,
-            message: [`Open positions`],
-            close: true
-        }, {
             order: 2,
-            message: [`Orders`],
-            close: true
+            message: this.selectedOrderMessage(),
         }, {
             order: 3,
-            message: [`rabbish`],
+            message: ['Error'],
+            close: true
+        }, {
+            order: 4,
+            message: [`Successfully moved stop loss to entry price`],
+            close: true
+        }, {
+            order: 5,
+            message: [`Successfully moved stop loss to TODO`],
+            process: async () => {
+                console.log('process')
+                return 1
+            },
+        }, {
+            order: 55,
+            message: ['stoooop'],
             close: true
         }]
 
@@ -126,6 +175,100 @@ export class TradesWizard extends UnitWizard {
             this.logger.error(`limit exceeded /positionRisk`)
         }
         return trades
+    }
+
+    private getPendingPositionsButtons(): TelegramBot.InlineKeyboardButton[] {
+        if (this.order !== 0 || !this.pendingPositions?.length) return []
+        const buttons: TelegramBot.InlineKeyboardButton[] = [{
+            text: `Pending positions:`,
+            callback_data: WizBtn.AVOID_BUTTON_CALLBACK
+        }]
+        for (const position of this.pendingPositions) {
+            const trade = this.findMatchingTrade(position)
+            const profit = Number(position.unRealizedProfit)
+            const profitPrefix = profit > 0 ? '+' : ''
+            buttons.push({
+                text: `${TradeUtil.msgHeader(trade)}  /  ${profitPrefix}${profit.toFixed(2)} USDT  (${TradeUtil.profitPercent(position)}%)`,
+                callback_data: position.symbol
+            })
+        }
+        return buttons
+    }
+
+    private getOpenOrdersButtons(): TelegramBot.InlineKeyboardButton[] {
+        if (this.order !== 0 || !this.openOrders?.length) return []
+        const buttons: TelegramBot.InlineKeyboardButton[] = [{
+            text: `Open orders:`,
+            callback_data: WizBtn.AVOID_BUTTON_CALLBACK
+        }]
+        for (const o of this.openOrders) {
+            const trade = this.findMatchingOrderTrade(o)
+            buttons.push({
+                text: `${TradeUtil.orderMsgHeader(o)} [${trade.variant.leverMax}x]`,
+                callback_data: o.symbol
+            })
+        }
+        return buttons
+    }
+
+    private findMatchingTrade(position: Position) {
+        const matchingTrades = this.trades.filter(t => t.variant.symbol === position.symbol)
+            .filter(t => t.futuresResult?.status === TradeStatus.FILLED)
+            .filter(t => {
+                const tradeAmount = TradeUtil.tradeAmount(t)
+                const positionAmount = new Decimal(position.positionAmt)
+                // TODO check/test if any TP is filled
+                console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
+                console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
+                return tradeAmount.equals(positionAmount)
+            }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        const result = matchingTrades[0]
+        if (!result) {
+            this.logger.error(`Could not find matching trade for position ${position.symbol}`)
+        }
+        return matchingTrades[0]
+    }
+
+    private findMatchingOrderTrade(order: FuturesResult): Trade {
+        const matchingTrades = this.trades.filter(t => t.variant.symbol === order.symbol)
+            .filter(t => t.futuresResult?.status === TradeStatus.NEW)
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        const result = matchingTrades[0]
+        if (!result) {
+            this.logger.error(`Could not find matching trade for order ${order.symbol}`)
+        }
+        return matchingTrades[0]
+    }
+
+    private findPosition(symbol: string): Position {
+        return this.pendingPositions.find(p => p.symbol.toLowerCase() === symbol.toLowerCase())
+    }
+
+    private selectedPositionMessage(): string[] {
+        if (this.selectedTrade) {
+            const position = this.findPosition(this.selectedTrade.variant.symbol)
+            const message = [
+                `Wallet: ${Number(position.isolatedWallet).toFixed(2)} USDT`,
+                `Entry price: ${Number(position.entryPrice).toFixed(2)} USDT`,
+                `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
+                `Stop loss: ${Number(this.selectedTrade.stopLossResult?.stopPrice??0).toFixed(2)} USDT`,
+                `Take profits:`,
+            ]
+            for (const tp of this.selectedTrade.variant.takeProfits) {
+                message.push(`- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`)
+            }
+            return message
+        }
+        return ['Trade not selected...']
+    }
+
+
+    
+    private selectedOrderMessage(): string[] {
+        if (this.selectedTrade) {
+            return [`TODO selected order message`]
+        }
+        return ['Order not selected...']
     }
 
 

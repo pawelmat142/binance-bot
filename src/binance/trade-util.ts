@@ -6,6 +6,7 @@ import { TradeSide, TradeType } from "./model/model"
 import { TakeProfit, TradeCtx } from "./model/trade-variant"
 import { TradeEventData } from "./model/trade-event-data"
 import Decimal from "decimal.js"
+import { Position } from "./wizard-binance.service"
 
 
 export abstract class TradeUtil {
@@ -148,8 +149,8 @@ export abstract class TradeUtil {
         return filledTakeProfits[0]
     }
 
-    public static getLever(ctx: TradeCtx): Decimal {
-        return new Decimal(ctx?.trade?.variant?.leverMax ?? TradeUtil.DEFAULT_LEVER)
+    public static getLever(trade: Trade): Decimal {
+        return new Decimal(trade?.variant?.leverMax ?? TradeUtil.DEFAULT_LEVER)
     }
 
     public static everyTakeProfitFilled(ctx: TradeCtx): boolean {
@@ -191,5 +192,50 @@ export abstract class TradeUtil {
         return Number(ctx.trade.variant.stopLoss)
     }
 
+    public static takeProfitsExecutedQuantitySum = (trade: Trade): Decimal => {
+        let result = new Decimal(0)
+        for (const tp of (trade.variant.takeProfits || [])) {
+            if (tp.reuslt?.executedQty) {
+                result = result.plus(new Decimal(tp.reuslt?.executedQty))
+            }
+        } 
+        return result
+    }
+
+    public static tradeAmount = (trade: Trade): Decimal => {
+        let result = new Decimal(0)
+        if (trade.futuresResult) {
+            result = result
+                .plus(new Decimal(trade.futuresResult.executedQty))
+                .minus(this.takeProfitsExecutedQuantitySum(trade))
+        }
+        return result
+    }
+
+    public static mode = (side: string): SignalMode => {
+        if (side === TradeSide.BUY) {
+            return 'LONG'
+        }
+        return 'SHORT'
+    }
+
+    public static token = (symbol: string): string => symbol.replace('USDT', '')
+    
+    public static msgHeader = (trade: Trade): string => 
+        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} [x${TradeUtil.getLever(trade)}]`
+
+    public static orderMsgHeader = (order: FuturesResult) => `${TradeUtil.mode(order.side)} ${TradeUtil.token(order.symbol)}`
+
+
+    public static profitPercent = (position: Position): string => {
+        const profit = 100*Number(position.unRealizedProfit)/Number(position.positionAmt)/Number(position.entryPrice)
+        return profit.toFixed()
+    }
  
+    public static takeProfitStatus = (tp: TakeProfit): string => {
+        if (tp.reuslt) {
+            return tp.reuslt.status === TradeStatus.NEW ? 'pending' : 'filled'
+        }
+        return 'waiting'
+    }
 }

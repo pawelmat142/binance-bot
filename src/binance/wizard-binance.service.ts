@@ -24,11 +24,11 @@ export interface BinanceFuturesAccountInfo {
 
 export interface Position {
     symbol: string;
-    positionAmt: string;
+    positionAmt: string; //quantity
     entryPrice: string;
     breakEvenPrice: string;
     markPrice: string;
-    unRealizedProfit: string;
+    unRealizedProfit: string; //PNL USDT
     liquidationPrice: string;
     leverage: string;
     maxNotionalValue: string;
@@ -37,7 +37,7 @@ export interface Position {
     isAutoAddMargin: string;
     positionSide: string;
     notional: string;
-    isolatedWallet: string;
+    isolatedWallet: string;  //wallet (Margin)
     updateTime: number;
     isolated: boolean;
     adlQuantile: number;
