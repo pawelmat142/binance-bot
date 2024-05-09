@@ -151,8 +151,8 @@ export class SignalValidator {
             if (words.length > 0) {
                 const sideIndex = words.findIndex(w => this.isShort(w) || this.isLong(w))
                 if (sideIndex !== -1) {
-                    const token = words[sideIndex + 1]
-                    this.variant.symbol = TradeUtil.getSymbolByToken(token)
+                    const tokenArr = words.filter(w => !['short', 'long'].includes(w))
+                    this.variant.symbol = TradeUtil.getSymbolByToken(tokenArr[0])
                 }
             }
         }

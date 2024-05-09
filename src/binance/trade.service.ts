@@ -210,20 +210,4 @@ export class TradeService {
         return sign(url, params, tradeContext.unit)
     }
 
-
-
-
-    
-    public async takeProfitRequests(ctx: TradeCtx) {
-        if (!ctx.origQuantity.equals(new Decimal(ctx.takeProfitQuentitesSum))) {
-            TradeUtil.addWarning(`takeProfitQuentitesSum ${ctx.takeProfitQuentitesSum} !== origQuantity ${ctx.origQuantity}`, ctx, this.logger)
-            await this.takeProfitRequest(ctx, ctx.trade?.variant?.takeProfits[0], ctx.origQuantity.toNumber())
-        } else {
-            for (let tp of ctx.trade?.variant?.takeProfits ?? []) {
-                await this.takeProfitRequest(ctx, tp)
-            }
-        }
-    }
-
-
 }

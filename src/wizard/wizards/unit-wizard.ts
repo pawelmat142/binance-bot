@@ -1,6 +1,6 @@
 import { Unit } from "src/unit/unit";
 import { ServicesService } from "../services.service";
-import { Wizard, WizardStep } from "../wizard";
+import { Wizard, WizardStep } from "./wizard";
 
 export class UnitWizard extends Wizard {
 
@@ -18,8 +18,6 @@ export class UnitWizard extends Wizard {
     public getUnit(): Unit {
         return this.unit
     }
-
-
 
 
 }

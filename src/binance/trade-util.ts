@@ -238,4 +238,11 @@ export abstract class TradeUtil {
         }
         return 'waiting'
     }
+
+    public static opositeSide = (side: TradeSide): TradeSide => {
+        if (side === 'BUY') {
+            return 'SELL'
+        }
+        return 'BUY'
+    }
 }

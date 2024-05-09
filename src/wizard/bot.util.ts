@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api"
-import { Wizard } from "./wizard"
+import { Wizard } from "./wizards/wizard"
 
 export abstract class BotUtil {
 
@@ -18,7 +18,7 @@ export abstract class BotUtil {
     }
     
     public static switchResponse = (wizardName: string) => {
-        return [`switch ${wizardName}`]
+        return `switch ${wizardName}`
     }
 
     public static isAdmin = (chatId: string): boolean => {

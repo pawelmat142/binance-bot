@@ -190,7 +190,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             await this.tradeService.stopLossRequest(ctx)
             this.calcService.calculateTakeProfitQuantities(ctx)
             await this.tradeService.openNextTakeProfit(ctx)
-            // await this.tradeService.takeProfitRequests(ctx)
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {

@@ -3,6 +3,7 @@ export abstract class WizBtn {
     static readonly AVOID_BUTTON_CALLBACK = 'AVOID_BUTTON_CALLBACK'
 
     static readonly STOP = 'stop' 
+    static readonly BACK = 'back' 
 
     static readonly YES = 'yes' 
     static readonly NO = 'no' 

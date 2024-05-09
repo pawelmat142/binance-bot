@@ -1,9 +1,9 @@
 import { Unit } from "src/unit/unit"
 import { ServicesService } from "../services.service"
-import { WizardStep } from "../wizard"
 import { UnitWizard } from "./unit-wizard"
 import { TradeUtil } from "src/binance/trade-util"
 import { FuturesResult } from "src/binance/model/trade"
+import { WizardStep } from "./wizard"
 
 export class LogsWizard extends UnitWizard {
 
@@ -47,7 +47,7 @@ export class LogsWizard extends UnitWizard {
                 } else {
                     this.logsNumber = num
                     this.order = 1
-                    return this.getLogs()
+                    // return this.getLogs()
                 }
                 return 0
             }
@@ -67,7 +67,7 @@ export class LogsWizard extends UnitWizard {
                             this.logsIterator--
                         }
                     }
-                    return this.getLogs()
+                    // return this.getLogs()
                 } else return 0
             }
         }, {
@@ -78,23 +78,24 @@ export class LogsWizard extends UnitWizard {
                 `<tokenname> - to show only token trades`,
             ],
             process: async (input: string) => {
-                const num = Number(input)
-                if (isNaN(num)) {
-                    const symbol = input.includes('usdt') ? input.toUpperCase() : `${input.toUpperCase()}USDT`
-                    const selectedTrades = this.trades.filter(t => t.symbol === symbol)
-                    if (selectedTrades.length) {
-                        this.selectedSymbol = symbol
-                        this.selectedTrades = selectedTrades
-                        return 4
-                    }
-                } else {
-                    if (num > 10) return [`max 10!`]
-                    if (num > this.trades.length) return [`Theres only ${this.trades.length} trade jsons`]
-                    this.order = 3
-                    this.tradesNumber = num
-                    return this.getTrades()
-                }
-                return 2
+                return 0
+                // const num = Number(input)
+                // if (isNaN(num)) {
+                //     const symbol = input.includes('usdt') ? input.toUpperCase() : `${input.toUpperCase()}USDT`
+                //     const selectedTrades = this.trades.filter(t => t.symbol === symbol)
+                //     if (selectedTrades.length) {
+                //         this.selectedSymbol = symbol
+                //         this.selectedTrades = selectedTrades
+                //         return 4
+                //     }
+                // } else {
+                //     if (num > 10) return [`max 10!`]
+                //     if (num > this.trades.length) return [`Theres only ${this.trades.length} trade jsons`]
+                //     this.order = 3
+                //     this.tradesNumber = num
+                //     // return this.getTrades()
+                // }
+                // return 2
             }
         }, {
             order: 3,
@@ -112,7 +113,7 @@ export class LogsWizard extends UnitWizard {
                             this.tradesIterator--
                         }
                     }
-                    return this.getTrades()
+                    // return this.getTrades()
                 }
                 return 3
             }
@@ -123,16 +124,17 @@ export class LogsWizard extends UnitWizard {
                 `x - to show x last ${this.selectedSymbol} trades (max 10)`,
             ],
             process: async (input: string) => {
-                const num = Number(input)
-                if (isNaN(num)) {
-                    return [`${input} is not a number`]
-                } else {
-                    if (num > 10) return [`max 10!`]
-                    if (num > this.selectedTrades.length) return [`Theres only ${this.selectedTrades.length} trade jsons`]
-                    this.order = 5
-                    this.selectedTradesNumber = num
-                    return this.getSelectedTrades()
-                }
+                return 1
+                // const num = Number(input)
+                // if (isNaN(num)) {
+                //     // return [`${input} is not a number`]
+                // } else {
+                //     if (num > 10) return [`max 10!`]
+                //     if (num > this.selectedTrades.length) return [`Theres only ${this.selectedTrades.length} trade jsons`]
+                //     this.order = 5
+                //     this.selectedTradesNumber = num
+                //     // return this.getSelectedTrades()
+                // }
             }
         }, {
             order: 5,
@@ -141,18 +143,19 @@ export class LogsWizard extends UnitWizard {
                 `b - ${this.selectedSymbol} trades before`
             ],
             process: async (input: string) => {
-                if (['n','b'].includes(input)) {
-                    if (input === 'n') {
-                        this.selectedtradesIterator++
-                    } 
-                    if (input === 'b') {
-                        if (this.selectedtradesIterator) {
-                            this.selectedtradesIterator--
-                        }
-                    }
-                    return this.getSelectedTrades()
-                }
-                return 5
+                return 0
+                // if (['n','b'].includes(input)) {
+                //     if (input === 'n') {
+                //         this.selectedtradesIterator++
+                //     } 
+                //     if (input === 'b') {
+                //         if (this.selectedtradesIterator) {
+                //             this.selectedtradesIterator--
+                //         }
+                //     }
+                //     return this.getSelectedTrades()
+                // }
+                // return 5
             }
         }]
     }

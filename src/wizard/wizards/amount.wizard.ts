@@ -1,16 +1,19 @@
 import { Unit } from "src/unit/unit"
 import { ServicesService } from "../services.service"
-import { WizardStep } from "../wizard"
 import { UnitWizard } from "./unit-wizard"
 import { WizBtn } from "./wizard-buttons"
 import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
 import { BotUtil } from "../bot.util"
+import { WizardStep } from "./wizard"
 
 export class AmountWizard extends UnitWizard {
 
     constructor(unit: Unit, services: ServicesService) {
         super(unit, services)
     }
+
+    usdtInfo: BinanceFuturesAccountInfo
+
 
     public getSteps(): WizardStep[] {
 
@@ -26,48 +29,40 @@ export class AmountWizard extends UnitWizard {
         return [{
             order: 0,
             message: message,
-            buttons: [{
+            buttons: [[{
                 text: 'Change USDT per transaction',
-                callback_data: WizBtn.usdtPerTransaction
-            }, {
-                text: allow100perBtcTransactionMsg,
-                callback_data: WizBtn.allow100perBtcTransaction
-            }, {
-                text: 'Check your balance',
-                callback_data: WizBtn.balance
-            }],
-            process: async (input: string) => {
-                switch (input) {
-                    case WizBtn.usdtPerTransaction:
-                        return 1
-
-                    case WizBtn.allow100perBtcTransaction:
-                        const result = await this.services.unitService.updateAllow100perBtcTransaction(this.unit)
-                        return !!result ? 5 : 0
-
-                    case WizBtn.balance:
-                        const usdtInfo = await this.services.binance.getBalance(this.unit)
-                        if (!usdtInfo) return 0
-                        this.order = 4
-                        // TODO show also transactions pending USDT
-                        return this.getUsdtInfoMessage(usdtInfo)
-
-                    default: 
-                        return 0
+                callback_data: WizBtn.usdtPerTransaction,
+                process: async () => {
+                    return 1
                 }
-            }
+            }], [{
+                text: allow100perBtcTransactionMsg,
+                callback_data: WizBtn.allow100perBtcTransaction,
+                process: async () => {
+                    const result = await this.services.unitService.updateAllow100perBtcTransaction(this.unit)
+                    return !!result ? 5 : 0
+                }
+            }], [{
+                text: 'Check your balance',
+                callback_data: WizBtn.balance,
+                process: async () => {
+                    const usdtInfo = await this.services.binance.getBalance(this.unit)
+                    if (!usdtInfo) return 0
+                    this.usdtInfo = usdtInfo
+                    // TODO show also transactions pending USDT
+                    return 6
+                }
+            }]],
         }, {
             order: 1,
             message: ['Provide USDT amount per transaction...'],
             process: async (input: string) => {
                 const usdtPerTransaction = Number(input)
                 if (isNaN(usdtPerTransaction)) {
-                    this.order = 1
-                    return [`${input} is not a number!`]
+                    return 7
                 }
                 if (usdtPerTransaction < 10) {
-                    this.order = 1
-                    return [`Amount should be more than $7!`]
+                    return 8
                 }
                 this.unit.usdtPerTransaction = usdtPerTransaction
                 return 2
@@ -77,25 +72,20 @@ export class AmountWizard extends UnitWizard {
             message: [
                 `Are you sure?`
             ],
-            buttons: [{
+            buttons: [[{
                 text: 'Yes',
-                callback_data: WizBtn.YES
+                callback_data: WizBtn.YES,
+                process: async () => {
+                    const result = await this.services.unitService.updateUsdtPerTransaction(this.unit)
+                    return !!result ? 3 : 9
+                }
             }, {
                 text: 'No',
-                callback_data: WizBtn.STOP
-            }],
-            process: async (input: string) => {
-                switch (input) {
-
-                    case WizBtn.YES: 
-                    const result = await this.services.unitService.updateUsdtPerTransaction(this.unit)
-                    return !!result ? 3 : 0
-
-                    default: 
-                    this.order = 0
-                    return ['Failed changing USDT per transaction']    
+                callback_data: WizBtn.STOP,
+                process: async () => {
+                    return 9
                 }
-            }
+            }]],
         }, {
             order: 3,
             message: [`Successfully updated USDT per transaction: ${this.unit?.usdtPerTransaction}$`],
@@ -107,11 +97,27 @@ export class AmountWizard extends UnitWizard {
             order: 5,
             message: [`100$ per BTC transaction is ${this.unit?.allow100perBtcTransaction ? 'ALLOWED' : 'DENIED'} now`],
             close: true
+        }, {
+            order: 6,
+            message: this.getUsdtInfoMessage(this.usdtInfo),
+            close: true
+        }, {
+            order: 7,
+            message: [`Its not a number!`],
+            nextOrder: 1
+        }, {
+            order: 8, 
+            message: [`Amount should be more than $7!`],
+            nextOrder: 1
+        }, {
+            order: 9,
+            message: [`Usdt per transaction is not changed!`],
+            nextOrder: 1
         }]
     }
 
     private getUsdtInfoMessage(usdtInfo: BinanceFuturesAccountInfo): string[] {
-        return [`TODO: experimental:
+        return !this.usdtInfo ? [] : [`TODO: experimental:
 balance: ${BotUtil.fixValue(usdtInfo.balance)}$
 crossWalletBalance: ${BotUtil.fixValue(usdtInfo.crossWalletBalance)}$
 availableBalance: ${BotUtil.fixValue(usdtInfo.availableBalance)}$

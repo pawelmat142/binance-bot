@@ -1,16 +1,28 @@
-import TelegramBot from "node-telegram-bot-api"
-import { ServicesService } from "./services.service"
-import { WizardResponseButton } from "./wizard.service"
+import { ServicesService } from "../services.service";
+
+export interface WizardResponse {
+    chatId: number,
+    order?: number,
+    message?: string[]
+    buttons?: WizardButton[][]
+}
 
 export interface WizardStep {
     order: number
     message?: string[]
-    process?(text?: string): Promise<number | string[]>
     close?: boolean
     switch?: string
-    html?: string,
-    buttons?: TelegramBot.InlineKeyboardButton[],
-    skipRemoveButtons?: boolean
+    buttons?: WizardButton[][],
+    skipRemoveButtons?: boolean,
+    process?: (input: string) => Promise<number | undefined>,
+    nextOrder?: number
+}
+
+export interface WizardButton {
+    text: string
+    callback_data: string,
+    switch?: string, 
+    process?(): Promise<number> //returns order of next step
 }
 
 export class Wizard {
@@ -18,12 +30,13 @@ export class Wizard {
     protected services: ServicesService
 
     chatId: number
-
+    
     order: number
+
+    modified: Date
 
     private _steps: WizardStep[]
 
-    modified: Date
 
     constructor(chatId: number, services: ServicesService) {
         this.services = services
@@ -33,21 +46,19 @@ export class Wizard {
         this.modified = new Date()
     }
 
-    public get isLastStep(): boolean {
-        return this.order && this._steps.length === this.order+1
-    }
-
-    protected get steps(): WizardStep[] {
-        return this._steps
-    }
-
     public getSteps(): WizardStep[] {
         throw new Error('not implemented')
     }
 
-    protected readonly defaultStopPrompt = 'stop - to interrupt dialog'
-
     private initialized = false
+
+    public getStep(): WizardStep {
+        const steps = this.getSteps()
+        if (this.order < 0 || this.order > steps.length-1) {
+            throw new Error(`Invalid order: ${this.order}`)
+        }
+        return steps[this.order]
+    }
 
     public init = async ()  => {
         if (!this.initialized) {

@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { TradeStatus } from 'src/binance/model/trade';
 import { TradeCtx } from 'src/binance/model/trade-variant';
 import { BotUtil } from '../wizard/bot.util';
 import { Observable, Subject } from 'rxjs';
+import TelegramBot = require("node-telegram-bot-api")
 
 export interface TelegramMsg {
     message: string
@@ -11,28 +12,78 @@ export interface TelegramMsg {
 }
 
 @Injectable()
-export class TelegramService {
+export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     private readonly logger = new Logger(TelegramService.name)
 
     private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
 
+    private readonly bot = this.initBot()
 
-    constructor(
-    ) {}
+    constructor() {}
 
-    private messageSubject$ = new Subject<TelegramMsg>
+    
+    private messageListener: any
+    private callbackListener: any
 
-    public get messageObs$(): Observable<TelegramMsg> {
+    private readonly messageSubject$: Subject<TelegramBot.Message> = new Subject<TelegramBot.Message>()
+    private readonly buttonSubject$: Subject<TelegramBot.CallbackQuery> = new Subject<TelegramBot.CallbackQuery>()
+
+    public get messageObs$(): Observable<TelegramBot.Message> {
         return this.messageSubject$.asObservable()
     }
-
-    public sendPublicMessage(message: string) {
-        this.messageSubject$.next({
-            message: message,
-            chatId: Number(this.channelId)
-        })
+    
+    public get buttonObs$(): Observable<TelegramBot.CallbackQuery> {
+        return this.buttonSubject$.asObservable()
     }
+
+
+    private initBot() {
+        if (process.env.SKIP_TELEGRAM === 'true') {
+            this.logger.debug('[SKIP] Initializing telegram bot')
+            return undefined
+        } else {
+            this.logger.log('Initializing telegram bot')
+            return new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
+        }
+    }
+
+    onModuleInit() {
+        if (process.env.SKIP_TELEGRAM !== 'true') {
+            if (!this.messageListener) {
+                this.messageListener = this.bot.on('message', (message: TelegramBot.Message) => {
+                    this.messageSubject$.next(message)
+                })
+            }
+            if (!this.callbackListener) {
+                this.callbackListener = this.bot.on('callback_query', (callback: TelegramBot.CallbackQuery) => {
+                    this.buttonSubject$.next(callback)
+                })
+            }  
+        }
+    }
+
+    onModuleDestroy() {
+        if (this.messageListener) {
+            this.messageListener = null
+        }
+        if (this.callbackListener) {
+            this.callbackListener = null
+        }
+    }
+
+    public async sendMessage(chatId: number, message: string, options?: TelegramBot.SendMessageOptions): Promise<TelegramBot.Message> {
+        const result = await this.bot?.sendMessage(chatId, message, options)
+        return result
+    }
+    
+
+    
+    public async sendPublicMessage(msg: string): Promise<TelegramBot.Message> {
+        const result = await this.bot?.sendMessage(this.channelId, msg)
+        return result
+    }
+
 
     public async sendUnitMessage(ctx: TradeCtx, lines: string[]): Promise<void> {
         const chatId = Number(ctx.unit.telegramChannelId)
@@ -42,11 +93,18 @@ export class TelegramService {
         this.sendChatMessage(chatId, lines)
     }
 
-    private async sendChatMessage(chatId: number, lines: string[]) {
-        this.messageSubject$.next({
-            message: BotUtil.msgFrom(lines),
-            chatId: chatId
+    public async removeChatButtons(chatId: number, messageId: number, buttons: TelegramBot.InlineKeyboardButton[][]) {
+        return this.bot.editMessageReplyMarkup({
+            inline_keyboard: buttons ?? []
+        }, {
+            chat_id: chatId,
+            message_id: messageId
         })
+    }
+
+
+    private async sendChatMessage(chatId: number, lines: string[]) {
+        this.sendMessage(chatId, BotUtil.msgFrom(lines))
     }
 
 

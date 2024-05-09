@@ -7,6 +7,7 @@ import { TradeVariant } from "./trade-variant"
 export abstract class TradeStatus {
     public static readonly FILLED = 'FILLED'
     public static readonly NEW = 'NEW'
+    public static readonly CLOSED_MANUALLY = 'CLOSED_MANUALLY'
 }
 
 export type TradeDocument = HydratedDocument<Trade>

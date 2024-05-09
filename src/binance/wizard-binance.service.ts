@@ -123,7 +123,6 @@ export class WizardBinanceService {
             headers: getHeaders(unit)
         })
         const accountInfos: BinanceFuturesAccountInfo[] = await request.json()
-        console.log(accountInfos)
         return (accountInfos || []).find(info => info.asset === 'USDT')
     }
 

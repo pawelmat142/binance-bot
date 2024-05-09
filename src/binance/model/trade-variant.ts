@@ -18,7 +18,7 @@ export interface TakeProfit {
 }
 
 export class TradeVariant {
-    @Prop() side: 'BUY' | 'SELL'
+    @Prop() side: TradeSide
     @Prop() symbol: string
     @Prop() entryZoneStart: number
     @Prop() entryZoneEnd: number
