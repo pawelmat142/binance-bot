@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { FuturesResult, Trade } from "./model/trade";
+import { FuturesResult, Trade, TradeStatus } from "./model/trade";
 import { Model } from "mongoose";
 import { TradeService } from "./trade.service";
 import { Unit } from "src/unit/unit";
@@ -107,6 +107,7 @@ export class WizardBinanceService {
             const ctx = new TradeCtx({ unit, trade })
             await this.tradeService.moveStopLoss(ctx, stopLossPrice)
             const update = await this.binanceService.update(ctx)
+            this.logger.log(`Moved stop loss for unit: ${unit.identifier}, ${trade.variant.symbol} to level: ${stopLossPrice} USDT`)
             return 'success'
         } catch(error) {
             return 'error'
@@ -132,6 +133,27 @@ export class WizardBinanceService {
             closed: { $ne: true }
         }).exec()
         return trades
+    }
+
+    public async closeOrder(ctx: TradeCtx) {
+        await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
+        await this.closeTrade(ctx)
+    }
+
+    public closeTrade(ctx: TradeCtx) {
+        ctx.trade.closed = true
+        if (ctx.trade.futuresResult) {
+            ctx.trade.futuresResult.status = TradeStatus.CLOSED_MANUALLY
+        }
+        if (ctx.trade.stopLossResult) {
+            ctx.trade.stopLossResult.status = TradeStatus.CLOSED_MANUALLY
+        }
+        for (let tp of ctx.trade.variant.takeProfits || []) {
+            if (tp.reuslt) {
+                tp.reuslt.status = TradeStatus.CLOSED_MANUALLY
+            }
+        }
+        return this.binanceService.update(ctx)
     }
 
 }

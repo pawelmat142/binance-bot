@@ -75,20 +75,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
 
         await this.removeCallbackButtons(message)
 
-        if (input === WizBtn.STOP) {
-            this.stopWizard(wizard)
-            return this.sendMessage(wizard.chatId, ['Dialog interrupted'], undefined)
-        }
-
         let step = wizard.getStep()
-        if (step.close) {
-            this.stopWizard(wizard)
-        } else if (input === WizBtn.BACK) {
-            wizard.order = 0
-            this.addStop(step.buttons)
-        } else {
-            this.addStopAndBack(step.buttons)
-        }
         
         for (let btns of step.buttons) {
             for (let btn of btns) {
@@ -106,10 +93,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             }
         }
 
-        if (step.close) {
-            this.stopWizard(wizard)
-        }
-        this.sendMessage(chatId, step.message, step.buttons)
+        this.sendMessage(wizard, input)
     }
 
     private async onBotMessage(message: TelegramBot.Message) {
@@ -125,39 +109,44 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         let wizard = await this.findOrCreateWizard(chatId)
         wizard.modified = new Date()
 
-
-        if (input === WizBtn.STOP) {
-            this.stopWizard(wizard)
-            return this.sendMessage(wizard.chatId, ['Dialog interrupted'], undefined)
-        }
-
         let step = wizard.getStep()
-        if (step.close) {
-            this.stopWizard(wizard)
-        } else if (input === WizBtn.BACK) {
-            wizard.order = 0
-            this.addStop(step.buttons)
-        } else {
-            this.addStopAndBack(step.buttons)
-        }
 
         if (step.process) {
             const order = await step.process(input)
             wizard.order = order
             step = wizard.getStep()
         }
-        const msg = step.message
+        this.sendMessage(wizard, input)
+    }
+
+
+    private async sendMessage(wizard: Wizard, input: string) {
+        let step = wizard.getStep()
+        
+        let msg = step.message
+
         if (!isNaN(step.nextOrder)) {
             wizard.order = step.nextOrder
             step = wizard.getStep()
             msg.push('', ...step.message)
         }
-        this.sendMessage(chatId, msg, step.buttons||[])
-    }
+        if (step.close || input === WizBtn.STOP) {
+            if (input === WizBtn.STOP) msg = ['Dialog interrupted']
+            this.stopWizard(wizard)
+            step.buttons = [[{
+                text: `Start new dialog`,
+                callback_data: WizBtn.START_NEW_DIALOG,
+            }]]
+        } else if (input === WizBtn.BACK || wizard.order === 0) {
+            wizard.order = 0
+            this.addStop(step.buttons)
+        } else {
+            this.addStopAndBack(step.buttons)
+        }
 
-    private async sendMessage(chatId: number, message: string[], buttons?: WizardButton[][]) {
+
         const options: TelegramBot.SendMessageOptions = {}
-        buttons = buttons || []
+        let buttons = step.buttons || []
         if (Array.isArray(buttons)) {
             options.reply_markup = {
                 one_time_keyboard: true,
@@ -166,8 +155,10 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 })),
             }
         }
-        const result = await this.telegramService.sendMessage(chatId, BotUtil.msgFrom(message), options)
-        this.lastMessageWithButtonsId[result.chat.id] = result.message_id
+        const result = await this.telegramService.sendMessage(wizard.chatId, BotUtil.msgFrom(msg), options)
+        if (buttons.length) {
+            this.lastMessageWithButtonsId[result.chat.id] = result.message_id
+        }
     }
 
     private addStopAndBack(buttons: WizardButton[][]) {
@@ -200,9 +191,9 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
     private async prepareWizard(chatId: number): Promise<Wizard> {
         const unit = await this.service.unitService.findUnitByChatId(chatId)
 
-        // TODO
+        // TODO -> new unit wizard!!!
         const wizard: Wizard = new StartWizard(unit, this.service)
-        
+
         await wizard.init()
         const wizards = this.wizards$.value
         wizards.push(wizard)
@@ -215,8 +206,6 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         this.wizards$.next(wizards)
         this.logger.log(`Stopped wizard ${wizard.chatId}`)
     }
-
-
 
     @Cron(CronExpression.EVERY_30_MINUTES)
     private async deactivateExpiredWizards() {
