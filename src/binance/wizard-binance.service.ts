@@ -95,25 +95,6 @@ export class WizardBinanceService {
     }
 
 
-    public async moveStopLoss(order: FuturesResult, stopLossPrice: number, unit: Unit): Promise<string> {
-        try {
-            const trade = await this.tradeModel.findOne({
-                unitIdentifier: unit.identifier,
-                "stopLossResult.orderId": order.orderId
-            }).exec()
-            if (!trade) {
-                return `Trade not found`
-            }
-            const ctx = new TradeCtx({ unit, trade })
-            await this.tradeService.moveStopLoss(ctx, stopLossPrice)
-            const update = await this.binanceService.update(ctx)
-            this.logger.log(`Moved stop loss for unit: ${unit.identifier}, ${trade.variant.symbol} to level: ${stopLossPrice} USDT`)
-            return 'success'
-        } catch(error) {
-            return 'error'
-        }
-    } 
-
     public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
         const params = queryParams({
             timestamp: Date.now()

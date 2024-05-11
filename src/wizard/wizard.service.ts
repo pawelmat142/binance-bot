@@ -70,10 +70,14 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         if (!input || input === WizBtn.AVOID_BUTTON_CALLBACK) {
             return
         }
+
+        const msgIdToRemoveButtons = this.lastMessageWithButtonsId[chatId]
+        if (msgIdToRemoveButtons) {
+            await this.removeCallbackButtons(message)
+        }
+
         let wizard = await this.findOrCreateWizard(chatId)
         wizard.modified = new Date()
-
-        await this.removeCallbackButtons(message)
 
         let step = wizard.getStep()
         

@@ -139,74 +139,61 @@ export abstract class TradeUtil {
         return (variant.side === TradeSide.BUY && currentPrice < variant.entryZoneEnd) || (variant.side === TradeSide.SELL && currentPrice > variant.entryZoneEnd)
     }
 
-    public static lastFilledTakeProfit(ctx: TradeCtx): TakeProfit {
-        const filledTakeProfits = ctx.trade.variant.takeProfits
-            .filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
-        if (!filledTakeProfits.length) {
-            return null
-        }
-        filledTakeProfits.sort((a, b) => b.order - a.order)
-        return filledTakeProfits[0]
-    }
-
     public static getLever(trade: Trade): Decimal {
         return new Decimal(trade?.variant?.leverMax ?? TradeUtil.DEFAULT_LEVER)
     }
 
-    public static everyTakeProfitFilled(ctx: TradeCtx): boolean {
-        const takeProfits = ctx.trade.variant.takeProfits
-        return takeProfits.every(tp => tp.reuslt?.status === TradeStatus.FILLED)
+    public static positionFullyFilled(ctx: TradeCtx): boolean {
+        const positionQuantity = new Decimal(ctx.trade.futuresResult?.executedQty ?? 0)
+        const result = positionQuantity.equals(this.takeProfitsExecutedQuantitySum(ctx.trade))
+        if (result) {
+            ctx.trade.closed = true
+        }
+        return result
     }
 
-
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-        const takeProfits = ctx.trade.variant.takeProfits ?? []
-        let stopLossQuantity = new Decimal(ctx.origQuantity)
-        for (let takeProfit of takeProfits) {
-            if (takeProfit.reuslt?.status === TradeStatus.FILLED) {
-                const executedTakeProfitQuantity = Number(takeProfit.reuslt?.origQty)
-                if (!isNaN(executedTakeProfitQuantity)) {
-                    stopLossQuantity = stopLossQuantity.minus(new Decimal(executedTakeProfitQuantity))
-                }
-            }
-        }
+        let stopLossQuantity = new Decimal(ctx.trade.futuresResult.executedQty ?? 0)
+            .minus(this.takeProfitsExecutedQuantitySum(ctx.trade))
         return stopLossQuantity
     }
 
+    public static takeProfitsExecutedQuantitySum = (trade: Trade): Decimal => {
+        const takeProfits = trade.variant.takeProfits
+        return takeProfits
+            .filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
+            .map(tp => new Decimal(tp.reuslt?.origQty || 0))
+            .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
+    }
+
     public static getStopLossPrice = (ctx: TradeCtx): number => {
-        const lastFilledTakeProfit = TradeUtil.lastFilledTakeProfit(ctx)
-        if (lastFilledTakeProfit) {
-            const order = Number(lastFilledTakeProfit.order)
-            if (order === 0) {
-                const entryPrice = Number(ctx.trade.entryPrice)
-                if (!isNaN(entryPrice)) {
-                    return entryPrice
-                }
-            } else if (order > 0) {
-                const stopLossPrice = Number(ctx.trade.variant.takeProfits[order-1].price)
-                if (!isNaN(stopLossPrice)) {
-                    return stopLossPrice
+        let result = Number(ctx.trade.variant.stopLoss)
+        const takeProfits = ctx.trade.variant.takeProfits
+        takeProfits.sort((a, b) => a.order - b.order)
+        for (let tp of takeProfits) {
+            if (tp.reuslt?.status === TradeStatus.FILLED) {
+                if (tp.order === 0) {
+                    const entryPrice = Number(ctx.trade.entryPrice)
+                    if (!isNaN(entryPrice)) {
+                        result = entryPrice
+                    }
+                } else if (tp.order > 1) {
+                    const takeProfitPrice = Number(ctx.trade.variant.takeProfits[tp.order-2].price)
+                    if (!isNaN(takeProfitPrice)) {
+                        result = takeProfitPrice
+                    }
                 }
             }
         }
-        return Number(ctx.trade.variant.stopLoss)
-    }
-
-    public static takeProfitsExecutedQuantitySum = (trade: Trade): Decimal => {
-        let result = new Decimal(0)
-        for (const tp of (trade.variant.takeProfits || [])) {
-            if (tp.reuslt?.executedQty) {
-                result = result.plus(new Decimal(tp.reuslt?.executedQty))
-            }
-        } 
         return result
     }
+
 
     public static tradeAmount = (trade: Trade): Decimal => {
         let result = new Decimal(0)
         if (trade.futuresResult) {
             result = result
-                .plus(new Decimal(trade.futuresResult.executedQty))
+                .plus(new Decimal(trade.futuresResult.origQty)) // has to be orig here, not executed!
                 .minus(this.takeProfitsExecutedQuantitySum(trade))
         }
         return result

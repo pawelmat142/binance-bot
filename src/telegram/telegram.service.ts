@@ -93,7 +93,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         this.sendChatMessage(chatId, lines)
     }
 
-    public async removeChatButtons(chatId: number, messageId: number, buttons: TelegramBot.InlineKeyboardButton[][]) {
+    public removeChatButtons(chatId: number, messageId: number, buttons: TelegramBot.InlineKeyboardButton[][]) {
+        if (!messageId) return
         return this.bot.editMessageReplyMarkup({
             inline_keyboard: buttons ?? []
         }, {

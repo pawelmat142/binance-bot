@@ -6,6 +6,7 @@ import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
+import { TradeType } from './model/model';
 
 @Injectable()
 export class TradeService {
@@ -68,7 +69,6 @@ export class TradeService {
         if (!ctx.trade.variant.stopLoss) {
             return
         }
-
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
         const stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : Number(forcedPrice)
         TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
@@ -88,6 +88,7 @@ export class TradeService {
 
     public async moveStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         await this.closeStopLoss(ctx)
+        await new Promise(resolve => setTimeout(resolve, 3000))
         await this.stopLossRequest(ctx, forcedPrice)
     }
 
@@ -102,18 +103,40 @@ export class TradeService {
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
-
+    public async closePendingTakeProfit(ctx: TradeCtx) {
+        const takeProfits = ctx.trade.variant.takeProfits
+        for (let tp of takeProfits) {
+            if (tp.reuslt?.status === TradeStatus.NEW) {
+                tp.reuslt = await this.closeOrder(ctx, tp.reuslt.orderId)
+                TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
+            }
+        }
+    }
 
     public async openNextTakeProfit(ctx: TradeCtx) {
         const takeProfits = ctx.trade.variant.takeProfits
-        const lastFilledTakeProfit = TradeUtil.lastFilledTakeProfit(ctx)
-        const nextTakeProfitOrder = lastFilledTakeProfit ? lastFilledTakeProfit.order+1 : 0
-        if (takeProfits.length > nextTakeProfitOrder) {
-            const nextTakeProfit = takeProfits.find(t => t.order === nextTakeProfitOrder)
-            if (!nextTakeProfit?.reuslt && Number(nextTakeProfit.quantity)) {
-                await this.takeProfitRequest(ctx, nextTakeProfit)
+        takeProfits.sort((a, b) => a.order - b.order)
+        for (let tp of takeProfits) {
+            if (!tp.reuslt && tp.quantity) {
+                await this.takeProfitRequest(ctx, tp)
+                return
             }
         }
+    }
+
+    public async takeSomeProfit(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
+        const params = queryParams({
+            symbol: ctx.trade.variant.symbol,
+            side: TradeUtil.opositeSide(ctx.trade.variant.side),
+            type: TradeType.MARKET,
+            quantity: Number(tp.quantity),
+            timestamp: Date.now(),
+            reduceOnly: true,
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+        })
+        const result = await this.placeOrder(params, ctx)
+        TradeUtil.addLog(`Took profit with order ${tp.order}, price: ${result.price}, unit: ${ctx.unit.identifier}, symbol: ${result.symbol}`, ctx, this.logger)
+        return result
     }
 
     public closeOrder(ctx: TradeCtx, orderId: number): Promise<FuturesResult> {

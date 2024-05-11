@@ -15,6 +15,7 @@ export interface TakeProfit {
     quantity?: number
     reuslt?: FuturesResult
     resultTime?: Date
+    takeSomeProfitFlag?: boolean
 }
 
 export class TradeVariant {

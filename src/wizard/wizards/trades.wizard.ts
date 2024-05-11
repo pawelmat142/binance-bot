@@ -10,7 +10,7 @@ import { TradeUtil } from "src/binance/trade-util"
 import Decimal from "decimal.js"
 import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
-import { TradeCtx } from "src/binance/model/trade-variant"
+import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
 import { queryParams } from "src/global/util"
 
 export class TradesWizard extends UnitWizard {
@@ -89,8 +89,8 @@ export class TradesWizard extends UnitWizard {
                 process: async () => {
                     const position = this.findPosition(this.selectedTrade.variant.symbol)
                     const entryPrice = Number(position.entryPrice)
-                    const result = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, entryPrice, this.unit)
-                    return result === 'error' ? 3 : 4
+                    const success = await this.services.binanceServie.moveStopLoss(this.selectedTrade.stopLossResult, entryPrice, this.unit)
+                    return success ? 4 : 3
                 }
             }], [{
                 text: `Move stop loss to...`,
@@ -99,13 +99,25 @@ export class TradesWizard extends UnitWizard {
             }], [{
                 text: `Take some profits`,
                 callback_data: WizBtn.takeSomeProfits,
-                process: async () => 11
+                process: async () => {
+                    const ctx = new TradeCtx({
+                        unit: this.unit,
+                        trade: this.selectedTrade
+                    })
+                    const success = await this.services.binanceServie.takeSomeProfit(ctx)
+                    if (success) {
+                        this.selectedTrade = ctx.trade
+                        return 12
+                    }
+                    this.error = 'error when take some profits'
+                    return 3
+                }
             }], [{
                 text: `Close position with market price`,
                 callback_data: WizBtn.closePosition,
                 process: async () => {
                     const success = await this.fullClosePosition()
-                    return success ? 1 : 3
+                    return success ? 0 : 3
                 }
             }]],
         }, {
@@ -138,18 +150,18 @@ export class TradesWizard extends UnitWizard {
             order: 5,
             message: [`Provide new stop loss level...`],
             process: async (input: string) => {
-                const sl = Number(input)
-                if (isNaN(sl)) {
+                const price = Number(input)
+                if (isNaN(price)) {
                     return 9
                 }
                 const position = this.findPosition(this.selectedTrade.variant.symbol)
                 this.liqPrice = Number(position.liquidationPrice)
-                if (sl <= this.liqPrice) {
+                if (price <= this.liqPrice) {
                     return 10
                 }
-                const result = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, sl, this.unit)
-                this.sl = sl
-                return result === 'error' ? 3 : 11
+                const success = await this.services.binanceServie.moveStopLoss(this.selectedTrade.stopLossResult, price, this.unit)
+                this.sl = price
+                return success ? 11 : 3
             },
         }, {
             order: 6,
@@ -174,11 +186,15 @@ export class TradesWizard extends UnitWizard {
         }, {
             order: 11,
             message: [`Successfully moved SL to level ${this.sl} USDT`],
-            close: true 
+            nextOrder: 1
         }, {
             order: 12,
-            message: [`TODO take some profits!`],
-            nextOrder: 0
+            message: [`Took some profit`],
+            nextOrder: 1
+        }, {
+            order: 13,
+            message: [`Closed position`],
+            close: true
         } ]
     }
 
@@ -353,14 +369,14 @@ export class TradesWizard extends UnitWizard {
 
     private async fullCloseOrder(): Promise<boolean> {
         try {
-            this.logger.log(`[START] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`)
             const ctx = new TradeCtx({
                 unit: this.unit,
                 trade: this.selectedTrade
             })
+            TradeUtil.addLog(`[START] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             await this.services.binance.closeOrder(ctx)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
-            this.logger.log(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`)
+            TradeUtil.addLog(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             this.selectedTrade = null
             return true
         } catch (error) {
@@ -375,12 +391,11 @@ export class TradesWizard extends UnitWizard {
             const trade = this.selectedTrade
             if (!trade) throw new Error('missing selected trade')
             const symbol = trade.variant.symbol
-            this.logger.log(`[START] Closing position ${symbol} for unit: ${this.unit.identifier}`)
-    
             const ctx = new TradeCtx({
                 unit: this.unit,
                 trade: trade
             })
+            TradeUtil.addLog(`[START] Closing position ${symbol} for unit: ${this.unit.identifier}`, ctx, this.logger)
     
             const stopLoses = this.stopLoses.filter(sl => sl.symbol === symbol)
             const takeProfits = this.takeProfits.filter(tp => tp.symbol === symbol)
@@ -388,19 +403,19 @@ export class TradesWizard extends UnitWizard {
             
             for (let sl of stopLoses) {
                 await this.services.tradeService.closeOrder(ctx, sl.orderId)
-                this.logger.log(`Closed sl order ${sl.orderId} fot unit: ${this.unit.identifier}`)
+                TradeUtil.addLog(`Closed sl order ${sl.orderId} fot unit: ${this.unit.identifier}`, ctx, this.logger)
             }
             for (let tp of takeProfits) {
                 await this.services.tradeService.closeOrder(ctx, tp.orderId)
-                this.logger.log(`Closed tp order ${tp.orderId} fot unit: ${this.unit.identifier}`)
+                TradeUtil.addLog(`Closed tp order ${tp.orderId} fot unit: ${this.unit.identifier}`, ctx, this.logger)
             }
             for (let trade of trades) {
                 await this.services.binance.closeTrade(ctx)
-                this.logger.log(`Closed trade: ${trade._id} fot unit: ${this.unit.identifier}`)
+                TradeUtil.addLog(`Closed trade: ${trade._id} fot unit: ${this.unit.identifier}`, ctx, this.logger)
             }
             await this.closePosition(symbol, ctx)
-            this.logger.log(`[STOP] Closing position ${symbol} for unit: ${this.unit.identifier}`)
-
+            TradeUtil.addLog(`[STOP] Closing position ${symbol} for unit: ${this.unit.identifier}`, ctx, this.logger)
+            this.services.binanceServie.update(ctx)
             this.pendingPositions = this.pendingPositions.filter(p => p.symbol === symbol)
             this.selectedTrade = null
             return true
@@ -409,7 +424,6 @@ export class TradesWizard extends UnitWizard {
             return false
         }
     }
-
 
     private async closePosition(symbol: string, ctx: TradeCtx) {
         const position = this.pendingPositions.find(p => p.symbol === symbol)
@@ -422,7 +436,7 @@ export class TradesWizard extends UnitWizard {
                 timestamp: Date.now(),
             })
             const resultTrade = await this.services.tradeService.placeOrder(params, ctx, 'POST')
-            this.logger.log(`Closed position ${symbol}, for unit ${this.unit.identifier}`)
+            TradeUtil.addLog(`Closed position ${symbol}, for unit ${this.unit.identifier}`, ctx, this.logger)
         }
     }
 
