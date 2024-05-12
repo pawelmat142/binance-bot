@@ -7,6 +7,8 @@ import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
 import { TradeType } from './model/model';
+import { TradeRepository } from './trade.repo';
+import { TelegramService } from 'src/telegram/telegram.service';
 
 @Injectable()
 export class TradeService {
@@ -16,6 +18,8 @@ export class TradeService {
     private readonly testNetwork = process.env.BINANCE_TEST_NETWORK === 'true'
 
     constructor(
+        private readonly tradeRepo: TradeRepository,
+        private readonly telegramService: TelegramService,
     ) {}
 
     public async openPosition(ctx: TradeCtx) {
@@ -124,7 +128,50 @@ export class TradeService {
         }
     }
 
-    public async takeSomeProfit(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
+    public async takeSomeProfit(ctx: TradeCtx): Promise<boolean> {
+        try {
+            const takeProfits = ctx.trade.variant.takeProfits
+            takeProfits.sort((a, b) => a.order - b.order)
+            for (let i = takeProfits.length-1; i>=0; i--) {
+                const tp = takeProfits[i]
+                const quantity = Number(tp.quantity)
+                if ((!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) && quantity) {
+                    if (tp.reuslt?.status === TradeStatus.NEW) {
+                        await this.closePendingTakeProfit(ctx)
+                    }
+                    delete tp.reuslt
+                    tp.takeSomeProfitFlag = true
+                    const result = await this.takeSomeProfitRequest(ctx, tp)
+                    result.status = TradeStatus.FILLED
+                    result.executedQty = result.origQty
+                    tp.reuslt = result
+                    this.onFilledTakeSomeProfit(ctx)
+                    return !!result
+                }
+            }
+            return false
+        } catch (error) {
+            TradeUtil.addError(error.message, ctx, this.logger)
+            return false
+        }
+    }
+
+    private async onFilledTakeSomeProfit(ctx: TradeCtx) {
+        if (TradeUtil.positionFullyFilled(ctx)) {
+            await this.closeStopLoss(ctx)
+            await this.closePendingTakeProfit(ctx)
+            TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
+        } else {
+            const stopLossPrice = Number(ctx.trade.stopLossResult?.stopPrice)
+            await this.moveStopLoss(ctx, isNaN(stopLossPrice) ? undefined : stopLossPrice)
+            TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
+        }
+        const saved = await this.tradeRepo.update(ctx)
+        this.telegramService.onFilledTakeProfit(ctx)
+    }
+
+
+    private async takeSomeProfitRequest(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
         const params = queryParams({
             symbol: ctx.trade.variant.symbol,
             side: TradeUtil.opositeSide(ctx.trade.variant.side),

@@ -10,7 +10,7 @@ import { TradeUtil } from "src/binance/trade-util"
 import Decimal from "decimal.js"
 import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
-import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
+import { TradeCtx } from "src/binance/model/trade-variant"
 import { queryParams } from "src/global/util"
 
 export class TradesWizard extends UnitWizard {
@@ -89,7 +89,7 @@ export class TradesWizard extends UnitWizard {
                 process: async () => {
                     const position = this.findPosition(this.selectedTrade.variant.symbol)
                     const entryPrice = Number(position.entryPrice)
-                    const success = await this.services.binanceServie.moveStopLoss(this.selectedTrade.stopLossResult, entryPrice, this.unit)
+                    const success = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, entryPrice, this.unit)
                     return success ? 4 : 3
                 }
             }], [{
@@ -104,7 +104,7 @@ export class TradesWizard extends UnitWizard {
                         unit: this.unit,
                         trade: this.selectedTrade
                     })
-                    const success = await this.services.binanceServie.takeSomeProfit(ctx)
+                    const success = await this.services.tradeService.takeSomeProfit(ctx)
                     if (success) {
                         this.selectedTrade = ctx.trade
                         return 12
@@ -159,7 +159,7 @@ export class TradesWizard extends UnitWizard {
                 if (price <= this.liqPrice) {
                     return 10
                 }
-                const success = await this.services.binanceServie.moveStopLoss(this.selectedTrade.stopLossResult, price, this.unit)
+                const success = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, price, this.unit)
                 this.sl = price
                 return success ? 11 : 3
             },

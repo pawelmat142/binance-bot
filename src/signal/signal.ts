@@ -3,12 +3,17 @@ import { HydratedDocument } from "mongoose";
 import { Expose } from "class-transformer";
 import { TradeVariant } from "src/binance/model/trade-variant";
 
-export type SignalDocument = HydratedDocument<SignalMessage>
+export type SignalDocument = HydratedDocument<Signal>
 
-export type SignalTradeMode = 'PROGRESS' | 'STOP_LOST' | 'WINNING' | 'WON' | 'ERROR' | 'STOPPED'
+export class OtherSignalAction {
+    @Expose() @Prop() takeSomgeProfit?: boolean
+    @Expose() @Prop() manualClose?: boolean
+    @Expose() @Prop() moveSl?: boolean
+    @Expose() @Prop() moveSlToEntryPoint?: boolean
+}
 
 @Schema()
-export class SignalMessage {
+export class Signal {
 
     @Prop()
     _id: string
@@ -35,12 +40,13 @@ export class SignalMessage {
 
     @Expose()
     @Prop()
-    stopLossUngiven: boolean //if stopLossUngiven===true -> stopLoss is calculated as 30% of min entry
-
+    logs: string[]
+    
     @Expose()
     @Prop()
-    logs: string[]
-
+    otherSignalAction?: OtherSignalAction
 }
 
-export const SignalMessageSchema = SchemaFactory.createForClass(SignalMessage)
+
+
+export const SignalSchema = SchemaFactory.createForClass(Signal)

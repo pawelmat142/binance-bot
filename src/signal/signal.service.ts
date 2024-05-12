@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SignalMessage } from './signal-message';
+import { Signal } from './signal';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { TelegramMessage } from 'src/telegram/message';
@@ -7,6 +7,7 @@ import { SignalValidator } from './signal-validator';
 import { SignalUtil } from './signal-util';
 import { Observable, Subject } from 'rxjs';
 import { TelegramService } from 'src/telegram/telegram.service';
+import { SignalOtherActionValidator } from './additional-validator';
 
 @Injectable()
 export class SignalService {
@@ -14,13 +15,13 @@ export class SignalService {
     private readonly logger = new Logger(SignalService.name)
 
     constructor(
-        @InjectModel(SignalMessage.name) private signalModel: Model<SignalMessage>,
+        @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
     ) {}
 
-    private tradeSubject$ = new Subject<SignalMessage>()
+    private tradeSubject$ = new Subject<Signal>()
 
-    public get tradeObservable$(): Observable<SignalMessage> {
+    public get tradeObservable$(): Observable<Signal> {
         return this.tradeSubject$.asObservable()
     }
 
@@ -52,23 +53,23 @@ Stop Loss: 10.40$
 
 
     public async onReceiveTelegramMessage(telegramMessage: TelegramMessage) {
-        const signal: SignalMessage = this.prepareSignal(telegramMessage)
+        const signal: Signal = this.prepareSignal(telegramMessage)
         try {
             this.validateSignal(signal)
 
             await this.verifyIfDuplicate(signal)
 
+            this.additionalValidationIfNotValid(signal)
+
             await this.save(signal)
 
             this.telegramService.sendPublicMessage(telegramMessage?.message)
 
-            if (signal.valid) {
-                SignalUtil.addLog(`Signal is valid, openin trade... `, signal, this.logger)
-                
+            if (signal.valid || SignalUtil.anyAction(signal)) {
                 this.tradeSubject$.next(signal)
-            } else {
-                throw new Error('Signal is not valid')
-            }
+            } 
+            else throw new Error('Signal is not valid and no any other action detected')
+
         } catch (error) {
             SignalUtil.addError(error, signal, this.logger)
             telegramMessage.error = error
@@ -77,15 +78,17 @@ Stop Loss: 10.40$
         return telegramMessage
     }
 
-
-
-    private validateSignal(signal: SignalMessage): void {
+    private validateSignal(signal: Signal): void {
         const validator = new SignalValidator(signal)
         validator.validate()
     }
 
+    private additionalValidationIfNotValid(signal: Signal) {
+        const validator = new SignalOtherActionValidator(signal)
+        validator.validate()
+    }
 
-    private prepareSignal(telegramMessage: TelegramMessage): SignalMessage {
+    private prepareSignal(telegramMessage: TelegramMessage): Signal {
         return new this.signalModel({
             content: telegramMessage?.message ?? 'no-content',
             timestamp: new Date(),
@@ -97,29 +100,29 @@ Stop Loss: 10.40$
     
     // REPOSITORY
 
-    public list(): Promise<SignalMessage[]> {
+    public list(): Promise<Signal[]> {
         return this.signalModel.find().exec()
     }
 
-    public listValid(): Promise<SignalMessage[]> {
+    public listValid(): Promise<Signal[]> {
         return this.signalModel.find({ valid: true }).exec()
     }
 
-    public async updateLogs(signal: SignalMessage) {
+    public async updateLogs(signal: Signal) {
         return this.signalModel.updateOne(
             { _id: signal._id },
             { $set: { logs: signal.logs } }
         )
     }
 
-    private async save(signal: SignalMessage) {
+    private async save(signal: Signal) {
         signal._id = new Types.ObjectId().toHexString()
         const newSignal = new this.signalModel(signal)
         const saved = await newSignal.save()
         SignalUtil.addLog(`Saved signal ${saved._id}`, signal, this.logger)
     }
 
-    private async verifyIfDuplicate(signal: SignalMessage) {
+    private async verifyIfDuplicate(signal: Signal) {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
             this.logger.debug('SKIP PREVENT DUPLICATE')
             return

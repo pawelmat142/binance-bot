@@ -10,6 +10,7 @@ import { TradeService } from './trade.service';
 import { UnitModule } from 'src/unit/unit.module';
 import { WizardBinanceService } from './wizard-binance.service';
 import { DuplicateService } from './duplicate.service';
+import { TradeRepository } from './trade.repo';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { DuplicateService } from './duplicate.service';
       schema: TradeSchema,
     }]),
   ],
-  providers: [BinanceService, CalculationsService, TradeService, WizardBinanceService, DuplicateService],
+  providers: [BinanceService, CalculationsService, TradeService, WizardBinanceService, DuplicateService, TradeRepository],
   exports: [BinanceService, TradeService, WizardBinanceService]
 })
 export class BinanceModule {}

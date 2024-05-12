@@ -1,14 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { FuturesResult, Trade, TradeStatus } from "./model/trade";
-import { Model } from "mongoose";
+import { FuturesResult, TradeStatus } from "./model/trade";
 import { TradeService } from "./trade.service";
 import { Unit } from "src/unit/unit";
 import { getHeaders, queryParams, sign } from "src/global/util";
 import { TradeUtil } from "./trade-util";
 import { BinanceError } from "./model/binance.error";
 import { TradeCtx } from "./model/trade-variant";
-import { BinanceService } from "./binance.service";
+import { TradeRepository } from "./trade.repo";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -49,9 +47,8 @@ export class WizardBinanceService {
     private readonly logger = new Logger(WizardBinanceService.name)
 
     constructor(
-        @InjectModel(Trade.name) private tradeModel: Model<Trade>,
         private readonly tradeService: TradeService,
-        private readonly binanceService: BinanceService,
+        private readonly tradeRepo: TradeRepository,
     ) {}
 
 
@@ -109,10 +106,7 @@ export class WizardBinanceService {
     }
 
     public async fetchTrades(unit: Unit) {
-        const trades = await this.tradeModel.find({
-            unitIdentifier: unit.identifier,
-            closed: { $ne: true }
-        }).exec()
+        const trades = await this.tradeRepo.findByUnit(unit)
         return trades
     }
 
@@ -134,7 +128,23 @@ export class WizardBinanceService {
                 tp.reuslt.status = TradeStatus.CLOSED_MANUALLY
             }
         }
-        return this.binanceService.update(ctx)
+        return this.tradeRepo.update(ctx)
+    }
+
+    public async moveStopLoss(order: FuturesResult, stopLossPrice: number, unit: Unit): Promise<boolean> {
+        const trade = await this.tradeRepo.findBySlOrderId(order.orderId, unit)
+        const ctx = new TradeCtx({ unit, trade: trade })
+        if (!trade) {
+            return false
+        }
+        try {
+            await this.tradeService.moveStopLoss(ctx, stopLossPrice)
+            TradeUtil.addLog(`Moved stop loss for unit: ${unit.identifier}, ${trade.variant.symbol} to level: ${stopLossPrice} USDT`, ctx, this.logger)
+            await this.tradeRepo.update(ctx)
+        } catch (error) {
+            TradeUtil.addError(error, ctx, this.logger)
+            return false
+        }
     }
 
 }

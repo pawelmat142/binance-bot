@@ -1,12 +1,10 @@
 import { toDateString } from "src/global/util"
-import { SignalMessage } from "./signal-message"
+import { Signal } from "./signal"
 import { TradeUtil } from "src/binance/trade-util"
 import { TakeProfit, TradeVariant } from "src/binance/model/trade-variant"
 import { SignalUtil } from "./signal-util"
 import { Logger } from "@nestjs/common"
 import Decimal from "decimal.js"
-
-
 
 export type SignalMode = 'SHORT' | 'LONG'
 
@@ -25,7 +23,7 @@ export class SignalValidator {
     errors: string[] = []
     valuesLogicOk = false   
 
-    signal: SignalMessage
+    signal: Signal
 
     variant: Partial<TradeVariant> = { 
         takeProfits: [] 
@@ -39,10 +37,9 @@ export class SignalValidator {
         && this.valuesLogicOk
     }
 
-    constructor(signal: SignalMessage) {
+    constructor(signal: Signal) {
         this.signal = signal
         this.message = signal.content
-        this.prepareLines()
     }
 
     private readonly entryZoneRegex = /entry\s*zone/i;
@@ -72,8 +69,16 @@ export class SignalValidator {
     }
 
     public validate() {
+        this.prepareLines()
+        this.processValidation()
+        this.valuesLogicOk = this.validateValuesLogic()
+        this.signal.valid = this.valid
+        this.signal.tradeVariant = this.variant as TradeVariant
+    }
+
+    private processValidation() {
         for(let i=0; i < this.lines.length; i++) {
-            this.findSignalSdneAndSymbol(i)
+            this.findSignalSideAndSymbol(i)
             this.findEntryZoneIndex(i)
             this.findTakeProfitLineIndex(i)
             this.findStopLossLineIndex(i)
@@ -84,12 +89,14 @@ export class SignalValidator {
             SignalUtil.addLog(`Found symbol ${this.variant.symbol}`, this.signal, this.logger)
         } else {
             this.signalError('symbol could not be found')
+            return
         }
         if (this.entryZoneLineIndex !== -1) {
             this.findEntryZone()
             this.findRiskPhrase()
         } else {
             this.signalError('entry zone could not be found')
+            return
         }
         if (this.takeProfitLineIndex !== -1) {
             this.findTakeProfit()
@@ -121,12 +128,9 @@ export class SignalValidator {
         if (!this.variant.leverMin || !this.variant.leverMax) {
             this.signalWarning('Lever not found')
         }
-        this.valuesLogicOk = this.validateValuesLogic()
-        this.signal.valid = this.valid
-        this.signal.tradeVariant = this.variant as TradeVariant
     }
 
-    private findSignalSdneAndSymbol(lineIndex: number) {
+    private findSignalSideAndSymbol(lineIndex: number) {
         if (this.tokenNameLineIndex !== -1) {
             return
         }
@@ -158,19 +162,6 @@ export class SignalValidator {
         }
     }
 
-
-    // private findSymbol(line: string) {
-    //     if (line) {
-    //         let words = line.split(' ')
-    //             .filter(word => !!word)
-    //             .filter(word => !word.toLowerCase().includes('short'))
-    //             .filter(word => !word.toLowerCase().includes('long'))
-    //         if (words.length > 0) {
-    //             const token = words[0]
-    //             this.variant.symbol = TradeUtil.getSymbolByToken(token)
-    //         }
-    //     }
-    // }
 
     private findEntryZoneIndex(lineIndex: number) {
         const line = this.lines[lineIndex]

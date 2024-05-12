@@ -1,20 +1,19 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { SignalMessage } from 'src/signal/signal-message';
 import { TradeUtil } from './trade-util';
 import { FuturesResult, Trade, TradeStatus } from './model/trade';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { CalculationsService } from './calculations.service';
 import { SignalService } from 'src/signal/signal.service';
-import { newObjectId } from 'src/global/util';
 import { TradeService } from './trade.service';
-import { TakeProfit, TradeCtx } from './model/trade-variant';
+import { TradeCtx } from './model/trade-variant';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
 import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
 import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
+import { SignalUtil } from 'src/signal/signal-util';
+import { TradeRepository } from './trade.repo';
+import { Signal } from 'src/signal/signal';
 
 
 // TODO close the trade signal 
@@ -24,17 +23,17 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(BinanceService.name)
 
     constructor(
-        @InjectModel(Trade.name) private tradeModel: Model<Trade>,
         private readonly calcService: CalculationsService,
         private readonly signalService: SignalService,
         private readonly tradeService: TradeService,
         private readonly telegramService: TelegramService,
         private readonly unitService: UnitService,
         private readonly duplicateService: DuplicateService,
+        private readonly tradeRepo: TradeRepository,
     ) {}
 
 
-    async listSignalsTest(): Promise<SignalMessage[]> {
+    async listSignalsTest(): Promise<Signal[]> {
         const uri = 'http://193.56.240.228:8008/signal/list'
         const request = await fetch(uri)
         return request.json()
@@ -46,7 +45,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     onModuleInit(): void {
         if (!this.signalSubscription) {
             this.signalSubscription = this.signalService.tradeObservable$.subscribe({
-                next: this.openTradesPerUnit,
+                next: this.onSignalEvent,
                 error: this.logger.error
             })
         }
@@ -83,9 +82,21 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    private onSignalEvent = async (signal: Signal) => {
+        if (signal.valid) {
+            SignalUtil.addLog(`Signal ${signal._id} is valid, opening trade per unit... `, signal, this.logger)
+            this.openTradesPerUnit(signal)
+        } 
+        else if (SignalUtil.anyAction(signal)) {
+            this.otherActionsPerUnit(signal)
+        } else {
+            SignalUtil.addError(`Signal validation error!`, signal, this.logger)
+        }
+        this.signalService.updateLogs(signal)
+    }
 
-    private openTradesPerUnit = async (signal: SignalMessage) => {
-        const trade = this.prepareTrade(signal)
+    private openTradesPerUnit = async (signal: Signal) => {
+        const trade = this.tradeRepo.prepareTrade(signal)
         if (!trade.logs) {
             trade.logs = []
         }
@@ -102,45 +113,40 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private async prepareTradeContext(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
-        await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
-        let trade = await this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            closed: { $ne: true },
-            $or: [
-                { "futuresResult.orderId": eventTradeResult.orderId },
-                { "stopLossResult.orderId": eventTradeResult.orderId },
-                { "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId },
-            ]
-        }).exec()
-        if (!trade) {
-            this.unitService.addError(unit, `Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
-        }
-        return new TradeCtx({ unit, trade })
-    }
+    private async otherActionsPerUnit(signal: Signal) {
+        const units = this.unitService.units || []
 
-    private async waitUntilSaveTrade() {
-        return new Promise(resolve => setTimeout(resolve, 1000))
-    }
+        for (let unit of units) {
+            const trade = await this.tradeRepo.findBySignal(signal, unit)
+            const ctx = new TradeCtx({ trade, unit })
 
-    private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
-        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.debug('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
-            return false
-        } 
-        const trade = await this.tradeModel.findOne({
-            "unitIdentifier": ctx.unit.identifier,
-            "futuresResult.side": ctx.side,
-            "futuresResult.symbol": ctx.symbol,
-            "futuresResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] },
-            closed: { $ne: true }
-        })
-        if (trade) {
-            this.unitService.addLog(ctx.unit, `Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}`)
-            return true
+            if (signal.otherSignalAction.manualClose) {
+                TradeUtil.addLog(`[START] manual close for unit ${unit.identifier}`, ctx, this.logger)
+                TradeUtil.addLog(`[TODO] manual close per unit`, ctx, this.logger)
+                TradeUtil.addLog(`[STOP] manual close for unit ${unit.identifier}`, ctx, this.logger)
+            } else {
+                if (signal.otherSignalAction.takeSomgeProfit) {
+                    TradeUtil.addLog(`[START] take some profit for unit ${unit.identifier}`, ctx, this.logger)
+                    await this.tradeService.takeSomeProfit(ctx)
+                    TradeUtil.addLog(`[STOP] take some profit for unit ${unit.identifier}`, ctx, this.logger)
+                }
+                if (signal.otherSignalAction.moveSl) {
+                    if (signal.otherSignalAction.moveSlToEntryPoint) {
+                        TradeUtil.addLog(`[START] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
+                        const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
+                        if (!entryPrice) {
+                            TradeUtil.addError(`entry price to move SL not found: ${entryPrice}`, ctx, this.logger)
+                            this.tradeRepo.update(ctx)
+                        }
+                        await this.tradeService.moveStopLoss(ctx, entryPrice)
+                        TradeUtil.addLog(`[STOP] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
+                    } else {
+                        TradeUtil.addError(`Move sl where??`, ctx, this.logger)
+                        this.tradeRepo.update(ctx)
+                    }
+                }
+            }
         }
-        return false
     }
 
     private async openTradeForUnit(ctx: TradeCtx) {
@@ -158,7 +164,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             TradeUtil.addError(error, ctx, this.logger)
             this.telegramService.tradeErrorMessage(ctx)
         } finally {
-            const saved = await this.save(ctx)
+            const saved = await this.tradeRepo.save(ctx)
         }
     }
 
@@ -191,7 +197,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
-            const saved = await this.update(ctx)
+            const saved = await this.tradeRepo.update(ctx)
             this.telegramService.onFilledPosition(ctx)
         }
     }
@@ -211,7 +217,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
-            const saved = await this.update(ctx)
+            const saved = await this.tradeRepo.update(ctx)
             this.telegramService.onFilledStopLoss(ctx)
         }
     }
@@ -234,23 +240,9 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
-            const saved = await this.update(ctx)
+            const saved = await this.tradeRepo.update(ctx)
             this.telegramService.onFilledTakeProfit(ctx)
         }
-    }
-
-    private async onFilledTakeSomeProfit(ctx: TradeCtx) {
-        if (TradeUtil.positionFullyFilled(ctx)) {
-            await this.tradeService.closeStopLoss(ctx)
-            await this.tradeService.closePendingTakeProfit(ctx)
-            TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
-        } else {
-            const stopLossPrice = Number(ctx.trade.stopLossResult?.stopPrice)
-            await this.tradeService.moveStopLoss(ctx, isNaN(stopLossPrice) ? undefined : stopLossPrice)
-            TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
-        }
-        const saved = await this.update(ctx)
-        this.telegramService.onFilledTakeProfit(ctx)
     }
 
 
@@ -262,88 +254,37 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         tp.reuslt = eventTradeResult
     }
 
-    private prepareTrade(signal: SignalMessage): Trade {
-        const variant = signal.tradeVariant
-        const trade = new this.tradeModel({
-            signalObjectId: signal._id,
-            logs: signal.logs || [],
-            variant: variant,
-        })
-        return trade
-    }
 
-    private async save(ctx: TradeCtx) {
-        if (process.env.SKIP_SAVE_TRADE === 'true') {
-            this.logger.debug('[SKIP] Saved trade')
-        }
-        ctx.trade._id = newObjectId()
-        ctx.trade.timestamp = new Date()
-        const newTrade = new this.tradeModel(ctx.trade)
-        newTrade.testMode = process.env.TEST_MODE === 'true'
-
-        TradeUtil.addLog(`Saving trade ${newTrade._id}`, ctx, this.logger)
-        const saved = await newTrade.save()
-        return saved
-    }
-
+    // TODO move somewhere
     public async update(ctx: TradeCtx) {
-        if (process.env.SKIP_SAVE_TRADE === 'true') {
-            this.logger.debug('[SKIP] Updated trade')
-        }
-        ctx.trade.timestamp = new Date()
-        TradeUtil.addLog(`Updating trade ${ctx.trade._id}`, ctx, this.logger)
-        const updated = await this.tradeModel.updateOne(
-            { _id: ctx.trade._id },
-            { $set: ctx.trade }
-        ).exec()
-        return updated
+        return this.tradeRepo.update(ctx)
     }
 
-    public async takeSomeProfit(ctx: TradeCtx): Promise<boolean> {
-        try {
-            const takeProfits = ctx.trade.variant.takeProfits
-            takeProfits.sort((a, b) => a.order - b.order)
-            for (let i = takeProfits.length-1; i>=0; i--) {
-                const tp = takeProfits[i]
-                const quantity = Number(tp.quantity)
-                if ((!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) && quantity) {
-                    if (tp.reuslt?.status === TradeStatus.NEW) {
-                        await this.tradeService.closePendingTakeProfit(ctx)
-                    }
-                    delete tp.reuslt
-                    tp.takeSomeProfitFlag = true
-                    await this.update(ctx)
-                    const result = await this.tradeService.takeSomeProfit(ctx, tp)
-                    result.status = TradeStatus.FILLED
-                    result.executedQty = result.origQty
-                    tp.reuslt = result
-                    this.onFilledTakeSomeProfit(ctx)
-                    return !!result
-                }
-            }
+    private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
+        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
+            this.logger.debug('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
             return false
-        } catch (error) {
-            TradeUtil.addError(error.message, ctx, this.logger)
-            return false
+        } 
+        const trade = await this.tradeRepo.findInProgress(ctx)
+        if (trade) {
+            this.unitService.addLog(ctx.unit, `Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}`)
+            return true
         }
+        return false
     }
 
-    public async moveStopLoss(order: FuturesResult, stopLossPrice: number, unit: Unit): Promise<boolean> {
-        const trade = await this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            "stopLossResult.orderId": order.orderId
-        }).exec()
-        const ctx = new TradeCtx({ unit, trade: trade })
+    private async prepareTradeContext(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
+        await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
+        let trade = await this.tradeRepo.findByTradeEvent(eventTradeResult, unit)
         if (!trade) {
-            return false
+            this.unitService.addError(unit, `Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
+            return
         }
-        try {
-            await this.tradeService.moveStopLoss(ctx, stopLossPrice)
-            TradeUtil.addLog(`Moved stop loss for unit: ${unit.identifier}, ${trade.variant.symbol} to level: ${stopLossPrice} USDT`, ctx, this.logger)
-            await this.update(ctx)
-        } catch (error) {
-            TradeUtil.addError(error, ctx, this.logger)
-            return false
-        }
+        return new TradeCtx({ unit, trade })
     }
+
+    private async waitUntilSaveTrade() {
+        return new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
 }
