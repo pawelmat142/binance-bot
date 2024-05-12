@@ -23,7 +23,6 @@ export class LogsWizard extends UnitWizard {
     tradesIterator = 0
 
     selectedSymbol: string
-    selectedTrades: FuturesResult[]
     selectedTradesNumber = 5
     selectedtradesIterator = 0
 
@@ -32,134 +31,122 @@ export class LogsWizard extends UnitWizard {
     public getSteps(): WizardStep[] {
         return [{
             order: 0,
-            message: [
-                `x - to show last x logs (max 15)`,
-                `trade - to filter last trade jsons`,
-                `there is ${this.logs?.length} logs`
-            ],
-            process: async (input: string) => {
-                const num = Number(input)
-                if (isNaN(num)) {
-                    if (input === 'trade') {
-                        this.initTradeJsons()
-                        return 2
-                    }
-                } else {
-                    this.logsNumber = num
-                    this.order = 1
-                    // return this.getLogs()
+            message: [`there is ${this.logs?.length} logs`],
+            buttons: [[{
+                text: `5 logs`,
+                callback_data: `5logs`,
+                process: async () => {
+                    this.logsNumber = 5
+                    return 1 
                 }
-                return 0
-            }
+            }, {
+                text: `10 logs`,
+                callback_data: `10logs`,
+                process: async () => {
+                    this.logsNumber = 10
+                    return 1 
+                }
+            }], [{
+                text: `only trades`,
+                callback_data: `only trades`,
+                process: async () => {
+                    this.initTradeJsons()
+                    return 2
+                }
+            }]],
         }, {
             order: 1,
-            message: [
-                `n - next ${this.logsNumber} logs`,
-                `b - ${this.logsNumber} logs before`
-            ],
-            process: async (input: string) => {
-                if (['n','b'].includes(input)) {
-                    if (input === 'n') {
-                        this.logsIterator++
-                    } 
-                    if (input === 'b') {
-                        if (this.logsIterator) {
-                            this.logsIterator--
-                        }
-                    }
-                    // return this.getLogs()
-                } else return 0
-            }
+            message: this.getLogs(),
+            buttons: [[{
+                text: `<<`,
+                callback_data: `goback`,
+                process: async () => {
+                    this.logsIterator--
+                    return 1
+                }
+            }, {
+                text: `>>`,
+                callback_data: `goforward`,
+                process: async () => {
+                    this.logsIterator++
+                    return 1
+                }
+            }]]
         }, {
             order: 2,
-            message: [
-                `Theres ${this.trades?.length} trade json responses`,
-                `x - to show x last trades(max 10)`,
-                `<tokenname> - to show only token trades`,
-            ],
-            process: async (input: string) => {
-                return 0
-                // const num = Number(input)
-                // if (isNaN(num)) {
-                //     const symbol = input.includes('usdt') ? input.toUpperCase() : `${input.toUpperCase()}USDT`
-                //     const selectedTrades = this.trades.filter(t => t.symbol === symbol)
-                //     if (selectedTrades.length) {
-                //         this.selectedSymbol = symbol
-                //         this.selectedTrades = selectedTrades
-                //         return 4
-                //     }
-                // } else {
-                //     if (num > 10) return [`max 10!`]
-                //     if (num > this.trades.length) return [`Theres only ${this.trades.length} trade jsons`]
-                //     this.order = 3
-                //     this.tradesNumber = num
-                //     // return this.getTrades()
-                // }
-                // return 2
-            }
+            message: [`Theres ${this.trades?.length} trade json responses`],
+            buttons: [[{
+                text: `Filter by symbol`,
+                callback_data: `filterbysymbol`,
+                process: async () => {
+                    return 4
+                }
+            }], [{
+                text: `5 logs`,
+                callback_data: `5logs`,
+                process: async () => {
+                    this.logsNumber = 5
+                    return 3 
+                }
+            }, {
+                text: `10 logs`,
+                callback_data: `10logs`,
+                process: async () => {
+                    this.logsNumber = 10
+                    return 3 
+                }
+            }]],
         }, {
             order: 3,
-            message: [
-                `n - next ${this.tradesNumber} trades`,
-                `b - ${this.tradesNumber} trades before`
-            ],
-            process: async (input: string) => {
-                if (['n','b'].includes(input)) {
-                    if (input === 'n') {
-                        this.tradesIterator++
-                    } 
-                    if (input === 'b') {
-                        if (this.tradesIterator) {
-                            this.tradesIterator--
-                        }
-                    }
-                    // return this.getTrades()
+            message: this.getTrades(),
+            buttons: [[{
+                text: `<<`,
+                callback_data: `goback`,
+                process: async () => {
+                    this.tradesIterator--
+                    return 3
                 }
-                return 3
-            }
+            }, {
+                text: `>>`,
+                callback_data: `goforward`,
+                process: async () => {
+                    this.tradesIterator++
+                    return 3
+                }
+            }]]
         }, {
             order: 4,
-            message: [
-                `Theres ${this.selectedTrades?.length} ${this.selectedSymbol} trade json responses`,
-                `x - to show x last ${this.selectedSymbol} trades (max 10)`,
-            ],
-            process: async (input: string) => {
-                return 1
-                // const num = Number(input)
-                // if (isNaN(num)) {
-                //     // return [`${input} is not a number`]
-                // } else {
-                //     if (num > 10) return [`max 10!`]
-                //     if (num > this.selectedTrades.length) return [`Theres only ${this.selectedTrades.length} trade jsons`]
-                //     this.order = 5
-                //     this.selectedTradesNumber = num
-                //     // return this.getSelectedTrades()
-                // }
-            }
+            message: [`Select symbol:`],
+            buttons: this.getTradeSymbolsAsMatrix(this.getTradeSymbols()).map(row => row.map(symbol => {
+                return {
+                    text: symbol,
+                    callback_data: symbol,
+                    process: async () => {
+                        this.selectedSymbol = symbol
+                        return 5
+                    }
+                }
+            }))
         }, {
             order: 5,
-            message: [
-                `n - next ${this.selectedSymbol} trades `,
-                `b - ${this.selectedSymbol} trades before`
-            ],
-            process: async (input: string) => {
-                return 0
-                // if (['n','b'].includes(input)) {
-                //     if (input === 'n') {
-                //         this.selectedtradesIterator++
-                //     } 
-                //     if (input === 'b') {
-                //         if (this.selectedtradesIterator) {
-                //             this.selectedtradesIterator--
-                //         }
-                //     }
-                //     return this.getSelectedTrades()
-                // }
-                // return 5
-            }
+            message: this.getSelectedTrades(),
+            buttons: [[{
+                text: `<<`,
+                callback_data: `goback`,
+                process: async () => {
+                    this.selectedtradesIterator--
+                    return 5
+                }
+            }, {
+                text: `>>`,
+                callback_data: `goforward`,
+                process: async () => {
+                    this.selectedtradesIterator++
+                    return 5
+                }
+            }]]
         }]
     }
-
 
 
     private async initLogs() {
@@ -188,14 +175,23 @@ export class LogsWizard extends UnitWizard {
     }
 
     private getLogs(): string[] {
+        if (this.order !== 1) return [`??`]
         const indexFrom = this.logs.length - 1 - this.logsIterator*this.logsNumber
         const indexTo = this.logs.length - 1 - ((this.logsIterator+1)*this.logsNumber-1)
-        return this.logs
+        const message = this.logs
             .map((l, i) => `  *** ${i}'s\n${l}`)
             .filter((l, i) => i <= indexFrom && i >= indexTo )
+        return message.reduce((acc, curr, i) => {
+            acc.push(curr)
+            if (i < message.length - 1) {
+                acc.push(` `)
+            }
+            return acc
+        }, [])
     }
 
     private getTrades(): string[] {
+        if (this.order !== 3) return []
         const indexFrom = this.trades.length - 1 - this.tradesIterator*this.tradesNumber
         const indexTo = this.trades.length - 1 - ((this.tradesIterator+1)*this.tradesNumber-1)
         return this.trades
@@ -203,14 +199,37 @@ export class LogsWizard extends UnitWizard {
             .filter((l, i) => i <= indexFrom && i >= indexTo )
     }
 
+    private getTradeSymbols(): string[] {
+        if (this.trades) {
+            let result = new Set(this.trades.map(t => t.symbol))
+            return Array.from(result)
+        }
+        return []
+    }
+
+    private getTradeSymbolsAsMatrix(originalArray: string[]): string[][] {
+        return originalArray.reduce((acc, current, i, array) => {
+            if (i % 2 === 0 || i === array.length -1) {
+                acc.push([current])
+            } else {
+                acc[acc.length - 1].push(current)
+            }
+            return acc
+        }, [])
+    }
+
     private getSelectedTrades(): string[] {
+        if (this.order !== 5) return []
         const indexFrom = this.selectedTrades.length - 1 - this.selectedtradesIterator*this.selectedTradesNumber
         const indexTo = this.selectedTrades.length - 1 - ((this.selectedtradesIterator+1)*this.selectedTradesNumber-1)
         return this.selectedTrades
-            .map((l, i) => `  *** ${i+1}'s\n${this.formatTradeJson(l)}`)
+            .map((l, i) => `\n  *** ${i+1}'s\n${this.formatTradeJson(l)}\n`)
             .filter((l, i) => i <= indexFrom && i >= indexTo )
     }
 
     private formatTradeJson = (trade: FuturesResult): string => JSON.stringify(trade, null, 2)
 
+    private get selectedTrades(): FuturesResult[] {
+        return this.trades.filter(t => t.symbol === this.selectedSymbol)
+    }
 }

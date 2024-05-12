@@ -6,7 +6,7 @@ import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
 import { BotUtil } from "../bot.util"
 import { WizardStep } from "./wizard"
 
-export class AmountWizard extends UnitWizard {
+export class AccountWizard extends UnitWizard {
 
     constructor(unit: Unit, services: ServicesService) {
         super(unit, services)
@@ -30,6 +30,16 @@ export class AmountWizard extends UnitWizard {
             order: 0,
             message: message,
             buttons: [[{
+                text: `${this.unit?.active ? 'Deactivate' : 'Activate'} your subscription`,
+                callback_data: this.unit?.active ? WizBtn.deactivate : WizBtn.activate,
+                process: async () => {
+                    const result = await this.services.unitService.activation(this.unit?.identifier, !this.unit?.active)
+                    if (result) {
+                        return this.unit?.active ? 10 : 11
+                    }
+                    return 0
+                }
+            }],[{
                 text: 'Change USDT per transaction',
                 callback_data: WizBtn.usdtPerTransaction,
                 process: async () => {
@@ -113,6 +123,14 @@ export class AmountWizard extends UnitWizard {
             order: 9,
             message: [`Usdt per transaction is not changed!`],
             nextOrder: 1
+        }, {
+            order: 10,
+            message: [` Subscription deactivated`],
+            close: true,
+        }, {
+            order: 11,
+            message: [` Subscription activated`],
+            close: true,
         }]
     }
 

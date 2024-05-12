@@ -5,6 +5,7 @@ import { WizBtn } from "./wizard-buttons"
 import { WizardStep } from "./wizard"
 import { TelegramMessage } from "src/telegram/message"
 import { BotUtil } from "../bot.util"
+import { LogsWizard } from "./logs.wizard"
 
 export class AdminWizard extends UnitWizard {
 
@@ -24,9 +25,9 @@ export class AdminWizard extends UnitWizard {
                 callback_data: WizBtn.signal,
                 process: async () => 1,
             }], [{
-                text: `TODO`,
-                callback_data: WizBtn.AVOID_BUTTON_CALLBACK,
-                process: async () => 0,
+                text: `LOGS`,
+                callback_data: `logswizard`,
+                switch: LogsWizard.name
             }]],
         }, {
             order: 1,

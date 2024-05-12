@@ -8,10 +8,12 @@ import { ServicesService } from "./services.service";
 import { Wizard, WizardButton } from "./wizards/wizard";
 import { StartWizard } from "./wizards/start.wizard";
 import { WizBtn } from "./wizards/wizard-buttons";
-import { AmountWizard } from "./wizards/amount.wizard";
+import { AccountWizard } from "./wizards/account.wizard";
 import { UnitWizard } from "./wizards/unit-wizard";
 import { TradesWizard } from "./wizards/trades.wizard";
 import { AdminWizard } from "./wizards/admin.wizard";
+import { LogsWizard } from "./wizards/logs.wizard";
+import { log } from "console";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {
@@ -143,6 +145,8 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             }]]
         } else if (input === WizBtn.BACK || wizard.order === 0) {
             wizard.order = 0
+            step = wizard.getStep()
+            msg = step.message
             this.addStop(step.buttons)
         } else {
             this.addStopAndBack(step.buttons)
@@ -158,6 +162,10 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                     return btn as TelegramBot.InlineKeyboardButton
                 })),
             }
+        }
+        if (!msg.length) {
+            this.logger.warn(`empty message`)
+            return
         }
         const result = await this.telegramService.sendMessage(wizard.chatId, BotUtil.msgFrom(msg), options)
         if (buttons.length) {
@@ -249,14 +257,14 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
 
     private selectSWitchWizard(name: string, currentWizard: UnitWizard): UnitWizard {
         switch (name) {
-            case AmountWizard.name:
-                return new AmountWizard(currentWizard.getUnit(), this.service)
-            // case LogsWizard.name:
-            //     return new LogsWizard(currentWizard.getUnit(), this.service)
+            case AccountWizard.name:
+                return new AccountWizard(currentWizard.getUnit(), this.service)
             case TradesWizard.name:
                 return new TradesWizard(currentWizard.getUnit(), this.service)
             case AdminWizard.name:
                 return new AdminWizard(currentWizard.getUnit(), this.service)
+            case LogsWizard.name:
+                return new LogsWizard(currentWizard.getUnit(), this.service)
             default: throw new Error('switch wizard error')
         }
     }
