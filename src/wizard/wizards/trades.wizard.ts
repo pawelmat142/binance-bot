@@ -11,7 +11,6 @@ import Decimal from "decimal.js"
 import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
 import { TradeCtx } from "src/binance/model/trade-variant"
-import { queryParams } from "src/global/util"
 
 export class TradesWizard extends UnitWizard {
 
@@ -117,7 +116,7 @@ export class TradesWizard extends UnitWizard {
                 callback_data: WizBtn.closePosition,
                 process: async () => {
                     const success = await this.fullClosePosition()
-                    return success ? 0 : 3
+                    return success ? 13 : 3
                 }
             }]],
         }, {
@@ -214,7 +213,7 @@ export class TradesWizard extends UnitWizard {
     } 
 
     private async fetchOpenOrders(): Promise<FuturesResult[]> {
-        const trades = await this.services.binance.fetchOpenOrders(this.unit)
+        const trades = await this.services.tradeService.fetchOpenOrders(this.unit)
         if (isBinanceError(trades)) {
             this.logger.error(trades)
             return []
@@ -387,56 +386,19 @@ export class TradesWizard extends UnitWizard {
 
 
     private async fullClosePosition(): Promise<boolean> {
+        if (!this.selectedTrade) throw new Error('missing selected trade')
+        const ctx = new TradeCtx({
+            unit: this.unit,
+            trade: this.selectedTrade
+        })
         try {
-            const trade = this.selectedTrade
-            if (!trade) throw new Error('missing selected trade')
-            const symbol = trade.variant.symbol
-            const ctx = new TradeCtx({
-                unit: this.unit,
-                trade: trade
-            })
-            TradeUtil.addLog(`[START] Closing position ${symbol} for unit: ${this.unit.identifier}`, ctx, this.logger)
-    
-            const stopLoses = this.stopLoses.filter(sl => sl.symbol === symbol)
-            const takeProfits = this.takeProfits.filter(tp => tp.symbol === symbol)
-            const trades = this.trades.filter(t => t.variant.symbol === symbol)
-            
-            for (let sl of stopLoses) {
-                await this.services.tradeService.closeOrder(ctx, sl.orderId)
-                TradeUtil.addLog(`Closed sl order ${sl.orderId} fot unit: ${this.unit.identifier}`, ctx, this.logger)
-            }
-            for (let tp of takeProfits) {
-                await this.services.tradeService.closeOrder(ctx, tp.orderId)
-                TradeUtil.addLog(`Closed tp order ${tp.orderId} fot unit: ${this.unit.identifier}`, ctx, this.logger)
-            }
-            for (let trade of trades) {
-                await this.services.binance.closeTrade(ctx)
-                TradeUtil.addLog(`Closed trade: ${trade._id} fot unit: ${this.unit.identifier}`, ctx, this.logger)
-            }
-            await this.closePosition(symbol, ctx)
-            TradeUtil.addLog(`[STOP] Closing position ${symbol} for unit: ${this.unit.identifier}`, ctx, this.logger)
-            this.services.binanceServie.update(ctx)
-            this.pendingPositions = this.pendingPositions.filter(p => p.symbol === symbol)
+            await this.services.binanceServie.fullClosePosition(ctx)
+            this.pendingPositions = this.pendingPositions.filter(p => p.symbol === this.selectedTrade.variant.symbol)
             this.selectedTrade = null
             return true
         } catch (error) {
             this.error = error
             return false
-        }
-    }
-
-    private async closePosition(symbol: string, ctx: TradeCtx) {
-        const position = this.pendingPositions.find(p => p.symbol === symbol)
-        if (position) {
-            const params = queryParams({
-                symbol: ctx.symbol,
-                side: TradeUtil.opositeSide(this.selectedTrade.variant.side),
-                type: TradeType.MARKET,
-                quantity: Number(position.positionAmt),
-                timestamp: Date.now(),
-            })
-            const resultTrade = await this.services.tradeService.placeOrder(params, ctx, 'POST')
-            TradeUtil.addLog(`Closed position ${symbol}, for unit ${this.unit.identifier}`, ctx, this.logger)
         }
     }
 

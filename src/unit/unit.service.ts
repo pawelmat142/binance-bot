@@ -30,53 +30,6 @@ export class UnitService implements OnModuleInit {
         return this.tradeEventSubject$.asObservable()
     }
 
-    public testBinanceSocketMessage() {
-        const msg = {
-            "e": "ORDER_TRADE_UPDATE",
-            "T": 1708115634717,
-            "E": 1708115634717,
-            "o": {
-                "s": "ZECUSDT",
-                "c": "M46wHanzHRuwKqeQla16B0",
-                "S": "SELL",
-                "o": "TAKE_PROFIT_MARKET",
-                "f": "GTC",
-                "q": "0.448",
-                "p": "0",
-                "ap": "0",
-                "sp": "22.60",
-                "x": "CANCELED",
-                "X": "CANCELED",
-                "i": 15592847130,
-                "l": "0",
-                "z": "0",
-                "L": "0",
-                "n": "0",
-                "N": "USDT",
-                "T": 1708115634717,
-                "t": 0,
-                "b": "0",
-                "a": "0",
-                "m": false,
-                "R": false,
-                "wt": "CONTRACT_PRICE",
-                "ot": "TAKE_PROFIT_MARKET",
-                "ps": "BOTH",
-                "cp": false,
-                "rp": "0",
-                "pP": false,
-                "si": 0,
-                "ss": 0,
-                "V": "NONE",
-                "pm": "NONE",
-                "gtd": 0
-            }
-        }
-        const event = {
-            data: `{\"e\":\"ORDER_TRADE_UPDATE\",\"T\":1709219972113,\"E\":1709219972113,\"o\":{\"s\":\"APEUSDT\",\"c\":\"40cTnDBQmi765uigC6OGg5\",\"S\":\"BUY\",\"o\":\"MARKET\",\"f\":\"GTC\",\"q\":\"102\",\"p\":\"0\",\"ap\":\"1.9693\",\"sp\":\"0\",\"x\":\"TRADE\",\"X\":\"PARTIALLY_FILLED\",\"i\":14409231756,\"l\":\"17\",\"z\":\"77\",\"L\":\"1.9693\",\"n\":\"0.01673904\",\"N\":\"USDT\",\"T\":1709219972113,\"t\":469503865,\"b\":\"0\",\"a\":\"0\",\"m\":false,\"R\":false,\"wt\":\"CONTRACT_PRICE\",\"ot\":\"MARKET\",\"ps\":\"BOTH\",\"cp\":false,\"rp\":\"0\",\"pP\":false,\"si\":0,\"ss\":0,\"V\":\"NONE\",\"pm\":\"NONE\",\"gtd\":0}}`
-        } as MessageEvent
-    }
-
     onModuleInit() {
         this.initUnits()
     }
@@ -309,6 +262,24 @@ export class UnitService implements OnModuleInit {
         return saved
     }
 
+    private async loadUnit(identifier: string) {
+        const unit = await this.unitModel.findOne({ active: true }, { 
+            listenJsons: false,
+            listenKey: false
+        }).exec()
+        if (unit) {
+            const units = this._units$.value.map(u => {
+                if (u.identifier === unit.identifier) {
+                    return unit
+                }
+                return u
+            })
+            this._units$.next(units)
+        } else {
+            this.logger.error(`Could not load unit ${identifier}`)
+        }
+    }
+
 
     // LOGS
 
@@ -389,7 +360,7 @@ export class UnitService implements OnModuleInit {
             { identifier: unit?.identifier },
             { $set: { active: active } }
         ).exec()
-        this.loadUnits()
+        this.loadUnit(unit.identifier)
         return update
     } 
 
@@ -399,6 +370,8 @@ export class UnitService implements OnModuleInit {
             { identifier: unit.identifier },
             { $set: { usdtPerTransaction: _unit.usdtPerTransaction } }
         ).exec()
+        this.loadUnit(unit.identifier)
+        console.log(update)
         return update
     }
 
@@ -409,6 +382,7 @@ export class UnitService implements OnModuleInit {
             { identifier: unit.identifier },
             { $set: { allow100perBtcTransaction: _unit.allow100perBtcTransaction } }
         ).exec()
+        this.loadUnit(unit.identifier)
         return update
     }
     

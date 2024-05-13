@@ -17,6 +17,13 @@ export class TradeRepository {
         @InjectModel(Trade.name) private tradeModel: Model<Trade>,
     ) {}
 
+    public findBySymbol(ctx: TradeCtx): Promise<Trade[]> {
+        return this.tradeModel.find({
+            unitIdentifier: ctx.unit.identifier,
+            closed: { $ne: true },
+            "variant.symbol": ctx.trade.variant.symbol
+        })
+    }
 
     public findByUnit(unit: Unit): Promise<Trade[]> {
         return this.tradeModel.find({
@@ -97,6 +104,22 @@ export class TradeRepository {
             variant: variant,
         })
         return trade
+    }
+
+    public closeTrade(ctx: TradeCtx) {
+        ctx.trade.closed = true
+        if (ctx.trade.futuresResult) {
+            ctx.trade.futuresResult.status = TradeStatus.CLOSED_MANUALLY
+        }
+        if (ctx.trade.stopLossResult) {
+            ctx.trade.stopLossResult.status = TradeStatus.CLOSED_MANUALLY
+        }
+        for (let tp of ctx.trade.variant.takeProfits || []) {
+            if (tp.reuslt) {
+                tp.reuslt.status = TradeStatus.CLOSED_MANUALLY
+            }
+        }
+        return this.update(ctx)
     }
 
 }

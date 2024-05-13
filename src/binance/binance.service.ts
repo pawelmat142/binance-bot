@@ -14,6 +14,7 @@ import { DuplicateService } from './duplicate.service';
 import { SignalUtil } from 'src/signal/signal-util';
 import { TradeRepository } from './trade.repo';
 import { Signal } from 'src/signal/signal';
+import { TradeType } from './model/model';
 
 
 // TODO close the trade signal 
@@ -121,9 +122,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             const ctx = new TradeCtx({ trade, unit })
 
             if (signal.otherSignalAction.manualClose) {
-                TradeUtil.addLog(`[START] manual close for unit ${unit.identifier}`, ctx, this.logger)
-                TradeUtil.addLog(`[TODO] manual close per unit`, ctx, this.logger)
-                TradeUtil.addLog(`[STOP] manual close for unit ${unit.identifier}`, ctx, this.logger)
+                await this.fullClosePosition(ctx)
             } else {
                 if (signal.otherSignalAction.takeSomgeProfit) {
                     TradeUtil.addLog(`[START] take some profit for unit ${unit.identifier}`, ctx, this.logger)
@@ -142,9 +141,9 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                         TradeUtil.addLog(`[STOP] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
                     } else {
                         TradeUtil.addError(`Move sl where??`, ctx, this.logger)
-                        this.tradeRepo.update(ctx)
                     }
                 }
+                this.tradeRepo.update(ctx)
             }
         }
     }
@@ -256,11 +255,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-    // TODO move somewhere
-    public async update(ctx: TradeCtx) {
-        return this.tradeRepo.update(ctx)
-    }
-
     private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
             this.logger.debug('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
@@ -286,6 +280,52 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private async waitUntilSaveTrade() {
         return new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
+    public async fullClosePosition(ctx: TradeCtx) {
+        const symbol = ctx.trade.variant.symbol
+        const unit = ctx.unit
+        const unitIdentifier = unit.identifier
+
+        TradeUtil.addLog(`[START] Closing position ${ctx.side} ${symbol} for unit: ${unitIdentifier}`, ctx, this.logger)
+
+        const openOrders = await this.tradeService.fetchOpenOrders(ctx.unit, symbol)
+        if (Array.isArray(openOrders)) {
+            for (let order of openOrders) {
+                const result = await this.tradeService.closeOrder(ctx, order.orderId)
+                if (result.type === TradeType.STOP_MARKET) {
+                    ctx.trade.stopLossResult = result
+                    TradeUtil.addLog(`Closed STOP LOSS ${order.orderId} for unit: ${unitIdentifier}`, ctx, this.logger)
+                } else if (result.type === TradeType.TAKE_PROFIT_MARKET) {
+                    ctx.trade.variant.takeProfits
+                        .filter(tp => tp.reuslt?.orderId === result.orderId)
+                        .forEach(tp => tp.reuslt = result)
+                    TradeUtil.addLog(`Closed TAKE PROFIT ${order.orderId} for unit: ${unitIdentifier}`, ctx, this.logger)
+                } else {
+                    TradeUtil.addError(`Closed order ${order.orderId}, type: ${result.type}`, ctx, this.logger)
+                }
+            }
+        } else {
+            TradeUtil.addError(`Could not find open orders`, ctx, this.logger)
+        }
+
+        const result = await this.tradeService.closePosition(ctx)
+        TradeUtil.addLog(`Closed position ${ctx.side} ${ctx.symbol}`, ctx, this.logger)
+        
+        const trades = await this.tradeRepo.findBySymbol(ctx)
+        TradeUtil.addLog(`Found ${trades.length} open trades`, ctx, this.logger)
+
+        for (let trade of trades) {
+            if (trade._id === ctx.trade._id) {
+                trade.futuresResult = result
+                await this.tradeRepo.closeTrade(ctx)
+            } else {
+                const tradeCtx = new TradeCtx({ unit, trade })
+                await this.tradeRepo.closeTrade(tradeCtx)
+            }
+            TradeUtil.addLog(`Closed trade: ${trade._id} fot unit: ${unitIdentifier}`, ctx, this.logger)
+        }
+        TradeUtil.addLog(`[STOP] Closing position ${symbol} for unit: ${unitIdentifier}`, ctx, this.logger)
     }
 
 }

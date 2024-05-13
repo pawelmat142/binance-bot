@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { FuturesResult, TradeStatus } from "./model/trade";
+import { FuturesResult } from "./model/trade";
 import { TradeService } from "./trade.service";
 import { Unit } from "src/unit/unit";
 import { getHeaders, queryParams, sign } from "src/global/util";
@@ -64,20 +64,6 @@ export class WizardBinanceService {
         return request.json()
     }
 
-
-    public async fetchOpenOrders(unit: Unit): Promise<FuturesResult[] | BinanceError> {
-        const params = queryParams({
-            timestamp: Date.now()
-        })
-        const url = sign(`${TradeUtil.futuresUri}/openOrders`, params, unit)
-        const request = await fetch(url, {
-            method: 'GET',
-            headers: getHeaders(unit)
-        })
-        
-        return request.json()
-    }
-
     public async fetchPositions(unit: Unit): Promise<Position[] | BinanceError> {
         const params = queryParams({
             timestamp: Date.now()
@@ -87,10 +73,8 @@ export class WizardBinanceService {
             method: 'GET',
             headers: getHeaders(unit)
         })
-        
         return request.json()
     }
-
 
     public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
         const params = queryParams({
@@ -112,23 +96,7 @@ export class WizardBinanceService {
 
     public async closeOrder(ctx: TradeCtx) {
         await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
-        await this.closeTrade(ctx)
-    }
-
-    public closeTrade(ctx: TradeCtx) {
-        ctx.trade.closed = true
-        if (ctx.trade.futuresResult) {
-            ctx.trade.futuresResult.status = TradeStatus.CLOSED_MANUALLY
-        }
-        if (ctx.trade.stopLossResult) {
-            ctx.trade.stopLossResult.status = TradeStatus.CLOSED_MANUALLY
-        }
-        for (let tp of ctx.trade.variant.takeProfits || []) {
-            if (tp.reuslt) {
-                tp.reuslt.status = TradeStatus.CLOSED_MANUALLY
-            }
-        }
-        return this.tradeRepo.update(ctx)
+        await this.tradeRepo.closeTrade(ctx)
     }
 
     public async moveStopLoss(order: FuturesResult, stopLossPrice: number, unit: Unit): Promise<boolean> {

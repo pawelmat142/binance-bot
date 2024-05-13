@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
 import { getHeaders, queryParams, sign } from 'src/global/util';
-import { isBinanceError } from './model/binance.error';
+import { BinanceError, isBinanceError } from './model/binance.error';
 import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
@@ -9,6 +9,8 @@ import { HttpMethod } from 'src/global/http-method';
 import { TradeType } from './model/model';
 import { TradeRepository } from './trade.repo';
 import { TelegramService } from 'src/telegram/telegram.service';
+import { Unit } from 'src/unit/unit';
+import { Position } from './wizard-binance.service';
 
 @Injectable()
 export class TradeService {
@@ -193,7 +195,7 @@ export class TradeService {
             orderId: orderId,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
         })
         return this.placeOrder(params, ctx, 'DELETE')
     }
@@ -270,7 +272,7 @@ export class TradeService {
         })
         const response: FuturesResult = await request.json()
         if (isBinanceError(response)) {
-            throw new Error(response.msg)
+            TradeUtil.addError(response.msg, ctx, this.logger)
         }
         return response
     }
@@ -279,6 +281,56 @@ export class TradeService {
     private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: string): string {
         const url = `${TradeUtil.futuresUri}${urlPath}`
         return sign(url, params, tradeContext.unit)
+    }
+
+    public async closePosition(ctx: TradeCtx) {
+        const position = await this.fetchPosition(ctx)
+        const params = queryParams({
+            symbol: ctx.symbol,
+            side: TradeUtil.opositeSide(ctx.side),
+            type: TradeType.MARKET,
+            quantity: Number(position.positionAmt),
+            reduceOnly: true,
+            timestamp: Date.now()
+        })
+        return this.placeOrder(params, ctx, 'POST')
+    }
+
+    private async fetchPosition(ctx: TradeCtx): Promise<Position> {
+        const params = queryParams({
+            timestamp: Date.now(),
+            symbol: ctx.trade.variant.symbol
+        })
+        const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit)
+        const request = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(ctx.unit)
+        })
+        const response = await request.json()
+        if (isBinanceError(response)) {
+            TradeUtil.addError(response.msg, ctx, this.logger)
+            return null
+        }
+        if (!(response || []).length) {
+            TradeUtil.addError(`Could not fetch position ${ctx.side} ${ctx.symbol}`, ctx, this.logger)
+            return null
+        }
+        return response[0] as Position
+    }
+
+    public async fetchOpenOrders(unit: Unit, symbol?: string): Promise<FuturesResult[] | BinanceError> {
+        const params = {
+            timestamp: Date.now()
+        }
+        if (symbol) {
+            params['symbol'] = symbol
+        }
+        const url = sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit)
+        const request = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(unit)
+        })
+        return request.json()
     }
 
 }
