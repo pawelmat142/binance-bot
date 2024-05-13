@@ -230,18 +230,19 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 await this.tradeService.closeStopLoss(ctx)
                 await this.tradeService.closePendingTakeProfit(ctx)
                 TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
+                this.telegramService.onClosedPosition(ctx)
             } 
             else {
                 await this.tradeService.moveStopLoss(ctx)
                 TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
                 await this.tradeService.openNextTakeProfit(ctx)
                 TradeUtil.addLog(`Opened next take profit ${ctx.trade._id}`, ctx, this.logger)
+                this.telegramService.onFilledTakeProfit(ctx)
             }
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
-            this.telegramService.onFilledTakeProfit(ctx)
         }
     }
 

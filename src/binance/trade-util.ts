@@ -144,7 +144,7 @@ export abstract class TradeUtil {
     }
 
     public static positionFullyFilled(ctx: TradeCtx): boolean {
-        const positionQuantity = new Decimal(ctx.trade.futuresResult?.executedQty ?? 0)
+        const positionQuantity = new Decimal(ctx.trade.futuresResult?.origQty ?? 0)
         const result = positionQuantity.equals(this.takeProfitsExecutedQuantitySum(ctx.trade))
         if (result) {
             ctx.trade.closed = true
@@ -153,7 +153,7 @@ export abstract class TradeUtil {
     }
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-        let stopLossQuantity = new Decimal(ctx.trade.futuresResult.executedQty ?? 0)
+        let stopLossQuantity = new Decimal(ctx.trade.futuresResult.origQty ?? 0)
             .minus(this.takeProfitsExecutedQuantitySum(ctx.trade))
         return stopLossQuantity
     }

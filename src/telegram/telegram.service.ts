@@ -104,6 +104,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
 
+    public onClosedPosition(ctx: TradeCtx) {
+        return this.sendUnitMessage(ctx, [
+            `Closed position ${ctx.side} ${ctx.symbol}`
+        ])
+    }
+
+
+
+
+
+
+
     private async sendChatMessage(chatId: number, lines: string[]) {
         this.sendMessage(chatId, BotUtil.msgFrom(lines))
     }

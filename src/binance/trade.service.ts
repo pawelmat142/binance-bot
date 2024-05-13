@@ -161,13 +161,14 @@ export class TradeService {
             await this.closeStopLoss(ctx)
             await this.closePendingTakeProfit(ctx)
             TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
+            this.telegramService.onClosedPosition(ctx)
         } else {
             const stopLossPrice = Number(ctx.trade.stopLossResult?.stopPrice)
             await this.moveStopLoss(ctx, isNaN(stopLossPrice) ? undefined : stopLossPrice)
             TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
+            this.telegramService.onFilledTakeProfit(ctx)
         }
         const saved = await this.tradeRepo.update(ctx)
-        this.telegramService.onFilledTakeProfit(ctx)
     }
 
 
