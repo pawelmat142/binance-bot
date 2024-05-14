@@ -22,7 +22,8 @@ export class SignalOtherActionValidator {
                 this.prepareLines()
                 this.signal.otherSignalAction = {
                     takeSomgeProfit: this.isTakeSomeProfit(),
-                    manualClose: this.isManualClose()
+                    manualClose: this.isManualClose(),
+                    tradeDone: this.isTradeDone()
                 } as OtherSignalAction
                 this.isMoveStopLoss()
             }
@@ -39,6 +40,17 @@ export class SignalOtherActionValidator {
             SignalUtil.addLog(`TAKE SOME PROFIT signal`, this.signal, this.logger)
         }
         return result
+    }
+
+    private isTradeDone(): boolean {
+        for (let line of this.lines) {
+            if (line.includes('trade')) {
+                if (line.includes('done')) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private isManualClose(): boolean {

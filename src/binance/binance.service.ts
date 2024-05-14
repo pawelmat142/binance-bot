@@ -119,11 +119,21 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
         for (let unit of units) {
             const trade = await this.tradeRepo.findBySignal(signal, unit)
+            if (!trade) {
+                SignalUtil.addLog(`Could not find trade ${signal.tradeVariant.side} ${signal.tradeVariant.symbol} for other signal action`, signal, this.logger)
+                this.signalService.updateLogs(signal)
+                return
+            }
             const ctx = new TradeCtx({ trade, unit })
 
             if (signal.otherSignalAction.manualClose) {
                 await this.fullClosePosition(ctx)
-            } else {
+            } 
+            else if (signal.otherSignalAction.tradeDone) {
+                this.telegramService.sendUnitMessage(ctx, [`${ctx.side} ${ctx.symbol}`, `Trade done, closing...`])
+                await this.fullClosePosition(ctx)
+            } 
+            else {
                 if (signal.otherSignalAction.takeSomgeProfit) {
                     TradeUtil.addLog(`[START] take some profit for unit ${unit.identifier}`, ctx, this.logger)
                     await this.tradeService.takeSomeProfit(ctx)

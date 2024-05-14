@@ -10,6 +10,7 @@ export class OtherSignalAction {
     @Expose() @Prop() manualClose?: boolean
     @Expose() @Prop() moveSl?: boolean
     @Expose() @Prop() moveSlToEntryPoint?: boolean
+    @Expose() @Prop() tradeDone?: boolean
 }
 
 @Schema()
