@@ -1,5 +1,5 @@
 import { Unit } from "src/unit/unit";
-import { ServicesService } from "../services.service";
+import { ServiceProfivder } from "../services.provider";
 import { UnitWizard } from "./unit-wizard";
 import { WizardStep } from "./wizard";
 import { WizBtn } from "./wizard-buttons";
@@ -10,7 +10,7 @@ import { AdminWizard } from "./admin.wizard";
 
 export class StartWizard extends UnitWizard {
 
-    constructor(unit: Unit, services: ServicesService) {
+    constructor(unit: Unit, services: ServiceProfivder) {
         super(unit, services)
     }
 

@@ -1,4 +1,4 @@
-import { ServicesService } from "../services.service";
+import { ServiceProfivder } from "../services.provider";
 
 export interface WizardResponse {
     chatId: number,
@@ -27,7 +27,7 @@ export interface WizardButton {
 
 export class Wizard {
 
-    protected services: ServicesService
+    protected services: ServiceProfivder
 
     chatId: number
     
@@ -38,7 +38,7 @@ export class Wizard {
     private _steps: WizardStep[]
 
 
-    constructor(chatId: number, services: ServicesService) {
+    constructor(chatId: number, services: ServiceProfivder) {
         this.services = services
         this.chatId = chatId
         this._steps = this.getSteps()

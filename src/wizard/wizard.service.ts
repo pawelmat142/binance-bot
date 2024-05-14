@@ -4,7 +4,7 @@ import { BehaviorSubject, Subscription } from "rxjs";
 import { TelegramService } from "src/telegram/telegram.service";
 import { BotUtil } from "./bot.util";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { ServicesService } from "./services.service";
+import { ServiceProfivder } from "./services.provider";
 import { Wizard, WizardButton } from "./wizards/wizard";
 import { StartWizard } from "./wizards/start.wizard";
 import { WizBtn } from "./wizards/wizard-buttons";
@@ -13,7 +13,6 @@ import { UnitWizard } from "./wizards/unit-wizard";
 import { TradesWizard } from "./wizards/trades.wizard";
 import { AdminWizard } from "./wizards/admin.wizard";
 import { LogsWizard } from "./wizards/logs.wizard";
-import { log } from "console";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {
@@ -22,7 +21,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
 
     constructor(
         private readonly telegramService: TelegramService,
-        private readonly service: ServicesService,
+        private readonly service: ServiceProfivder,
     ) {}
 
     private readonly wizards$ = new BehaviorSubject<Wizard[]>([])
@@ -77,8 +76,9 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         if (msgIdToRemoveButtons) {
             await this.removeCallbackButtons(message)
         }
-
+        
         let wizard = await this.findOrCreateWizard(chatId)
+        this.telegramService.showTyping(wizard.chatId)
         wizard.modified = new Date()
 
         let step = wizard.getStep()
@@ -113,6 +113,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             return
         }
         let wizard = await this.findOrCreateWizard(chatId)
+        this.telegramService.showTyping(wizard.chatId)
         wizard.modified = new Date()
 
         let step = wizard.getStep()

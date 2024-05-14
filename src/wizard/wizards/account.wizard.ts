@@ -1,5 +1,5 @@
 import { Unit } from "src/unit/unit"
-import { ServicesService } from "../services.service"
+import { ServiceProfivder } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { WizBtn } from "./wizard-buttons"
 import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
@@ -8,7 +8,7 @@ import { WizardStep } from "./wizard"
 
 export class AccountWizard extends UnitWizard {
 
-    constructor(unit: Unit, services: ServicesService) {
+    constructor(unit: Unit, services: ServiceProfivder) {
         super(unit, services)
     }
 

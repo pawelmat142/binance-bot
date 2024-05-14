@@ -1,5 +1,5 @@
 import { Unit } from "src/unit/unit"
-import { ServicesService } from "../services.service"
+import { ServiceProfivder } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { TradeUtil } from "src/binance/trade-util"
 import { FuturesResult } from "src/binance/model/trade"
@@ -11,7 +11,7 @@ export class LogsWizard extends UnitWizard {
 
     private jsonRegex = /\{.*\}/;
 
-    constructor(unit: Unit, services: ServicesService) {
+    constructor(unit: Unit, services: ServiceProfivder) {
         super(unit, services)
     }
 

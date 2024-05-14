@@ -371,7 +371,6 @@ export class UnitService implements OnModuleInit {
             { $set: { usdtPerTransaction: _unit.usdtPerTransaction } }
         ).exec()
         this.loadUnit(unit.identifier)
-        console.log(update)
         return update
     }
 

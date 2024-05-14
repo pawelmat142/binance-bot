@@ -76,9 +76,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         const result = await this.bot?.sendMessage(chatId, message, options)
         return result
     }
-    
 
-    
+    public async showTyping(chatId: number): Promise<boolean> {
+        return this.bot?.sendChatAction(chatId, 'typing')
+    }
+
     public async sendPublicMessage(msg: string): Promise<TelegramBot.Message> {
         const result = await this.bot?.sendMessage(this.channelId, msg)
         return result

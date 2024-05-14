@@ -3,6 +3,7 @@ import * as crypto from 'crypto'
 import { Types } from 'mongoose';
 import { Unit } from 'src/unit/unit';
 import Decimal from 'decimal.js';
+import { Logger } from '@nestjs/common';
 
 export const toDateString = (date: Date): string => {
     return moment(date).format('YY-MM-DD hh:mm:ss')
@@ -14,7 +15,9 @@ const getSignature = (queryString: string, unit: Unit): string => {
 
 export const sign = (uri: string, queryString: string, unit: Unit): string => {
     const andSeparator = queryString ? `&` : ''
-    return `${uri}?${queryString}${andSeparator}signature=${getSignature(queryString, unit)}`
+    const result = `${uri}?${queryString}${andSeparator}signature=${getSignature(queryString, unit)}`
+    Logger.debug(result)
+    return result
 }
 
 export const uriWith = (uri: string, queryString: string): string => {
@@ -32,8 +35,6 @@ export const getHeaders = (unit: Unit) => {
 }
 
 export const queryParams = (params: Object): string => {
-    // return Object.keys(params).map(key => `${key}=${params[key]}`).join('&')
-    // return Object.keys(params).map(key => `${key}=${encodeURIComponent(params[key])}`).join('&')
     const queryString = Object.keys(params).map(key => {
         const value = params[key].toString()
         const encoded = encodeURIComponent(value)

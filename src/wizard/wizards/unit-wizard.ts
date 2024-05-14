@@ -1,12 +1,12 @@
 import { Unit } from "src/unit/unit";
-import { ServicesService } from "../services.service";
+import { ServiceProfivder } from "../services.provider";
 import { Wizard, WizardStep } from "./wizard";
 
 export class UnitWizard extends Wizard {
 
     protected unit: Unit
 
-    constructor(unit: Unit, services: ServicesService) {
+    constructor(unit: Unit, services: ServiceProfivder) {
         super(Number(unit.telegramChannelId), services)
         this.unit = unit
     }

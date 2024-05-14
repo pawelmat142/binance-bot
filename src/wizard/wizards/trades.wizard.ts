@@ -1,5 +1,5 @@
 import { Unit } from "src/unit/unit"
-import { ServicesService } from "../services.service"
+import { ServiceProfivder } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { FuturesResult, Trade, TradeStatus } from "src/binance/model/trade"
 import { isBinanceError } from "src/binance/model/binance.error"
@@ -16,7 +16,7 @@ export class TradesWizard extends UnitWizard {
 
     private readonly logger = new Logger(TradesWizard.name)
 
-    constructor(unit: Unit, services: ServicesService) {
+    constructor(unit: Unit, services: ServiceProfivder) {
         super(unit, services)
     }
 
