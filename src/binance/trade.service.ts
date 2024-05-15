@@ -72,7 +72,8 @@ export class TradeService {
     }
 
     public async stopLossRequest(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
-        if (!ctx.trade.variant.stopLoss) {
+        if (!ctx.trade.variant.stopLoss && !forcedPrice) {
+            TradeUtil.addWarning(`STOP LOSS NOT PROVIDED!`, ctx, this.logger)
             return
         }
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
@@ -103,7 +104,8 @@ export class TradeService {
         const trade = ctx.trade
         const stopLossOrderId = trade.stopLossResult?.orderId
         if (!stopLossOrderId) {
-            throw new Error(`Could not find SL with id: ${stopLossOrderId}, result in trade ${trade._id}`)
+            TradeUtil.addLog(`Could not find SL with id: ${stopLossOrderId}, result in trade ${trade._id}`, ctx, this.logger)
+            return
         }
         trade.stopLossResult = await this.closeOrder(ctx, stopLossOrderId)
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)

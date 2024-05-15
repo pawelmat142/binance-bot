@@ -74,6 +74,8 @@ export class TradesWizard extends UnitWizard {
         const stepZeroMsg = stepZeroButtons.length 
             ? [`Select position or order...`]
             : [`You have no pending positions or open orders`]
+
+        const stopLossSet = this.selectedTrade?.stopLossResult?.status === TradeStatus.NEW
         return [{
             order: 0,
             buttons: stepZeroButtons,
@@ -83,16 +85,16 @@ export class TradesWizard extends UnitWizard {
             order: 1,
             message: this.selectedPositionMessage(),
             buttons: [[{
-                text: `Move stop loss to entry price`,
+                text: stopLossSet ? `Move stop loss to entry price` : `Set stop loss at entry price`,
                 callback_data: WizBtn.slToEntryPrice,
                 process: async () => {
                     const position = this.findPosition(this.selectedTrade.variant.symbol)
                     const entryPrice = Number(position.entryPrice)
-                    const success = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, entryPrice, this.unit)
+                    const success = await this.services.binance.moveStopLoss(this.getCtxForSelected(), entryPrice)
                     return success ? 4 : 3
                 }
             }], [{
-                text: `Move stop loss to...`,
+                text: stopLossSet ? `Move stop loss to...` : `Set stop loss to...`,
                 callback_data: WizBtn.slTo,
                 process: async () => 5
             }], [{
@@ -158,7 +160,7 @@ export class TradesWizard extends UnitWizard {
                 if (price <= this.liqPrice) {
                     return 10
                 }
-                const success = await this.services.binance.moveStopLoss(this.selectedTrade.stopLossResult, price, this.unit)
+                const success = await this.services.binance.moveStopLoss(this.getCtxForSelected(), price)
                 this.sl = price
                 return success ? 11 : 3
             },
@@ -400,6 +402,16 @@ export class TradesWizard extends UnitWizard {
             this.error = error
             return false
         }
+    }
+
+    private getCtxForSelected(): TradeCtx {
+        if (this.selectedTrade) {
+            return new TradeCtx({
+                trade: this.selectedTrade,
+                unit: this.unit
+            })
+        }
+        throw new Error(`missing selected trade`)
     }
 
 }

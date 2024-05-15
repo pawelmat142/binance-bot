@@ -62,14 +62,6 @@ export class TradeRepository {
         })
     }
 
-    public findBySlOrderId(orderId: number, unit: Unit): Promise<Trade> {
-        return this.tradeModel.findOne({
-            unitIdentifier: unit.identifier,
-            "stopLossResult.orderId": orderId,
-            closed: { $ne: true }
-        }).exec()
-    }
-
     public async save(ctx: TradeCtx) {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
             this.logger.debug('[SKIP] Saved trade')

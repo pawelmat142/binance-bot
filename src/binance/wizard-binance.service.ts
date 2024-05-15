@@ -99,17 +99,13 @@ export class WizardBinanceService {
         await this.tradeRepo.closeTrade(ctx)
     }
 
-    public async moveStopLoss(order: FuturesResult, stopLossPrice: number, unit: Unit): Promise<boolean> {
-        const trade = await this.tradeRepo.findBySlOrderId(order.orderId, unit)
-        const ctx = new TradeCtx({ unit, trade: trade })
-        if (!trade) {
-            return false
-        }
+    public async moveStopLoss(ctx: TradeCtx, stopLossPrice: number): Promise<boolean> {
         try {
             await this.tradeService.moveStopLoss(ctx, stopLossPrice)
-            TradeUtil.addLog(`Moved stop loss for unit: ${unit.identifier}, ${trade.variant.symbol} to level: ${stopLossPrice} USDT`, ctx, this.logger)
+            TradeUtil.addLog(`Moved stop loss for unit: ${ctx.unit.identifier}, ${ctx.trade.variant.symbol} to level: ${stopLossPrice} USDT`, ctx, this.logger)
             await this.tradeRepo.update(ctx)
-        } catch (error) {
+            return true
+        } catch(error) {
             TradeUtil.addError(error, ctx, this.logger)
             return false
         }
