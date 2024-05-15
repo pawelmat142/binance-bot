@@ -153,12 +153,16 @@ export class SignalValidator {
             let words = line.split(' ')
                 .filter(word => !!word)
             if (words.length > 0) {
-                const sideIndex = words.findIndex(w => this.isShort(w) || this.isLong(w))
+                const sideIndex = words.findIndex(word => this.isShort(word) || this.isLong(word))
                 if (sideIndex !== -1) {
-                    const tokenArr = words.filter(w => !['short', 'long'].includes(w))
-                    const token = tokenArr[0]
-                    if (token) {
-                        this.variant.symbol = TradeUtil.getSymbolByToken(tokenArr[0])
+                    const wordAfter = words[sideIndex + 1]
+                    if (wordAfter) {
+                        this.variant.symbol = TradeUtil.getSymbolByToken(wordAfter)
+                    } else {
+                        const wordBefore = words[sideIndex - 1] 
+                        if (wordBefore) {
+                            this.variant.symbol = TradeUtil.getSymbolByToken(wordBefore)
+                        } 
                     }
                 }
             }
