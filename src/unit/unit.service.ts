@@ -254,7 +254,8 @@ export class UnitService implements OnModuleInit {
             usdtPerTransaction: body.usdtPerTransaction,
             binanceApiKey: body.binanceApiKey,
             binanceApiSecret: body.binanceApiSecret,
-            telegramChannelId: body.telegramChannelId
+            telegramChannelId: body.telegramChannelId,
+            allowMinNotional: body.allowMinNotional
         })
         const saved = await entity.save()
         this.logger.log(`New unit ${saved.identifier} is added with _id: ${saved._id}`)
@@ -330,16 +331,17 @@ export class UnitService implements OnModuleInit {
         return !!(await this.unitModel.exists({ binanceApiKey }).exec())
     }
 
-    public async apiKeyError(unit: Partial<Unit>): Promise<BinanceError> {
+    public async apiKeyError(unit: Unit): Promise<BinanceError> {
+        console.log(unit)
         const params = queryParams({
             timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+            // timeInForce: 'GTC',
+            // recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
-        const uri = sign(`${TradeUtil.futuresUriV2}/account`, params, unit as Unit)
+        const uri = sign(`${TradeUtil.futuresUriV2}/account`, params, unit)
         const request = await fetch(uri, {
             method: 'GET',
-            headers: getHeaders(unit as Unit)
+            headers: getHeaders(unit)
         })
         const response = await request.json()
         if (isBinanceError(response)) {
@@ -374,12 +376,12 @@ export class UnitService implements OnModuleInit {
         return update
     }
 
-    public async updateAllow100perBtcTransaction(_unit: Unit) {
-        _unit.allow100perBtcTransaction = !_unit.allow100perBtcTransaction
+    public async updateAllowMinNotional(_unit: Unit) {
+        _unit.allowMinNotional = !_unit.allowMinNotional
         const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
             { identifier: unit.identifier },
-            { $set: { allow100perBtcTransaction: _unit.allow100perBtcTransaction } }
+            { $set: { allowMinNotional: _unit.allowMinNotional } }
         ).exec()
         this.loadUnit(unit.identifier)
         return update

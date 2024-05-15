@@ -20,10 +20,6 @@ export const sign = (uri: string, queryString: string, unit: Unit): string => {
     return result
 }
 
-export const uriWith = (uri: string, queryString: string): string => {
-    return `${uri}?${queryString}`
-}
-
 export const newObjectId = (): string => new Types.ObjectId().toHexString()
 
 

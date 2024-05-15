@@ -26,9 +26,6 @@ export class Unit {
     usdtPerTransaction: number
 
     @Prop()
-    allow100perBtcTransaction: boolean
-
-    @Prop()
     binanceApiKey: string
 
     @Prop()
@@ -41,6 +38,9 @@ export class Unit {
 
     @Prop()
     listenKey?: string
+
+    @Prop()
+    allowMinNotional?: boolean
 
     socket?: WebSocket
 }

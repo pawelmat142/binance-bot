@@ -1,4 +1,4 @@
-import { ServiceProfivder } from "../services.provider";
+import { ServiceProvider } from "../services.provider";
 
 export interface WizardResponse {
     chatId: number,
@@ -13,8 +13,7 @@ export interface WizardStep {
     close?: boolean
     switch?: string
     buttons?: WizardButton[][],
-    skipRemoveButtons?: boolean,
-    process?: (input: string) => Promise<number | undefined>,
+    process?: (input: string) => Promise<number>,
     nextOrder?: number
 }
 
@@ -27,7 +26,7 @@ export interface WizardButton {
 
 export class Wizard {
 
-    protected services: ServiceProfivder
+    protected services: ServiceProvider
 
     chatId: number
     
@@ -38,7 +37,7 @@ export class Wizard {
     private _steps: WizardStep[]
 
 
-    constructor(chatId: number, services: ServiceProfivder) {
+    constructor(chatId: number, services: ServiceProvider) {
         this.services = services
         this.chatId = chatId
         this._steps = this.getSteps()

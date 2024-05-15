@@ -122,8 +122,13 @@ export class CalculationsService implements OnModuleInit {
             usdtAmount = new Decimal(7)
         } else {
             usdtAmount = new Decimal(ctx.unit.usdtPerTransaction)
-            if (ctx.symbol === 'BTCUSDT' && usdtAmount.lessThan(100) && ctx.unit.allow100perBtcTransaction) {
-                usdtAmount = new Decimal(100)
+            const minNotional = this.getMinNotional(symbolInfo)
+            if (usdtAmount.lessThan(minNotional)) {
+                if (ctx.unit.allowMinNotional) {
+                    usdtAmount = minNotional
+                } else {
+                    throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
+                }
             }
         }
         if (!usdtAmount || usdtAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)

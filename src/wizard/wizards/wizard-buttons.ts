@@ -37,7 +37,7 @@ export abstract class WizBtn {
 
 
     static readonly usdtPerTransaction = 'usdtPerTransaction'.toLowerCase()
-    static readonly allow100perBtcTransaction = 'allow100perBtcTransaction'.toLowerCase()
+    static readonly allowMinNotional = 'allowMinNotional'.toLowerCase()
     static readonly balance = 'balance' 
 
 }

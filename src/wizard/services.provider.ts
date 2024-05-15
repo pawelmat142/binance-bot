@@ -6,7 +6,7 @@ import { SignalService } from "src/signal/signal.service";
 import { UnitService } from "src/unit/unit.service";
 
 @Injectable()
-export class ServiceProfivder {
+export class ServiceProvider {
     
     constructor(
         public readonly unitService: UnitService,

@@ -1,5 +1,5 @@
 import { Unit } from "src/unit/unit"
-import { ServiceProfivder } from "../services.provider"
+import { ServiceProvider } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { WizBtn } from "./wizard-buttons"
 import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
@@ -8,7 +8,7 @@ import { WizardStep } from "./wizard"
 
 export class AccountWizard extends UnitWizard {
 
-    constructor(unit: Unit, services: ServiceProfivder) {
+    constructor(unit: Unit, services: ServiceProvider) {
         super(unit, services)
     }
 
@@ -20,11 +20,12 @@ export class AccountWizard extends UnitWizard {
         const message = [
             `Current USDT per transaction: ${this.unit?.usdtPerTransaction}$.`,
             ``,
-            `Binance require minimum 100$ per BTC transaction,`,
-            `you can allow/deny BTC transaction for 100$ if your USDT per transaction is less`
+            `You can allow/deny minimum transaction limit`,
+            `For example Binance requires minimum 100 USDT per BTC transaction`,
+            `There is no higher one`
         ]
 
-        const allow100perBtcTransactionMsg = `${this.unit?.allow100perBtcTransaction ? 'Deny' : 'Allow'} 100$ per BTC transaction if USDT per transaction is less.`
+        const allowMinNotional = `${this.unit?.allowMinNotional ? 'Deny' : 'Allow'} minimum transaction limit (example: 100$ for BTCUSDT).`
 
         return [{
             order: 0,
@@ -46,10 +47,10 @@ export class AccountWizard extends UnitWizard {
                     return 1
                 }
             }], [{
-                text: allow100perBtcTransactionMsg,
-                callback_data: WizBtn.allow100perBtcTransaction,
+                text: allowMinNotional,
+                callback_data: WizBtn.allowMinNotional,
                 process: async () => {
-                    const result = await this.services.unitService.updateAllow100perBtcTransaction(this.unit)
+                    const result = await this.services.unitService.updateAllowMinNotional(this.unit)
                     return !!result ? 5 : 0
                 }
             }], [{
@@ -105,7 +106,7 @@ export class AccountWizard extends UnitWizard {
             close: true
         }, {
             order: 5,
-            message: [`100$ per BTC transaction is ${this.unit?.allow100perBtcTransaction ? 'ALLOWED' : 'DENIED'} now`],
+            message: [`Minimum transaction limit is ${this.unit?.allowMinNotional ? 'ALLOWED' : 'DENIED'} now`],
             close: true
         }, {
             order: 6,

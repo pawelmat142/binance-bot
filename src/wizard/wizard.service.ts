@@ -4,8 +4,8 @@ import { BehaviorSubject, Subscription } from "rxjs";
 import { TelegramService } from "src/telegram/telegram.service";
 import { BotUtil } from "./bot.util";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { ServiceProfivder } from "./services.provider";
-import { Wizard, WizardButton } from "./wizards/wizard";
+import { ServiceProvider } from "./services.provider";
+import { Wizard, WizardStep } from "./wizards/wizard";
 import { StartWizard } from "./wizards/start.wizard";
 import { WizBtn } from "./wizards/wizard-buttons";
 import { AccountWizard } from "./wizards/account.wizard";
@@ -13,6 +13,7 @@ import { UnitWizard } from "./wizards/unit-wizard";
 import { TradesWizard } from "./wizards/trades.wizard";
 import { AdminWizard } from "./wizards/admin.wizard";
 import { LogsWizard } from "./wizards/logs.wizard";
+import { NewUnitWizard } from "./wizards/new-unit.wizard";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {
@@ -21,7 +22,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
 
     constructor(
         private readonly telegramService: TelegramService,
-        private readonly service: ServiceProfivder,
+        private readonly service: ServiceProvider,
     ) {}
 
     private readonly wizards$ = new BehaviorSubject<Wizard[]>([])
@@ -83,7 +84,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
 
         let step = wizard.getStep()
         
-        for (let btns of step.buttons) {
+        for (let btns of step.buttons || []) {
             for (let btn of btns) {
                 if (btn.callback_data === message.data) {
                     if (btn.switch) {
@@ -108,7 +109,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
           this.logger.error('Chat id not found')
           return
         }
-        const input = message.text.toLowerCase()
+        const input = message.text
         if (!input) {
             return
         }
@@ -127,7 +128,8 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-    private async sendMessage(wizard: Wizard, input: string) {
+    private async sendMessage(wizard: Wizard, _input: string) {
+        const input = _input.toLowerCase()
         let step = wizard.getStep()
         
         let msg = step.message
@@ -144,16 +146,14 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 text: `Start new dialog`,
                 callback_data: WizBtn.START_NEW_DIALOG,
             }]]
-        } else if (input === WizBtn.BACK || wizard.order === 0) {
-            wizard.order = 0
-            step = wizard.getStep()
-            msg = step.message
-            this.addStop(step.buttons)
         } else {
-            this.addStopAndBack(step.buttons)
+            if (input === WizBtn.BACK) {
+                wizard.order = 0
+                step = wizard.getStep()
+                msg = step.message
+            }
+            this.addStop(step)
         }
-
-
         const options: TelegramBot.SendMessageOptions = {}
         let buttons = step.buttons || []
         if (Array.isArray(buttons)) {
@@ -174,20 +174,9 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private addStopAndBack(buttons: WizardButton[][]) {
-        buttons = buttons || []
-        buttons.push([{
-            text: 'Back',
-            callback_data: WizBtn.BACK
-        }, {
-            text: 'Stop',
-            callback_data: WizBtn.STOP,
-        }])
-    }
-
-    private addStop(buttons: WizardButton[][]) {
-        buttons = buttons || []
-        buttons.push([{
+    private addStop(step: WizardStep) {
+        step.buttons = step.buttons || []
+        step.buttons.push([{
             text: 'Stop',
             callback_data: WizBtn.STOP,
         }])
@@ -203,9 +192,9 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
 
     private async prepareWizard(chatId: number): Promise<Wizard> {
         const unit = await this.service.unitService.findUnitByChatId(chatId)
-
-        // TODO -> new unit wizard!!!
-        const wizard: Wizard = new StartWizard(unit, this.service)
+        const wizard: Wizard = unit 
+            ? new StartWizard(unit, this.service)
+            : new NewUnitWizard(chatId, this.service)
 
         await wizard.init()
         const wizards = this.wizards$.value
