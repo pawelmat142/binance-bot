@@ -69,7 +69,15 @@ export class TradesWizard extends UnitWizard {
     public getSteps(): WizardStep[] {
         const stepZeroButtons = [
             ...this.getPendingPositionsButtons(),
-            ...this.getOpenOrdersButtons()
+            ...this.getOpenOrdersButtons(),
+            [{
+                text: `refresh`,
+                callback_data: `refresh`,
+                process: async () => {
+                    await this._init()
+                    return 0
+                }
+            }]
         ]
         const stepZeroMsg = stepZeroButtons.length 
             ? [`Select position or order...`]
@@ -85,7 +93,7 @@ export class TradesWizard extends UnitWizard {
             order: 1,
             message: this.selectedPositionMessage(),
             buttons: [[{
-                text: stopLossSet ? `Move stop loss to entry price` : `Set stop loss at entry price`,
+                text: stopLossSet ? `SL to entry price` : `set SL to entry price`,
                 callback_data: WizBtn.slToEntryPrice,
                 process: async () => {
                     const position = this.findPosition(this.selectedTrade.variant.symbol)
@@ -93,8 +101,8 @@ export class TradesWizard extends UnitWizard {
                     const success = await this.services.binance.moveStopLoss(this.getCtxForSelected(), entryPrice)
                     return success ? 4 : 3
                 }
-            }], [{
-                text: stopLossSet ? `Move stop loss to...` : `Set stop loss to...`,
+            }, {
+                text: stopLossSet ? `Move SL to...` : `Set SL to...`,
                 callback_data: WizBtn.slTo,
                 process: async () => 5
             }], [{
@@ -113,8 +121,8 @@ export class TradesWizard extends UnitWizard {
                     this.error = 'error when take some profits'
                     return 3
                 }
-            }], [{
-                text: `Close position with market price`,
+            }, {
+                text: `Close by market`,
                 callback_data: WizBtn.closePosition,
                 process: async () => {
                     const success = await this.fullClosePosition()
@@ -333,7 +341,7 @@ export class TradesWizard extends UnitWizard {
                     `Wallet: ${Number(position.isolatedWallet).toFixed(2)} USDT`,
                     `Entry price: ${Number(position.entryPrice).toFixed(2)} USDT`,
                     `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
-                    `Stop loss: ${Number(this.selectedTrade.stopLossResult?.stopPrice??0).toFixed(2)} USDT`,
+                    `Stop loss: ` + this.selectedTrade.stopLossResult ? `${Number(this.selectedTrade.stopLossResult?.stopPrice??0).toFixed(2)} USDT` : 'MISSING',
                     `Take profits:`,
                 ]
                 for (const tp of this.selectedTrade.variant.takeProfits) {
