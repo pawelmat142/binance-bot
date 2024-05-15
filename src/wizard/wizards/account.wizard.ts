@@ -25,7 +25,7 @@ export class AccountWizard extends UnitWizard {
             `There is no higher one`
         ]
 
-        const allowMinNotional = `${this.unit?.allowMinNotional ? 'Deny' : 'Allow'} minimum transaction limit (example: 100$ for BTCUSDT).`
+        const allowMinNotional = `${this.unit?.allowMinNotional ? 'DENY' : 'ALLOW'} minimum transaction limit`
 
         return [{
             order: 0,
