@@ -224,17 +224,11 @@ export class TradesWizard extends UnitWizard {
     }
 
     private addTakeProfitsButton(buttons: WizardButton [][]) {
-        if (!this.selectedTrade?.variant.takeProfits.length) {
-            buttons.push([{
-                text: `Add take profits`,
-                callback_data: `addtps`,
-                process: async () => {
-                    console.log('aaaaa')
-                    return 0
-                },
-                switch: TakeProfitsWizard.name
-            }])
-        }
+        buttons.push([{
+            text: this.selectedTrade?.variant.takeProfits.length ? `Edit take profits` : `Add take profits`,
+            callback_data: `addtps`,
+            switch: TakeProfitsWizard.name
+        }])
     }
 
     private getErrorMessage(): string[] {

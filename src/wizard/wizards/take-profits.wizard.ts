@@ -10,6 +10,7 @@ export class TakeProfitsWizard extends UnitWizard {
 
     constructor(unit: Unit, services: ServiceProvider) {
         super(unit, services)
+        this.takeProfitsAggregator = this.takeProfits
     }
 
     private get takeProfits(): TakeProfit[] {
@@ -102,6 +103,13 @@ export class TakeProfitsWizard extends UnitWizard {
                 order: 9,
                 message: [`Take profits added to trade! :)`],
                 close: true
+            }, {
+                order: 10,
+                message: [`Provide new price... TODO`],
+                process: async (input: string) => {
+
+                    return 10
+                }
             }]
     }
 
@@ -121,6 +129,23 @@ export class TakeProfitsWizard extends UnitWizard {
                         return 4
                     }
                 } as WizardStep
+            } else {
+                return {
+                    order: 0,
+                    message: [`Select take profit to edit`],
+                    buttons: this.takeProfitsAggregator.map(tp => {
+                        const content = this.tpContentString(tp)
+                        return [{
+                            text: content,
+                            callback_data: content,
+                            process: async () => {
+                                this.takeProfitsIterator = tp.order
+                                return 10
+                            }
+                        }]
+                    })
+                }
+
             }
         }
         return null
@@ -131,12 +156,16 @@ export class TakeProfitsWizard extends UnitWizard {
         if (this.takeProfitsAggregator?.length) {
             result.push(`Take profits:`)
             for (const tp of this.takeProfitsAggregator) {
-                result.push(`- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`)
+                result.push(this.tpContentString(tp))
             }
         } else {
             result.push(`MISSING take profits!`)
         }
         return result
+    }
+
+    private tpContentString(tp: TakeProfit): string {
+        return `- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`
     }
 
     private isPriceOk(price: number) {
