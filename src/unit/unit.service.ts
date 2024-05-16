@@ -332,11 +332,8 @@ export class UnitService implements OnModuleInit {
     }
 
     public async apiKeyError(unit: Unit): Promise<BinanceError> {
-        console.log(unit)
         const params = queryParams({
             timestamp: Date.now(),
-            // timeInForce: 'GTC',
-            // recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
         const uri = sign(`${TradeUtil.futuresUriV2}/account`, params, unit)
         const request = await fetch(uri, {

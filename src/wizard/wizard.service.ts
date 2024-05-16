@@ -14,6 +14,7 @@ import { TradesWizard } from "./wizards/trades.wizard";
 import { AdminWizard } from "./wizards/admin.wizard";
 import { LogsWizard } from "./wizards/logs.wizard";
 import { NewUnitWizard } from "./wizards/new-unit.wizard";
+import { TakeProfitsWizard } from "./wizards/take-profits.wizard";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {
@@ -26,7 +27,6 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
     ) {}
 
     private readonly wizards$ = new BehaviorSubject<Wizard[]>([])
-
 
     private lastMessageWithButtonsId = {}
 
@@ -255,6 +255,8 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 return new AdminWizard(currentWizard.getUnit(), this.service)
             case LogsWizard.name:
                 return new LogsWizard(currentWizard.getUnit(), this.service)
+            case TakeProfitsWizard.name:
+                return new TakeProfitsWizard(currentWizard.getUnit(), this.service)
             default: throw new Error('switch wizard error')
         }
     }

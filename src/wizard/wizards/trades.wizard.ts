@@ -11,6 +11,7 @@ import Decimal from "decimal.js"
 import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
 import { TradeCtx } from "src/binance/model/trade-variant"
+import { TakeProfitsWizard } from "./take-profits.wizard"
 
 export class TradesWizard extends UnitWizard {
 
@@ -31,8 +32,6 @@ export class TradesWizard extends UnitWizard {
 
     private trades: Trade[]
 
-
-    private selectedTrade: Trade
 
     private error: any
 
@@ -83,7 +82,6 @@ export class TradesWizard extends UnitWizard {
             ? [`Select position or order...`]
             : [`You have no pending positions or open orders`]
 
-        const stopLossSet = this.selectedTrade?.stopLossResult?.status === TradeStatus.NEW
         return [{
             order: 0,
             buttons: stepZeroButtons,
@@ -92,61 +90,11 @@ export class TradesWizard extends UnitWizard {
         }, {
             order: 1,
             message: this.selectedPositionMessage(),
-            buttons: [[{
-                text: stopLossSet ? `SL to entry price` : `set SL to entry price`,
-                callback_data: WizBtn.slToEntryPrice,
-                process: async () => {
-                    const position = this.findPosition(this.selectedTrade.variant.symbol)
-                    const entryPrice = Number(position.entryPrice)
-                    const success = await this.services.binance.moveStopLoss(this.getCtxForSelected(), entryPrice)
-                    return success ? 4 : 3
-                }
-            }, {
-                text: stopLossSet ? `Move SL to...` : `Set SL to...`,
-                callback_data: WizBtn.slTo,
-                process: async () => 5
-            }], [{
-                text: `Take some profits`,
-                callback_data: WizBtn.takeSomeProfits,
-                process: async () => {
-                    const ctx = new TradeCtx({
-                        unit: this.unit,
-                        trade: this.selectedTrade
-                    })
-                    const success = await this.services.tradeService.takeSomeProfit(ctx)
-                    if (success) {
-                        this.selectedTrade = ctx.trade
-                        return 12
-                    }
-                    this.error = 'error when take some profits'
-                    return 3
-                }
-            }, {
-                text: `Close by market`,
-                callback_data: WizBtn.closePosition,
-                process: async () => {
-                    const success = await this.fullClosePosition()
-                    return success ? 13 : 3
-                }
-            }]],
+            buttons: this.selectedPositionStepButtons(),
         }, {
             order: 2,
             message: this.selectedOrderMessage(),
-            buttons: [[{
-                text: `Close order`,
-                callback_data: WizBtn.closeOrder,
-                process: async () => {
-                    const success = await this.fullCloseOrder() 
-                    return success ? 7 : 3
-                }
-            }], [{
-                text: `Force order by marker price`,
-                callback_data: WizBtn.forceOrderByMarket,
-                process: async () => {
-                    // TODO
-                    return 8
-                }
-            }]]
+            buttons: this.selectedOrderStepButtons()
         }, {
             order: 3,
             message: this.getErrorMessage(),
@@ -208,6 +156,87 @@ export class TradesWizard extends UnitWizard {
     }
 
 
+
+    private selectedPositionStepButtons(): WizardButton[][] {
+        if (!this.selectedTrade) return []
+
+        const stopLossSet = this.selectedTrade?.stopLossResult?.status === TradeStatus.NEW
+
+        const buttons: WizardButton[][] = [[{
+            text: stopLossSet ? `SL to entry price` : `set SL to entry price`,
+            callback_data: WizBtn.slToEntryPrice,
+            process: async () => {
+                const position = this.findPosition(this.selectedTrade.variant.symbol)
+                const entryPrice = Number(position.entryPrice)
+                const success = await this.services.binance.moveStopLoss(this.getCtxForSelected(), entryPrice)
+                return success ? 4 : 3
+            }
+        }, {
+            text: stopLossSet ? `Move SL to...` : `Set SL to...`,
+            callback_data: WizBtn.slTo,
+            process: async () => 5
+        }], [{
+            text: `Take some profits`,
+            callback_data: WizBtn.takeSomeProfits,
+            process: async () => {
+                const ctx = new TradeCtx({
+                    unit: this.unit,
+                    trade: this.selectedTrade
+                })
+                const success = await this.services.tradeService.takeSomeProfit(ctx)
+                if (success) {
+                    this.select(ctx.trade)
+                    return 12
+                }
+                this.error = 'error when take some profits'
+                return 3
+            }
+        }, {
+            text: `Close by market`,
+            callback_data: WizBtn.closePosition,
+            process: async () => {
+                const success = await this.fullClosePosition()
+                return success ? 13 : 3
+            }
+        },]]
+        this.addTakeProfitsButton(buttons)
+        return buttons
+    }
+    
+    private selectedOrderStepButtons(): WizardButton[][] {
+        const buttons: WizardButton[][] = [[{
+            text: `Close order`,
+            callback_data: WizBtn.closeOrder,
+            process: async () => {
+                const success = await this.fullCloseOrder() 
+                return success ? 7 : 3
+            }
+        }], [{
+            text: `Force order by marker price`,
+            callback_data: WizBtn.forceOrderByMarket,
+            process: async () => {
+                // TODO
+                return 8
+            }
+        }]]
+        this.addTakeProfitsButton(buttons)
+        return buttons
+    }
+
+    private addTakeProfitsButton(buttons: WizardButton [][]) {
+        if (!this.selectedTrade?.variant.takeProfits.length) {
+            buttons.push([{
+                text: `Add take profits`,
+                callback_data: `addtps`,
+                process: async () => {
+                    console.log('aaaaa')
+                    return 0
+                },
+                switch: TakeProfitsWizard.name
+            }])
+        }
+    }
+
     private getErrorMessage(): string[] {
         const result = ['Error']
         if (this.error) {
@@ -261,7 +290,7 @@ export class TradesWizard extends UnitWizard {
                 callback_data: position.symbol,
                 process: async () => {
                     if (position) {
-                        this.selectedTrade = trade
+                        this.select(trade)
                         if (this.selectedTrade) {
                             return 1
                         }
@@ -287,7 +316,7 @@ export class TradesWizard extends UnitWizard {
                     callback_data: order.symbol,
                     process: async () => {
                         if (order) {
-                            this.selectedTrade = trade
+                            this.select(trade)
                             if (this.selectedTrade) {
                                 return 2
                             }
@@ -357,7 +386,6 @@ export class TradesWizard extends UnitWizard {
                 for (const tp of this.selectedTrade.variant.takeProfits) {
                     message.push(`- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`)
                 }
-                console.log(message)
                 return message
             }
         }
@@ -405,7 +433,7 @@ export class TradesWizard extends UnitWizard {
             await this.services.binance.closeOrder(ctx)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
             TradeUtil.addLog(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
-            this.selectedTrade = null
+            this.unselectTrade()
             return true
         } catch (error) {
             this.error = error
@@ -423,7 +451,7 @@ export class TradesWizard extends UnitWizard {
         try {
             await this.services.binanceServie.fullClosePosition(ctx)
             this.pendingPositions = this.pendingPositions.filter(p => p.symbol === this.selectedTrade.variant.symbol)
-            this.selectedTrade = null
+            this.unselectTrade()
             return true
         } catch (error) {
             this.error = error

@@ -1,0 +1,38 @@
+import { Injectable } from "@nestjs/common";
+import { BehaviorSubject } from "rxjs";
+import { Trade } from "src/binance/model/trade";
+import { TradeCtx } from "src/binance/model/trade-variant";
+import { Unit } from "src/unit/unit";
+
+@Injectable()
+export class SelectedTradeProvider {
+
+    private readonly selectedTrade$ = new BehaviorSubject<TradeCtx[]>([])
+
+    public selectTrade(ctx: TradeCtx) {
+        const ctxs = this.selectedTrade$.value
+
+        if (ctxs.find(c => c.unit.identifier === ctx.unit.identifier)) {
+            for (let c of ctxs) {
+                if (c.unit.identifier === ctx.unit.identifier) {
+                    c = ctx
+                }
+            }
+        } else {
+            ctxs.push(ctx)
+        }
+        this.selectedTrade$.next(ctxs)
+    }
+
+    public getSelectedTrade(unit: Unit): Trade {
+        const ctxs = this.selectedTrade$.value
+        return ctxs.find(c => c.unit.identifier === unit.identifier)?.trade
+    }
+
+    public unselect(unit: Unit) {
+        const ctxs = this.selectedTrade$.value.filter(c => c.unit.identifier !== unit.identifier)
+        this.selectedTrade$.next(ctxs)
+    }
+
+    
+}

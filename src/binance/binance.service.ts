@@ -43,6 +43,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     private signalSubscription: Subscription
     private tradeEventSubscription: Subscription
 
+    public update(ctx: TradeCtx) {
+        return this.tradeRepo.update(ctx)
+    }
+
     onModuleInit(): void {
         if (!this.signalSubscription) {
             this.signalSubscription = this.signalService.tradeObservable$.subscribe({
@@ -201,8 +205,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         try {
             ctx.trade.futuresResult = eventTradeResult
             await this.tradeService.stopLossRequest(ctx)
-            this.calcService.calculateTakeProfitQuantities(ctx)
-            await this.tradeService.openNextTakeProfit(ctx)
+            await this.openFirstTakeProfit(ctx)
         } catch (error) {
             TradeUtil.addError(error, ctx, this.logger)
         } finally {
@@ -255,6 +258,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    public async openFirstTakeProfit(ctx: TradeCtx) {
+        this.calcService.calculateTakeProfitQuantities(ctx)
+        await this.tradeService.openNextTakeProfit(ctx)
+    }
 
     private updateFilledTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx) {
         const takeProfits = ctx.trade.variant.takeProfits

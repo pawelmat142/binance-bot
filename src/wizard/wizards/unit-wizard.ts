@@ -1,6 +1,8 @@
 import { Unit } from "src/unit/unit";
 import { ServiceProvider } from "../services.provider";
 import { Wizard, WizardStep } from "./wizard";
+import { Trade } from "src/binance/model/trade";
+import { TradeCtx } from "src/binance/model/trade-variant";
 
 export class UnitWizard extends Wizard {
 
@@ -17,6 +19,22 @@ export class UnitWizard extends Wizard {
 
     public getUnit(): Unit {
         return this.unit
+    }
+
+    protected select(trade: Trade) {
+        const ctx = new TradeCtx({
+            unit: this.unit,
+            trade: trade
+        })
+        this.services.selectedTradeService.selectTrade(ctx)
+    }
+
+    protected unselectTrade() {
+        this.services.selectedTradeService.unselect(this.unit)
+    }
+
+    protected get selectedTrade() {
+        return this.unit ? this.services.selectedTradeService.getSelectedTrade(this.unit) : undefined
     }
 
 

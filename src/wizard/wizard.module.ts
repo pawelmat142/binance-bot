@@ -5,6 +5,7 @@ import { BinanceModule } from 'src/binance/binance.module';
 import { AppTelegramModule } from 'src/telegram/telegram.module';
 import { SignalModule } from 'src/signal/signal.module';
 import { WizardService } from './wizard.service';
+import { SelectedTradeProvider } from './selected-trade.service';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { WizardService } from './wizard.service';
   ],
   providers: [
     ServiceProvider,
-    WizardService
+    WizardService,
+    SelectedTradeProvider
   ],
   exports: [
   ]
