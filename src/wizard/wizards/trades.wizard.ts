@@ -341,12 +341,23 @@ export class TradesWizard extends UnitWizard {
                     `Wallet: ${Number(position.isolatedWallet).toFixed(2)} USDT`,
                     `Entry price: ${Number(position.entryPrice).toFixed(2)} USDT`,
                     `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
-                    `Stop loss: ` + this.selectedTrade.stopLossResult ? `${Number(this.selectedTrade.stopLossResult?.stopPrice??0).toFixed(2)} USDT` : 'MISSING',
-                    `Take profits:`,
                 ]
+                if (this.selectedTrade.stopLossResult) {
+                    message.push(`Stop loss: ${Number(this.selectedTrade.stopLossResult?.stopPrice??0).toFixed(2)} USDT`)
+                } else if (this.selectedTrade.variant.stopLoss) {
+                    message.push(`Stop loss: ${this.selectedTrade.variant.stopLoss.toFixed(2)} USDT`)
+                } else {
+                    message.push(`MISSING stop loss`)
+                }
+                if (this.selectedTrade.variant.takeProfits.length) {
+                    message.push(`Take profits:`)
+                } else {
+                    message.push(`MISSING take profits!`)
+                }
                 for (const tp of this.selectedTrade.variant.takeProfits) {
                     message.push(`- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`)
                 }
+                console.log(message)
                 return message
             }
         }
@@ -361,9 +372,17 @@ export class TradesWizard extends UnitWizard {
                 const message = [
                     `Entry price: ${this.selectedTrade.entryPrice.toFixed(2)} USDT`,
                     `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
-                    `Stop loss: ${this.selectedTrade.variant.stopLoss.toFixed(2)} USDT`,
-                    `Take profits:`,
                 ]
+                if (this.selectedTrade.variant.stopLoss) {
+                    message.push(`Stop loss: ${this.selectedTrade.variant.stopLoss.toFixed(2)} USDT`)
+                } else {
+                    message.push(`MISSING stop loss`)
+                }
+                if (this.selectedTrade.variant.takeProfits.length) {
+                    message.push(`Take profits:`)
+                } else {
+                    message.push(`MISSING take profits!`)
+                }
                 for (const tp of this.selectedTrade.variant.takeProfits) {
                     message.push(`- ${tp.closePercent}% : ${tp.price} USDT`)
                 }

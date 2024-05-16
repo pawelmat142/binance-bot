@@ -33,7 +33,6 @@ export class SignalValidator {
     public get valid() {
         return this.modeValueOk
         && this.entryZoneValuesOk 
-        && this.takeProfitsOk 
         && this.valuesLogicOk
     }
 
@@ -207,7 +206,7 @@ export class SignalValidator {
     }
 
     private findTakeProfit() {
-        let textToScan = this.prepareTextToScanTakeProfit()
+        let textToScan = this.prepareTextToScanTakeProfit() 
 
         if (textToScan) {
             const takeProfitValues: string[] = textToScan.match(this.dolarOrPercentRegex)
@@ -347,13 +346,15 @@ export class SignalValidator {
                 this.signalError(`[LONG] this.entryZoneStart > this.entryZoneEnd`)
                 return false
             }
-            if (this.variant.entryZoneEnd > this.minTakeProfit) {
-                this.signalError(`[LONG] this.entryZoneEnd > this.minTakeProfit`)
-                return false
-            }
-            if (this.minTakeProfit > this.maxTakeProfit) {
-                this.signalError(`[LONG] this.minTakeProfit > this.maxTakeProfit`)
-                return false
+            if (this.variant.takeProfits.length) {
+                if (this.variant.entryZoneEnd > this.minTakeProfit) {
+                    this.signalError(`[LONG] this.entryZoneEnd > this.minTakeProfit`)
+                    return false
+                }
+                if (this.minTakeProfit > this.maxTakeProfit) {
+                    this.signalError(`[LONG] this.minTakeProfit > this.maxTakeProfit`)
+                    return false
+                }
             }
         }
         if (this.variant.side === 'SELL') {
@@ -361,13 +362,15 @@ export class SignalValidator {
                 this.signalError(`[SHORT] this.minTakeProfit > this.maxTakeProfit`)
                 return false
             }
-            if (this.maxTakeProfit > this.variant.entryZoneEnd) {
-                this.signalError(`[SHORT] this.maxTakeProfit > this.minTakeProfit`)
-                return false
-            }
-            if (this.variant.entryZoneEnd > this.variant.entryZoneStart) {
-                this.signalError(`[SHORT] this.entryZoneEnd > this.entryZoneStart`)
-                return false
+            if (this.variant.takeProfits.length) {
+                if (this.maxTakeProfit > this.variant.entryZoneEnd) {
+                    this.signalError(`[SHORT] this.maxTakeProfit > this.minTakeProfit`)
+                    return false
+                }
+                if (this.variant.entryZoneEnd > this.variant.entryZoneStart) {
+                    this.signalError(`[SHORT] this.entryZoneEnd > this.entryZoneStart`)
+                    return false
+                }
             }
             if (this.variant.stopLoss && this.variant.entryZoneStart > this.variant.stopLoss) {
                 this.signalError(`[SHORT] entryZoneStart > this.stopLoss`)
