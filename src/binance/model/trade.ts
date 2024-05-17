@@ -37,6 +37,8 @@ export class FuturesResult {
 @Schema()
 export class Trade {
 
+    public static readonly testName = `${Trade.name}-test`
+
     @Expose() 
     @Prop({ required: true })
     _id: string

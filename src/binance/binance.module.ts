@@ -21,8 +21,11 @@ import { TradeRepository } from './trade.repo';
       isGlobal: true,
       envFilePath: 'config/trade-units.json',
     }),
-    MongooseModule.forFeature([{
+    MongooseModule.forFeature([, {
       name: Trade.name,
+      schema: TradeSchema,
+    }, {
+      name: Trade.testName,
       schema: TradeSchema,
     }]),
   ],

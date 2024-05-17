@@ -13,12 +13,21 @@ export class TradeRepository {
 
     private readonly logger = new Logger(TradeRepository.name)
 
+    private model: Model<Trade>
+
     constructor(
         @InjectModel(Trade.name) private tradeModel: Model<Trade>,
-    ) {}
+        @InjectModel(Trade.testName) private testTradeModel: Model<Trade>,
+    ) {
+        if (process.env.TEST_TRADE_COLLECTION) {
+            this.model = this.testTradeModel
+        } else {
+            this.model = this.tradeModel
+        }
+    }
 
     public findBySymbol(ctx: TradeCtx): Promise<Trade[]> {
-        return this.tradeModel.find({
+        return this.model.find({
             unitIdentifier: ctx.unit.identifier,
             closed: { $ne: true },
             "variant.symbol": ctx.trade.variant.symbol
@@ -26,14 +35,14 @@ export class TradeRepository {
     }
 
     public findByUnit(unit: Unit): Promise<Trade[]> {
-        return this.tradeModel.find({
+        return this.model.find({
             unitIdentifier: unit.identifier,
             closed: { $ne: true }
         }).exec()
     }
 
     public findBySignal(signal: Signal, unit: Unit): Promise<Trade> {
-        return this.tradeModel.findOne({
+        return this.model.findOne({
             closed: { $ne: true },
             unitIdentifier: unit.identifier,
             "variant.symbol": signal.variant.symbol
@@ -41,7 +50,7 @@ export class TradeRepository {
     }
 
     public findByTradeEvent(eventTradeResult: FuturesResult, unit: Unit): Promise<Trade> {
-        return this.tradeModel.findOne({
+        return this.model.findOne({
             unitIdentifier: unit.identifier,
             closed: { $ne: true },
             $or: [
@@ -53,7 +62,7 @@ export class TradeRepository {
     }
 
     public findInProgress(ctx: TradeCtx): Promise<Trade> {
-        return this.tradeModel.findOne({
+        return this.model.findOne({
             "unitIdentifier": ctx.unit.identifier,
             "futuresResult.side": ctx.side,
             "futuresResult.symbol": ctx.symbol,
@@ -68,7 +77,7 @@ export class TradeRepository {
         }
         ctx.trade._id = newObjectId()
         ctx.trade.timestamp = new Date()
-        const newTrade = new this.tradeModel(ctx.trade)
+        const newTrade = new this.model(ctx.trade)
         newTrade.testMode = process.env.TEST_MODE === 'true'
 
         TradeUtil.addLog(`Saving trade ${newTrade._id}`, ctx, this.logger)
@@ -82,7 +91,7 @@ export class TradeRepository {
         }
         ctx.trade.timestamp = new Date()
         TradeUtil.addLog(`Updating trade ${ctx.trade._id}`, ctx, this.logger)
-        return this.tradeModel.updateOne(
+        return this.model.updateOne(
             { _id: ctx.trade._id },
             { $set: ctx.trade }
         ).exec()
@@ -90,7 +99,7 @@ export class TradeRepository {
 
     public prepareTrade(signal: Signal): Trade {
         const variant = signal.variant
-        const trade = new this.tradeModel({
+        const trade = new this.model({
             signalObjectId: signal._id,
             logs: signal.logs || [],
             variant: variant,
