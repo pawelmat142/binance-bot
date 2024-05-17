@@ -18,7 +18,6 @@ export class AppController {
   @Get('/test')
   test() {
     // this.binanceService.testTrade()
-    return this.signalService.testOnReceiveMessage()
   }
 
 

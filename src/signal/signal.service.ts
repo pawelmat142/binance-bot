@@ -25,32 +25,6 @@ export class SignalService {
         return this.tradeSubject$.asObservable()
     }
 
-    // messageFrom telegram -> new Signal -> validate -> save signal -> if valid -> new Trade -> open position per unit -> save per unit
-
-    testOnReceiveMessage() {
-        this.logger.log('testOnReceiveMessage')
-        const msg = `
-        Long АТОМ
- 
-Entry Zone: 
-12.50$ - 13.50$ 
-
-Take profits: 
-1️⃣15.50$
-2️⃣18.60$
-3️⃣21.20$
-4️⃣25.10$
-
-Open with 5x leverage
-
-Stop Loss: 10.40$   
-        `
-        this.onReceiveTelegramMessage({
-            message: msg,
-            id: 123,
-        } as TelegramMessage)
-    }
-
 
     public async onReceiveTelegramMessage(telegramMessage: TelegramMessage) {
         const signal: Signal = this.prepareSignal(telegramMessage)
@@ -64,6 +38,8 @@ Stop Loss: 10.40$
             await this.save(signal)
 
             this.telegramService.sendPublicMessage(telegramMessage?.message)
+
+            console.log(signal)
 
             if (signal.valid || SignalUtil.anyAction(signal)) {
                 this.tradeSubject$.next(signal)
@@ -95,7 +71,6 @@ Stop Loss: 10.40$
             telegramMessageId: telegramMessage?.id ?? 'missing'
         })
     }
-
 
     
     // REPOSITORY

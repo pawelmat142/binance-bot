@@ -36,7 +36,7 @@ export class TradeRepository {
         return this.tradeModel.findOne({
             closed: { $ne: true },
             unitIdentifier: unit.identifier,
-            "variant.symbol": signal.tradeVariant.symbol
+            "variant.symbol": signal.variant.symbol
         }).exec()
     }
 
@@ -89,7 +89,7 @@ export class TradeRepository {
     }
 
     public prepareTrade(signal: Signal): Trade {
-        const variant = signal.tradeVariant
+        const variant = signal.variant
         const trade = new this.tradeModel({
             signalObjectId: signal._id,
             logs: signal.logs || [],

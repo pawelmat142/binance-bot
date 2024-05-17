@@ -1,37 +1,41 @@
-import { Logger } from "@nestjs/common";
-import { OtherSignalAction, Signal } from "./signal";
+import { Signal } from "./signal";
 import { SignalUtil } from "./signal-util";
+import { BaseValidator } from "./base-validator";
+import { TakeProfitsValidator } from "./take-profits.validator";
+import { StopLossValidator } from "./stop-loss-validator";
 
-export class SignalOtherActionValidator {
-
-    private readonly logger = new Logger(SignalOtherActionValidator.name)
-
-    signal: Signal
-    message: string
-    lines: string[]
+export class SignalOtherActionValidator extends BaseValidator {
 
     constructor(signal: Signal) {
-        this.signal = signal
-        this.message = this.signal.content.toLowerCase()
+        super(signal)
     }
 
     validate() {
-        if (!this.signal.valid) {
-            const variant = this.signal.tradeVariant
-            if (variant.symbol && variant.side) {
-                this.prepareLines()
-                this.signal.otherSignalAction = {
-                    takeSomgeProfit: this.isTakeSomeProfit(),
-                    manualClose: this.isManualClose(),
-                    tradeDone: this.isTradeDone()
-                } as OtherSignalAction
-                this.isMoveStopLoss()
-            }
+        if (this.signal.valid) {
+            this.addLog(`[SKIP] SignalOtherActionValidator`)
+            return
         }
+        this.addLog(`[START] SignalOtherActionValidator`)
+        const variant = this.signal.variant
+        if (variant.symbol && variant.side) {
+            
+            const tpValTriggered = TakeProfitsValidator.start(this.signal)
+            const slValTriggered = StopLossValidator.start(this.signal)
+
+            if (!tpValTriggered && !slValTriggered) {
+                this.otherActionsValidation()
+            }
+            
+        }
+        this.addLog(`[STOP] SignalOtherActionValidator`)
     }
 
-    private prepareLines() {
-        this.lines = this.message?.split(/\r?\n/) ?? []
+    private otherActionsValidation() {
+        this.signal.otherSignalAction = this.signal.otherSignalAction || {}
+        this.signal.otherSignalAction.takeSomgeProfit = this.isTakeSomeProfit(),
+        this.signal.otherSignalAction.manualClose = this.isManualClose(),
+        this.signal.otherSignalAction.tradeDone = this.isTradeDone()
+        this.isMoveStopLoss()
     }
 
     private isTakeSomeProfit(): boolean {
@@ -67,6 +71,7 @@ export class SignalOtherActionValidator {
 
     private isMoveStopLoss() {
         for (let line of this.lines) {
+            if (!line) continue
 
             if (line.includes('move')) {
                 if (line.includes('sl') || line.includes('stop loss')) {

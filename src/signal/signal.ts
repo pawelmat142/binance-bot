@@ -11,6 +11,8 @@ export class OtherSignalAction {
     @Expose() @Prop() moveSl?: boolean
     @Expose() @Prop() moveSlToEntryPoint?: boolean
     @Expose() @Prop() tradeDone?: boolean
+    @Expose() @Prop() stopLossFound?: boolean
+    @Expose() @Prop() takeProfitFound?: boolean
 }
 
 @Schema()
@@ -19,7 +21,6 @@ export class Signal {
     @Prop()
     _id: string
 
-    @Expose() 
     @Prop({ required: true })
     content: string
 
@@ -33,7 +34,7 @@ export class Signal {
     
     @Prop()
     @Expose() 
-    tradeVariant: TradeVariant
+    variant: TradeVariant
 
     @Expose() 
     @Prop()
@@ -46,6 +47,10 @@ export class Signal {
     @Expose()
     @Prop()
     otherSignalAction?: OtherSignalAction
+    
+    @Expose() 
+    @Prop({ required: true })
+    lines?: string[]
 }
 
 
