@@ -39,8 +39,6 @@ export class SignalService {
 
             this.telegramService.sendPublicMessage(telegramMessage?.message)
 
-            console.log(signal)
-
             if (signal.valid || SignalUtil.anyAction(signal)) {
                 this.tradeSubject$.next(signal)
             } 

@@ -123,14 +123,16 @@ export class CalculationsService implements OnModuleInit {
         } else {
             usdtAmount = new Decimal(ctx.unit.usdtPerTransaction)
             const minNotional = this.getMinNotional(symbolInfo)
+
+
             // TODO - also in wizard
-            if (usdtAmount.lessThan(minNotional)) {
-                if (ctx.unit.allowMinNotional) {
-                    usdtAmount = minNotional
-                } else {
+            // if (usdtAmount.lessThan(minNotional.times(ctx.lever))) {
+            //     if (ctx.unit.allowMinNotional) {
+            //         usdtAmount = minNotional
+            //     } else {
                     // throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
-                }
-            }
+                // }
+            // }
         }
         if (!usdtAmount || usdtAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)
 
@@ -145,10 +147,10 @@ export class CalculationsService implements OnModuleInit {
             throw new Error(`quantity ${quantity} < minQty ${minQty}`)
         }
         const minNotional = this.getMinNotional(symbolInfo)
-        if (usdtAmount.lessThan(minNotional)) {
+        // if (usdtAmount.lessThan(minNotional)) {
             // TODO - also in wizard
             // throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
-        }
+        // }
         TradeUtil.addLog(`Calculated quantity: ${quantity}, step: ${stepSize}, minNotional: ${minNotional}`, ctx, this.logger)
         ctx.trade.quantity = quantity.toNumber()
     }

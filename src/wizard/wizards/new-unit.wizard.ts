@@ -16,7 +16,6 @@ export class NewUnitWizard extends Wizard {
     private static USDT_MIN_LIMIT = 10
 
     private getBotIp(): string {
-        console.log(process.env.BOT_IP)
         return process.env.BOT_IP
     }
 
@@ -52,7 +51,7 @@ export class NewUnitWizard extends Wizard {
             process: async () => 1
         }, {
             order: 3,
-            message: [`Provide your binance futures API Key...`],
+            message: [`Provide your Binance Futures API Key...`],
             process: async (input: string) => {
                 const apiKeyTaken = await this.services.unitService.apiKeyTaken(input)
                 if (apiKeyTaken) return 4
@@ -65,7 +64,7 @@ export class NewUnitWizard extends Wizard {
             close: true
         }, {
             order: 5,
-            message: [`Provide your binance futures Secret Key...`],
+            message: [`Provide your Binance Futures Secret Key...`],
             process: async (input: string) => {
                 this.unit.binanceApiSecret = input
                     const apiKeyError = await this.services.unitService.apiKeyError(this.unit as Unit)
@@ -105,10 +104,10 @@ export class NewUnitWizard extends Wizard {
         }, {
             order: 10,
             message: [
-                `Some currency pairs have a higher minimum transaction limit, for example`,
-                `for BTCUSDT it is 100 USDT - highest one`,
-                `for ETHUSDT it is 20 USDT.`,
-                `Do you want to allow transactions that require more USDT than the given USDT per transaction?`
+                `Some currency pairs require a minimum notional value to open an order,`,
+                `for example: BTCUSDT needs $100,`,
+                `so for x5 leverage it will be $20.`,
+                `Do you want to allow transactions that require more USDT than the given USDT per transaction?`,
             ],
             buttons: [[{
                 text: `DENY`,
@@ -166,6 +165,7 @@ export class NewUnitWizard extends Wizard {
     }
 
     private getApiKeyGenerationManualMessage(): string[] {
+        if (this.order !== 14) return []
         const message = [
             `Log in to Binance`,
             `Enable futures trading:`,
@@ -173,19 +173,20 @@ export class NewUnitWizard extends Wizard {
             `Go to dashboard:`,
             `https://www.binance.com/en/my/dashboard`,
             `Go to Account -> API Management -> Create API`,
+            ``,
             `Select 'System generated' -> Next`,
             `Provide label of your API key (doesnt matter for me)`,
             `You may need authenticate now`,
             `You should see API Key and Secret Key now, save them for a moment`,
             `Go to 'Edit restrictions'`,
-            `Select 'Restrict access to trusted IPs only' and provide: '194.163.147.10'`,
-            `Select 'Enable Futures' and save`,
-            `You can start subscribe now`,
+            `Select 'Restrict access to trusted IPs only' and provide: ${this.getBotIp()}`,
+            `Select 'Enable Futures'`,
+            `Save, and You can start subscribe now`,
         ]
 
         const result = []
         let iterator = 1
-        for (let line of message) {
+        for (let line of message) { 
             if (!line.startsWith('http')) {
                 line = `${iterator}. ${line}`
                 iterator++

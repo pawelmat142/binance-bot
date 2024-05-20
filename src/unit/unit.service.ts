@@ -32,6 +32,9 @@ export class UnitService implements OnModuleInit {
 
     onModuleInit() {
         this.initUnits()
+        this._units$.subscribe(units => {
+            this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
+        })
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_7AM)
@@ -43,7 +46,6 @@ export class UnitService implements OnModuleInit {
 
         if (Array.isArray(units)) {
             this._units$.next(units)
-            this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
         }
     }
 
@@ -269,15 +271,26 @@ export class UnitService implements OnModuleInit {
             listenKey: false
         }).exec()
         if (unit) {
-            const units = this._units$.value.map(u => {
-                if (u.identifier === unit.identifier) {
-                    return unit
-                }
-                return u
-            })
+            let units = this._units$.value
+            if (units.find(u => u.identifier === identifier)) {
+                units = this._units$.value.map(u => {
+                    if (u.identifier === unit.identifier) {
+                        return unit
+                    }
+                    return u
+                })
+            } else {
+                units.push(unit)
+            }
             this._units$.next(units)
+
+            if (unit.active) {
+                this.startListening(unit)
+            }
         } else {
-            this.logger.error(`Could not load unit ${identifier}`)
+            const units = this._units$.value.filter(u => u.identifier !== identifier)
+            this._units$.next(units)
+            this.logger.warn(`Could not load unit ${identifier}`)
         }
     }
 
