@@ -21,7 +21,7 @@ export class AccountWizard extends UnitWizard {
             `Current USDT per transaction: ${this.unit?.usdtPerTransaction}$.`,
             ``,
             `You can allow/deny minimum transaction limit`,
-            `For example Binance requires minimum 100 USDT per BTC transaction`,
+            `For example Binance API requires minimum 100 USDT per BTC transaction`,
             `There is no higher one`
         ]
 

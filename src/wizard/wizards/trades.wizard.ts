@@ -163,7 +163,7 @@ export class TradesWizard extends UnitWizard {
         const stopLossSet = this.selectedTrade?.stopLossResult?.status === TradeStatus.NEW
 
         const buttons: WizardButton[][] = [[{
-            text: stopLossSet ? `SL to entry price` : `set SL to entry price`,
+            text: stopLossSet ? `Move SL to entry price` : `Set SL at entry price`,
             callback_data: WizBtn.slToEntryPrice,
             process: async () => {
                 const position = this.findPosition(this.selectedTrade.variant.symbol)
@@ -172,7 +172,7 @@ export class TradesWizard extends UnitWizard {
                 return success ? 4 : 3
             }
         }, {
-            text: stopLossSet ? `Move SL to...` : `Set SL to...`,
+            text: stopLossSet ? `Move SL to...` : `Set SL at...`,
             callback_data: WizBtn.slTo,
             process: async () => 5
         }], [{
@@ -225,7 +225,7 @@ export class TradesWizard extends UnitWizard {
 
     private addTakeProfitsButton(buttons: WizardButton [][]) {
         buttons.push([{
-            text: this.selectedTrade?.variant.takeProfits.length ? `Edit take profits` : `Add take profits`,
+            text: `Edit take profits`,
             callback_data: `addtps`,
             switch: TakeProfitsWizard.name
         }])

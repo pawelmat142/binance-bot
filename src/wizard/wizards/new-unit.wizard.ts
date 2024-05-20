@@ -15,16 +15,27 @@ export class NewUnitWizard extends Wizard {
 
     private static USDT_MIN_LIMIT = 10
 
+    private getBotIp(): string {
+        console.log(process.env.BOT_IP)
+        return process.env.BOT_IP
+    }
 
     public getSteps(): WizardStep[] {
 
         return [{
             order: 0,
-            message: [`Would you like to subscribe?`],
+            message: [
+                `Would you like to subscribe?`,
+                ` * you will need a generated API key`
+            ],
             buttons: [[{
                 text: `Subscribe`,
                 callback_data: `subscribe`,
                 process: async () => 1
+            }], [{
+                text: `Show how to generate API key`,
+                callback_data: `showgenapikey`,
+                process: async () => 14
             }]]
         }, {
             order: 1,
@@ -41,7 +52,7 @@ export class NewUnitWizard extends Wizard {
             process: async () => 1
         }, {
             order: 3,
-            message: [`Provide your binance futures api key...`],
+            message: [`Provide your binance futures API Key...`],
             process: async (input: string) => {
                 const apiKeyTaken = await this.services.unitService.apiKeyTaken(input)
                 if (apiKeyTaken) return 4
@@ -50,11 +61,11 @@ export class NewUnitWizard extends Wizard {
             }
         }, {
             order: 4,
-            message: [`Api key is already in use!`],
+            message: [`API Key is already in use!`],
             close: true
         }, {
             order: 5,
-            message: [`Provide your binance futures api secret...`],
+            message: [`Provide your binance futures Secret Key...`],
             process: async (input: string) => {
                 this.unit.binanceApiSecret = input
                     const apiKeyError = await this.services.unitService.apiKeyError(this.unit as Unit)
@@ -143,7 +154,45 @@ export class NewUnitWizard extends Wizard {
             order: 13,
             message: [`Successfully subscribed with identifier: ${this.unit?.identifier}`],
             close: true
+        }, {
+            order: 14,
+            message: this.getApiKeyGenerationManualMessage(),
+            buttons: [[{
+                text: `Subscribe`,
+                callback_data: `subscribe`,
+                process: async () => 1
+            }]]
         }]
+    }
+
+    private getApiKeyGenerationManualMessage(): string[] {
+        const message = [
+            `Log in to Binance`,
+            `Enable futures trading:`,
+            `https://www.binance.com/en/support/faq/how-to-open-a-binance-futures-account-360033772992`,
+            `Go to dashboard:`,
+            `https://www.binance.com/en/my/dashboard`,
+            `Go to Account -> API Management -> Create API`,
+            `Select 'System generated' -> Next`,
+            `Provide label of your API key (doesnt matter for me)`,
+            `You may need authenticate now`,
+            `You should see API Key and Secret Key now, save them for a moment`,
+            `Go to 'Edit restrictions'`,
+            `Select 'Restrict access to trusted IPs only' and provide: '194.163.147.10'`,
+            `Select 'Enable Futures' and save`,
+            `You can start subscribe now`,
+        ]
+
+        const result = []
+        let iterator = 1
+        for (let line of message) {
+            if (!line.startsWith('http')) {
+                line = `${iterator}. ${line}`
+                iterator++
+            }
+            result.push(line)
+        }
+        return result
     }
 
 }

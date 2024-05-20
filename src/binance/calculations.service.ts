@@ -123,11 +123,12 @@ export class CalculationsService implements OnModuleInit {
         } else {
             usdtAmount = new Decimal(ctx.unit.usdtPerTransaction)
             const minNotional = this.getMinNotional(symbolInfo)
+            // TODO - also in wizard
             if (usdtAmount.lessThan(minNotional)) {
                 if (ctx.unit.allowMinNotional) {
                     usdtAmount = minNotional
                 } else {
-                    throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
+                    // throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
                 }
             }
         }
@@ -145,7 +146,8 @@ export class CalculationsService implements OnModuleInit {
         }
         const minNotional = this.getMinNotional(symbolInfo)
         if (usdtAmount.lessThan(minNotional)) {
-            throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
+            // TODO - also in wizard
+            // throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
         }
         TradeUtil.addLog(`Calculated quantity: ${quantity}, step: ${stepSize}, minNotional: ${minNotional}`, ctx, this.logger)
         ctx.trade.quantity = quantity.toNumber()
