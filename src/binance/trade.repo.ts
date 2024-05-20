@@ -19,9 +19,11 @@ export class TradeRepository {
         @InjectModel(Trade.name) private tradeModel: Model<Trade>,
         @InjectModel(Trade.testName) private testTradeModel: Model<Trade>,
     ) {
-        if (process.env.TEST_TRADE_COLLECTION) {
+        if (process.env.TEST_TRADE_COLLECTION === 'true') {
+            this.logger.debug(`TEST_TRADE_COLLECTION ON`)
             this.model = this.testTradeModel
         } else {
+            this.logger.debug(`TEST_TRADE_COLLECTION OFF`)
             this.model = this.tradeModel
         }
     }

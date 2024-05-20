@@ -5,12 +5,9 @@ import { WizardStep } from "./wizard"
 import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
 import { TradeUtil } from "src/binance/trade-util"
 import { TradeStatus } from "src/binance/model/trade"
-import { Logger } from "@nestjs/common"
 import Decimal from "decimal.js"
 
 export class TakeProfitsWizard extends UnitWizard {
-
-    private readonly logger = new Logger(TakeProfitsWizard.name)
 
     constructor(unit: Unit, services: ServiceProvider) {
         super(unit, services)

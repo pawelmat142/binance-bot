@@ -4,7 +4,6 @@ import { UnitWizard } from "./unit-wizard"
 import { FuturesResult, Trade, TradeStatus } from "src/binance/model/trade"
 import { isBinanceError } from "src/binance/model/binance.error"
 import { TradeType } from "src/binance/model/model"
-import { Logger } from "@nestjs/common"
 import { Position } from "src/binance/wizard-binance.service"
 import { TradeUtil } from "src/binance/trade-util"
 import Decimal from "decimal.js"
@@ -14,8 +13,6 @@ import { TradeCtx } from "src/binance/model/trade-variant"
 import { TakeProfitsWizard } from "./take-profits.wizard"
 
 export class TradesWizard extends UnitWizard {
-
-    private readonly logger = new Logger(TradesWizard.name)
 
     constructor(unit: Unit, services: ServiceProvider) {
         super(unit, services)
@@ -330,8 +327,8 @@ export class TradesWizard extends UnitWizard {
                 const tradeAmount = TradeUtil.tradeAmount(t)
                 const positionAmount = new Decimal(position.positionAmt)
                 // TODO check/test if any TP is filled
-                // console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
-                // console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
+                console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
+                console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
                 return tradeAmount.equals(positionAmount)
             }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]

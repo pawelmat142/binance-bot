@@ -8,7 +8,8 @@ export abstract class SignalUtil {
     // public readonly valueDolarRegex = /([\d\s]+([.,]\d+)?\s*\$)/g
 
     public static readonly valueDolarRegex = /([\d\s]+([.,]\d+)?\s*\$)/g
-    public static readonly dolarValueDolarRegex = /\s*\$\s*\d+\s*|\s*\d+\s*\$\s*/g;
+    // public static readonly dolarValueDolarRegex = /\s*\$\s*\d+\s*|\s*\d+\s*\$\s*/g;
+    public static readonly dolarValueDolarRegex = /\s*\$\s*\d+([.,]\d+)?\s*|\s*\d+([.,]\d+)?\s*\$\s*/g
 
     public static readonly stopLossRegex = /\bstop\s*loss\b/i
 

@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { ServiceProvider } from "../services.provider";
 
 export interface WizardResponse {
@@ -25,6 +26,8 @@ export interface WizardButton {
 }
 
 export class Wizard {
+
+    protected readonly logger = new Logger(Wizard.name)
 
     protected services: ServiceProvider
 
@@ -54,7 +57,8 @@ export class Wizard {
     public getStep(): WizardStep {
         const steps = this.getSteps()
         if (this.order < 0 || this.order > steps.length-1) {
-            throw new Error(`Invalid order: ${this.order}`)
+            this.logger.error(`Invalid order: ${this.order}`)
+            return steps[0]
         }
         return steps[this.order]
     }
