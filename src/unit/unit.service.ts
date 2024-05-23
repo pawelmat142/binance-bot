@@ -272,6 +272,17 @@ export class UnitService implements OnModuleInit {
         return saved
     }
 
+    public async deleteUnit(identifier: string): Promise<boolean> {
+        const result = await this.unitModel.deleteOne({ identifier: identifier }).exec()
+        if (result.deletedCount) {
+            this.logger.log(`Deleted unit with identifier: ${identifier}`)
+        } else {
+            this.logger.warn(`Could not delete/found unit: ${identifier}`)
+        }
+        this.loadUnits()
+        return !!result.deletedCount
+    }
+
     private async loadUnit(identifier: string) {
         const unit = await this.unitModel.findOne({ active: true }, { 
             listenJsons: false,

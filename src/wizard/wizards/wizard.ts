@@ -39,7 +39,6 @@ export class Wizard {
 
     private _steps: WizardStep[]
 
-
     constructor(chatId: number, services: ServiceProvider) {
         this.services = services
         this.chatId = chatId

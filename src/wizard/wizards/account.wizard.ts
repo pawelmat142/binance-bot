@@ -63,6 +63,10 @@ export class AccountWizard extends UnitWizard {
                     // TODO show also transactions pending USDT
                     return 6
                 }
+            }], [{
+                text: `Delete account`,
+                callback_data: `delete`,
+                process: async () => 12
             }]],
         }, {
             order: 1,
@@ -126,12 +130,38 @@ export class AccountWizard extends UnitWizard {
             nextOrder: 1
         }, {
             order: 10,
-            message: [` Subscription deactivated`],
+            message: [`Subscription deactivated`],
             close: true,
         }, {
             order: 11,
-            message: [` Subscription activated`],
+            message: [`Subscription activated`],
             close: true,
+        }, {
+            order: 12,
+            message: [
+                `Are you sure you want to delete your account?`,
+                `Pending positions or open orders will NOT be closed automatically`
+            ],
+            buttons: [[{
+                text: 'Cancel',
+                callback_data: `cancel`,
+                process: async () => 13
+            }, {
+                text: `CONFIRM`,
+                callback_data: `confirm`,
+                process: async () => {
+                    const success = await this.services.unitService.deleteUnit(this.unit.identifier)
+                    return success ? 14 : 13
+                }
+            }]]
+        }, {
+            order: 13,
+            message: [`Canceled or error`],
+            close: true
+        }, {
+            order: 14,
+            message: [`Successfully deleted account`],
+            close: true
         }]
     }
 
