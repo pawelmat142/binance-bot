@@ -21,8 +21,8 @@ export abstract class BotUtil {
         return `switch ${wizardName}`
     }
 
-    public static isAdmin = (chatId: string): boolean => {
-        return chatId?.toString() === process.env.ADMIN_CHAT_ID
+    public static adminChannelIds = (): string[] => {
+        return process.env.ADMIN_CHAT_ID.split('_')
     }
 
     public static messageFromButtonCallback = (callback: TelegramBot.CallbackQuery): TelegramBot.Message => {

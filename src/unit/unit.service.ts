@@ -11,6 +11,7 @@ import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws
 import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 import { HttpMethod } from 'src/global/http-method';
 import { TradeEventData } from 'src/binance/model/trade-event-data';
+import { BotUtil } from 'src/wizard/bot.util';
 
 
 @Injectable()
@@ -21,6 +22,12 @@ export class UnitService implements OnModuleInit {
     constructor(
         @InjectModel(Unit.name) private unitModel: Model<Unit>,
     ) {}
+
+    private adminChannelIds = BotUtil.adminChannelIds()
+
+    public isAdmin = (chatId: string): boolean => {
+        return this.adminChannelIds.includes(chatId?.toString())
+    }
 
     private _units$ = new BehaviorSubject<Unit[]>([])
 

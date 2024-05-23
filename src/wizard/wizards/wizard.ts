@@ -48,6 +48,11 @@ export class Wizard {
         this.modified = new Date()
     }
 
+
+    protected isAdmin = (chatId: string): boolean => {
+        return this.services.unitService.isAdmin(chatId)
+    }
+
     public getSteps(): WizardStep[] {
         throw new Error('not implemented')
     }

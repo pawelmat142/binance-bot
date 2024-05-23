@@ -5,7 +5,6 @@ import { WizardStep } from "./wizard";
 import { WizBtn } from "./wizard-buttons";
 import { AccountWizard } from "./account.wizard";
 import { TradesWizard } from "./trades.wizard";
-import { BotUtil } from "../bot.util";
 import { AdminWizard } from "./admin.wizard";
 
 export class StartWizard extends UnitWizard {
@@ -14,23 +13,24 @@ export class StartWizard extends UnitWizard {
         super(unit, services)
     }
 
+
     public getSteps(): WizardStep[] {
 
         const stepZero: WizardStep = {
             order: 0,
             message: ['Actions:'],
             buttons: [[{
-                text: 'Subscription management',
+                text: 'Account',
                 callback_data: WizBtn.amount,
                 switch: AccountWizard.name
             }], [{
-                text: 'Trades management',
+                text: 'Trades & orders',
                 callback_data: WizBtn.trade,
                 switch: TradesWizard.name
             }]]
         }
 
-        if (BotUtil.isAdmin(this.unit?.telegramChannelId)) {
+        if (this.isAdmin(this.unit?.telegramChannelId)) {
             stepZero.buttons.push([{
                 text: 'ADMIN',
                 callback_data: WizBtn.admin,
