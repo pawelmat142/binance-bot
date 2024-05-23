@@ -3,8 +3,8 @@ import { ServiceProvider } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { WizBtn } from "./wizard-buttons"
 import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
-import { BotUtil } from "../bot.util"
 import { WizardStep } from "./wizard"
+import { BotUtil } from "../bot.util"
 
 export class AccountWizard extends UnitWizard {
 
@@ -13,6 +13,8 @@ export class AccountWizard extends UnitWizard {
     }
 
     usdtInfo: BinanceFuturesAccountInfo
+
+    private error: string
 
 
     public getSteps(): WizardStep[] {
@@ -63,6 +65,10 @@ export class AccountWizard extends UnitWizard {
                     // TODO show also transactions pending USDT
                     return 6
                 }
+            }], [{
+                text: `Change API Key`,
+                callback_data: `changeapikey`,
+                process: async () => 15
             }], [{
                 text: `Delete account`,
                 callback_data: `delete`,
@@ -161,6 +167,45 @@ export class AccountWizard extends UnitWizard {
         }, {
             order: 14,
             message: [`Successfully deleted account`],
+            close: true
+        }, {
+            order: 15,
+            message: [`Provide your Binance Futures API Key...`],
+            process: async (input: string) => {
+                const apiKeyTaken = await this.services.unitService.apiKeyTaken(input)
+                if (apiKeyTaken) return 16
+                this.unit.binanceApiKey = input
+                return 17
+            }
+        }, {
+            order: 16, 
+            message: [`API Key is already in use!`],
+            close: true
+        }, {
+            order: 17,
+            message: [`Provide your Binance Futures Secret Key...`],
+            process: async (input: string) => {
+                this.unit.binanceApiSecret = input
+                const apiKeyError = await this.services.unitService.apiKeyError(this.unit)
+                if (apiKeyError) {
+                    this.error = apiKeyError.msg
+                    return 18
+                }
+
+                const success = await this.services.unitService.updateApiKey(this.unit)
+                if (!success.modifiedCount) {
+                    this.error = `Modification error??`
+                    return 18
+                }
+                return 19
+            }
+        }, {
+            order: 18,
+            message: [this.error],
+            nextOrder: 15
+        }, {
+            order: 19,
+            message: [`Successfully changed API Key`],
             close: true
         }]
     }

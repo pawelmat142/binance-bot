@@ -414,6 +414,21 @@ export class UnitService implements OnModuleInit {
         this.loadUnit(unit.identifier)
         return update
     }
+
+    public async updateApiKey(_unit: Unit) {
+        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
+        const update = await this.unitModel.updateOne(
+            { identifier: unit.identifier },
+            { $set: { 
+                binanceApiKey: _unit.binanceApiKey,
+                binanceApiSecret: _unit.binanceApiSecret 
+            } }
+        ).exec()
+        this.loadUnit(unit.identifier)
+        return update
+    }
+
+
     
     private async fetchUnitByIdentifier(identifier: string): Promise<Unit> {
         const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: false })
