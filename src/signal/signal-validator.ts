@@ -202,16 +202,25 @@ export class SignalValidator extends BaseValidator {
     }
 
     private findLeverage() {
-        for (let i = this.leverageLineIndex; i<=this.leverageLineIndex+2; i++) {
+        for (let i = this.leverageLineIndex; i<=this.leverageLineIndex+1; i++) {
             const line = this.lines[i]
             if (line) {
-                const regex = /(\d+)x/
+                // const regex = /(\d+)x/
+                const regex = /(?:x\s*|\b)(\d+)/g;
                 const matches = line.match(regex)
-                if (Array.isArray(matches)) {
-                    const value = Number(matches[1])
-                    if (!isNaN(value)) {
-                        this.variant.leverMin = value
-                        this.variant.leverMax = value
+                if (matches?.length) {
+                    const values = matches
+                        .map(value => Number(value))
+                        .filter(val => !isNaN(val))
+                    values.sort((a, b) => a - b)
+                    if (values.length) {
+                        if (values.length > 1) {
+                            this.variant.leverMin = values.shift()
+                            this.variant.leverMax = values.pop()
+                        } else {
+                            this.variant.leverMin = values[0]
+                            this.variant.leverMax = values[0]
+                        }
                         return
                     }
                 }

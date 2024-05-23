@@ -40,8 +40,6 @@ export const queryParams = (params: Object): string => {
     return queryString
 }
 
-export const EVERY_45_MINUTES = '0 */45 * * * *'
-
 export const roundWithFraction = (input: Decimal, fraction: Decimal) => {
     return new Decimal(Math.ceil(input.div(fraction).toNumber())).times(fraction)
 }

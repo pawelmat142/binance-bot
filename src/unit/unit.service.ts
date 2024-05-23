@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Unit } from './unit';
 import { Model } from 'mongoose';
-import { EVERY_45_MINUTES, getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
+import { getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
 import { TradeUtil } from 'src/binance/trade-util';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UnitUtil } from './unit.util';
@@ -54,7 +54,7 @@ export class UnitService implements OnModuleInit {
         this.startListeningForEveryUnit()
     }
 
-    @Cron(EVERY_45_MINUTES)
+    @Cron(CronExpression.EVERY_30_MINUTES)
     private async keepAliveListenKeyForEveryUnit() {
         this.logger.debug('Refreshing listen keys')
         const units = await this.unitModel.find(
