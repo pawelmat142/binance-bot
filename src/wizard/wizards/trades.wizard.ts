@@ -11,6 +11,7 @@ import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
 import { TradeCtx } from "src/binance/model/trade-variant"
 import { TakeProfitsWizard } from "./take-profits.wizard"
+import e from "express"
 
 export class TradesWizard extends UnitWizard {
 
@@ -253,17 +254,12 @@ export class TradesWizard extends UnitWizard {
     }
 
     private async fetchPositions(): Promise<Position[]> {
-        const trades = await this.services.binance.fetchPositions(this.unit)
-        if (isBinanceError(trades)) {
-            this.logger.error(trades)
-            return []
-        }
-        this.logger.log(`fetched ${trades.length} positions`)
-        if (trades.length >= 500) {
-            this.logger.error(`limit exceeded /positionRisk`)
-        }
+        const trades = await this.services.tradeService.fetchPositions(this.unit)
+
         return trades
     }
+
+
 
     private getPendingPositionsButtons(): WizardButton[][] {
         if (this.order !== 0 || !this.pendingPositions?.length) return []

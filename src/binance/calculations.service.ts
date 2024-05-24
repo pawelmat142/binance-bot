@@ -31,11 +31,15 @@ export class CalculationsService implements OnModuleInit {
         }
         try {
             const request = await fetch(`${TradeUtil.futuresUri}/exchangeInfo`)
-            this._exchangeInfo$.next(await request.json())
-            this.logger.log(`EXCHANGE INFO INITIALIZED`)
+            const result = await request.json()
+            if (result) {
+                this._exchangeInfo$.next(result)
+                this.logger.log(`EXCHANGE INFO INITIALIZED`)
+            } else {
+                throw new Error(`Exchange info empty respone`)
+            }
         } catch (error) {
-            this.logger.error('EXCHANGE INFO LOADING ERROR')
-            this.logger.error(error)
+            this.handleFetchError(error, `EXCHANGE INFO LOADING ERROR`)
         }
     }
 
@@ -117,22 +121,21 @@ export class CalculationsService implements OnModuleInit {
     public calculateTradeQuantity(ctx: TradeCtx): void {
         const symbol = ctx.trade.variant.symbol
         const symbolInfo = this.getExchangeInfo(symbol)
+        const minNotional = this.getMinNotional(symbolInfo)
         var usdtAmount = new Decimal(0)
         if (process.env.TEST_MODE === 'true') {
             usdtAmount = new Decimal(7)
         } else {
             usdtAmount = new Decimal(ctx.unit.usdtPerTransaction)
-            const minNotional = this.getMinNotional(symbolInfo)
-
 
             // TODO - also in wizard
-            // if (usdtAmount.lessThan(minNotional.times(ctx.lever))) {
-            //     if (ctx.unit.allowMinNotional) {
-            //         usdtAmount = minNotional
-            //     } else {
-                    // throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
-                // }
-            // }
+            if (usdtAmount.times(ctx.lever).lessThan(minNotional)) {
+                if (ctx.unit.allowMinNotional) {
+                    usdtAmount = minNotional.div(ctx.lever)
+                } else {
+                    throw new Error(`USDT per transaction is not enough for this position`)
+                }
+            }
         }
         if (!usdtAmount || usdtAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)
 
@@ -143,15 +146,10 @@ export class CalculationsService implements OnModuleInit {
         const { minQty, stepSize } = this.getLotSize(symbolInfo)
         const quantityStep = roundWithFraction(calculatedQuantity, stepSize)
         const quantity = quantityStep
+        TradeUtil.addLog(`Calculated quantity: ${quantity}, step: ${stepSize}, minNotional: ${minNotional}`, ctx, this.logger)
         if (quantity.lessThan(minQty)) {
             throw new Error(`quantity ${quantity} < minQty ${minQty}`)
         }
-        const minNotional = this.getMinNotional(symbolInfo)
-        // if (usdtAmount.lessThan(minNotional)) {
-            // TODO - also in wizard
-            // throw new Error(`usdtPerTransaction * lever ${usdtAmount.times(ctx.lever)} < MIN_NOTIONAL ${minNotional}`)
-        // }
-        TradeUtil.addLog(`Calculated quantity: ${quantity}, step: ${stepSize}, minNotional: ${minNotional}`, ctx, this.logger)
         ctx.trade.quantity = quantity.toNumber()
     }
         
@@ -238,6 +236,17 @@ export class CalculationsService implements OnModuleInit {
             throw new Error(`Tick size isNaN - ${value}`)
         }
         return tickSize
+    }
+
+    public handleFetchError(error, msg?: string, ctx?: TradeCtx) {
+        if (msg) {
+            this.logger.error(msg)
+        }
+        if (ctx) {
+            TradeUtil.addError(error, ctx, this.logger)
+        } else {
+            this.logger.error(error)
+        }
     }
     
 }

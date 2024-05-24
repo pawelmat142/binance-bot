@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
 import { getHeaders, queryParams, sign } from 'src/global/util';
-import { BinanceError, isBinanceError } from './model/binance.error';
+import { isBinanceError } from './model/binance.error';
 import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
@@ -155,7 +155,7 @@ export class TradeService {
             }
             return false
         } catch (error) {
-            TradeUtil.addError(error.message, ctx, this.logger)
+            this.handleFetchError(error, `TAKE SOME PROFIT ERROR`, ctx)
             return false
         }
     }
@@ -267,16 +267,107 @@ export class TradeService {
 
 
     public async placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
-        const path = this.testNetwork ? '/order/test' : '/order'
-        const request = await fetch(this.signUrlWithParams(path, ctx, params), {
-            method: method ?? 'POST',
-            headers: getHeaders(ctx.unit)
-        })
-        const response: FuturesResult = await request.json()
-        if (isBinanceError(response)) {
-            TradeUtil.addError(response.msg, ctx, this.logger)
+        try {
+            const path = this.testNetwork ? '/order/test' : '/order'
+            const request = await fetch(this.signUrlWithParams(path, ctx, params), {
+                method: method ?? 'POST',
+                headers: getHeaders(ctx.unit)
+            })
+            const response: FuturesResult = await request.json()
+            if (isBinanceError(response)) {
+                throw new Error(response.msg)
+            }
+            return response
+        } catch (error) {
+            this.handleFetchError(error, `PLACE ORDER ERROR`, ctx)
+            return null
         }
-        return response
+    }
+
+
+    public async closePosition(ctx: TradeCtx): Promise<FuturesResult> {
+        try {
+            const position = await this.fetchPosition(ctx)
+            const params = queryParams({
+                symbol: ctx.symbol,
+                side: TradeUtil.opositeSide(ctx.side),
+                type: TradeType.MARKET,
+                quantity: Number(position.positionAmt),
+                reduceOnly: true,
+                timestamp: Date.now()
+            })
+            return this.placeOrder(params, ctx, 'POST')
+        } catch (error) {
+            this.handleFetchError(error, `CLOSE POSITION ERROR`, ctx)
+            return null
+        }
+    }
+
+    private async fetchPosition(ctx: TradeCtx): Promise<Position> {
+        try {
+            const params = queryParams({
+                timestamp: Date.now(),
+                symbol: ctx.trade.variant.symbol
+            })
+            const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit)
+            const request = await fetch(url, {
+                method: 'GET',
+                headers: getHeaders(ctx.unit)
+            })
+            const response = await request.json()
+            if (isBinanceError(response)) {
+                throw new Error(`response.msg`)
+            }
+            if (!(response || []).length) {
+                throw new Error(`Could not fetch position ${ctx.side} ${ctx.symbol}`)
+            }
+            return response[0] as Position
+        } catch (error) {
+            this.handleFetchError(error, `FETCH SINGLE POSITIONS ERROR`, ctx)
+            return null
+        }
+    }
+
+    public async fetchPositions(unit: Unit): Promise<Position[]> {
+        try {
+            const params = queryParams({
+                timestamp: Date.now()
+            })
+            const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit)
+            const request = await fetch(url, {
+                method: 'GET',
+                headers: getHeaders(unit)
+            })
+            const trades = await request.json()
+            this.logger.log(`fetched ${trades.length} positions`)
+            if (trades.length >= 500) {
+                throw new Error(`limit exceeded /positionRisk`)
+            }
+            return trades
+        } catch (error) {
+            this.handleFetchError(error, `FETCH POSITIONS ERROR`)
+            return []
+        }
+    }
+
+    public async fetchOpenOrders(unit: Unit, symbol?: string): Promise<FuturesResult[]> {
+        try {
+            const params = {
+                timestamp: Date.now()
+            }
+            if (symbol) {
+                params['symbol'] = symbol
+            }
+            const url = sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit)
+            const request = await fetch(url, {
+                method: 'GET',
+                headers: getHeaders(unit)
+            })
+            return request.json()
+        } catch (error) {
+            this.handleFetchError(error, `FETCH OPEN ORDERS ERROR`)
+            return []
+        }
     }
 
 
@@ -285,54 +376,14 @@ export class TradeService {
         return sign(url, params, tradeContext.unit)
     }
 
-    public async closePosition(ctx: TradeCtx) {
-        const position = await this.fetchPosition(ctx)
-        const params = queryParams({
-            symbol: ctx.symbol,
-            side: TradeUtil.opositeSide(ctx.side),
-            type: TradeType.MARKET,
-            quantity: Number(position.positionAmt),
-            reduceOnly: true,
-            timestamp: Date.now()
-        })
-        return this.placeOrder(params, ctx, 'POST')
+    public handleFetchError(error, msg?: string, ctx?: TradeCtx) {
+        if (msg) {
+            this.logger.error(msg)
+        }
+        if (ctx) {
+            TradeUtil.addError(error, ctx, this.logger)
+        } else {
+            this.logger.error(error)
+        }
     }
-
-    private async fetchPosition(ctx: TradeCtx): Promise<Position> {
-        const params = queryParams({
-            timestamp: Date.now(),
-            symbol: ctx.trade.variant.symbol
-        })
-        const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit)
-        const request = await fetch(url, {
-            method: 'GET',
-            headers: getHeaders(ctx.unit)
-        })
-        const response = await request.json()
-        if (isBinanceError(response)) {
-            TradeUtil.addError(response.msg, ctx, this.logger)
-            return null
-        }
-        if (!(response || []).length) {
-            TradeUtil.addError(`Could not fetch position ${ctx.side} ${ctx.symbol}`, ctx, this.logger)
-            return null
-        }
-        return response[0] as Position
-    }
-
-    public async fetchOpenOrders(unit: Unit, symbol?: string): Promise<FuturesResult[] | BinanceError> {
-        const params = {
-            timestamp: Date.now()
-        }
-        if (symbol) {
-            params['symbol'] = symbol
-        }
-        const url = sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit)
-        const request = await fetch(url, {
-            method: 'GET',
-            headers: getHeaders(unit)
-        })
-        return request.json()
-    }
-
 }

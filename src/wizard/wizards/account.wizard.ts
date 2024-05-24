@@ -22,9 +22,7 @@ export class AccountWizard extends UnitWizard {
         const message = [
             `Current USDT per transaction: ${this.unit?.usdtPerTransaction}$.`,
             ``,
-            `You can allow/deny minimum transaction limit`,
-            `For example Binance API requires minimum 100 USDT per BTC transaction`,
-            `There is no higher one`
+            `You can ALLOW/DENY minimum transaction limit`,
         ]
 
         const allowMinNotional = `${this.unit?.allowMinNotional ? 'DENY' : 'ALLOW'} minimum transaction limit`

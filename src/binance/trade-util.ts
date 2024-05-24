@@ -45,6 +45,7 @@ export abstract class TradeUtil {
         this.addLog(msg, ctx, logger, '[WARNING]')
     }
 
+
     public static tradeRequestLimitParams = (trade: Trade): string => {
         return queryParams({
             symbol: trade.variant.symbol,

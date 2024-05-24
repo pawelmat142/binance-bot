@@ -64,18 +64,6 @@ export class WizardBinanceService {
         return request.json()
     }
 
-    public async fetchPositions(unit: Unit): Promise<Position[] | BinanceError> {
-        const params = queryParams({
-            timestamp: Date.now()
-        })
-        const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit)
-        const request = await fetch(url, {
-            method: 'GET',
-            headers: getHeaders(unit)
-        })
-        return request.json()
-    }
-
     public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
         const params = queryParams({
             timestamp: Date.now()
