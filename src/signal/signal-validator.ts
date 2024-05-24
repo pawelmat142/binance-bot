@@ -44,7 +44,7 @@ export class SignalValidator extends BaseValidator {
         this.signal.variant = this.variant as TradeVariant
         TakeProfitsValidator.start(this.signal)
         StopLossValidator.start(this.signal)
-        this.addLog(`[START] SignalValidator`)
+        this.addLog(`[STOP] SignalValidator`)
     }
 
     private processValidation() {
@@ -58,14 +58,14 @@ export class SignalValidator extends BaseValidator {
         if (this.variant.symbol) {
             SignalUtil.addLog(`Found symbol ${this.variant.symbol}`, this.signal, this.logger)
         } else {
-            this.addError('symbol could not be found')
+            this.addWarning('symbol could not be found')
             return
         }
         if (this.entryZoneLineIndex !== -1) {
             this.findEntryZone()
             this.findRiskPhrase()
         } else {
-            this.addError('entry zone could not be found')
+            this.addWarning('entry zone could not be found')
             return
         }
         if (this.leverageLineIndex !== -1) {

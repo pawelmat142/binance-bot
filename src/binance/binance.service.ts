@@ -215,7 +215,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async onFilledStopLoss(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Filled stop loss with orderId ${ctx.trade.stopLossResult.orderId}`, ctx, this.logger)
+        TradeUtil.addLog(`Filled stop loss with orderId ${ctx.trade.stopLossResult.orderId}, stopPrice: ${eventTradeResult.stopPrice}, unit: [${ctx.unit.identifier}]`, ctx, this.logger)
         try {
             ctx.trade.stopLossResult = eventTradeResult
             const takeProfits = ctx.trade.variant.takeProfits

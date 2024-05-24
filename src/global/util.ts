@@ -23,7 +23,7 @@ export const sign = (uri: string, queryString: string, unit: Unit): string => {
 export const newObjectId = (): string => new Types.ObjectId().toHexString()
 
 
-export const getHeaders = (unit: Unit) => {
+export const getHeaders = (unit: Unit): { [key: string]: string } => {
     return {
         'X-MBX-APIKEY': unit.binanceApiKey,
         'Content-Type': 'application/x-www/form-urlencoded'

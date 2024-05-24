@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
 import { getHeaders, queryParams, sign } from 'src/global/util';
-import { isBinanceError } from './model/binance.error';
 import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
@@ -11,6 +10,7 @@ import { TradeRepository } from './trade.repo';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { Unit } from 'src/unit/unit';
 import { Position } from './wizard-binance.service';
+import { Http } from 'src/global/http/http.service';
 
 @Injectable()
 export class TradeService {
@@ -22,6 +22,7 @@ export class TradeService {
     constructor(
         private readonly tradeRepo: TradeRepository,
         private readonly telegramService: TelegramService,
+        private readonly http: Http,
     ) {}
 
     public async openPosition(ctx: TradeCtx) {
@@ -115,7 +116,10 @@ export class TradeService {
         const takeProfits = ctx.trade.variant.takeProfits
         for (let tp of takeProfits) {
             if (tp.reuslt?.status === TradeStatus.NEW) {
-                tp.reuslt = await this.closeOrder(ctx, tp.reuslt.orderId)
+                const tpOrderId = tp.reuslt.orderId
+                tp.reuslt = null // delete result prevents triggers onFilledTakeProfit
+                await this.tradeRepo.update(ctx)
+                tp.reuslt = await this.closeOrder(ctx, tpOrderId)
                 TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
             }
         }
@@ -210,11 +214,11 @@ export class TradeService {
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })
-        const request = await fetch(this.signUrlWithParams(`/marginType`, ctx, params), {
+        const response = await this.http.fetch<FuturesResult>({
+            url: this.signUrlWithParams(`/marginType`, ctx, params),
             method: 'POST',
             headers: getHeaders(ctx.unit)
         })
-        const response: FuturesResult = await request.json()
         TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
         return response
     }
@@ -253,15 +257,11 @@ export class TradeService {
             timestamp: Date.now(),
             timeInForce: 'GTC',
         })
-        const url = this.signUrlWithParams(`/leverage`, ctx, params)
-        const request = await fetch(url, {
+        const response = await this.http.fetch({
+            url: this.signUrlWithParams(`/leverage`, ctx, params),
             method: 'POST',
             headers: getHeaders(ctx.unit)
         })
-        const response: FuturesResult = await request.json()
-        if (isBinanceError(response)) {
-            throw new Error(response.msg)
-        }
         TradeUtil.addLog(`Leverage is set to ${lever}x for symbol: ${ctx.trade.variant.symbol}`, ctx, this.logger)
     } 
 
@@ -269,14 +269,11 @@ export class TradeService {
     public async placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
         try {
             const path = this.testNetwork ? '/order/test' : '/order'
-            const request = await fetch(this.signUrlWithParams(path, ctx, params), {
+            const response = await this.http.fetch<FuturesResult>({
+                url: this.signUrlWithParams(path, ctx, params),
                 method: method ?? 'POST',
                 headers: getHeaders(ctx.unit)
             })
-            const response: FuturesResult = await request.json()
-            if (isBinanceError(response)) {
-                throw new Error(response.msg)
-            }
             return response
         } catch (error) {
             this.handleFetchError(error, `PLACE ORDER ERROR`, ctx)
@@ -309,15 +306,11 @@ export class TradeService {
                 timestamp: Date.now(),
                 symbol: ctx.trade.variant.symbol
             })
-            const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit)
-            const request = await fetch(url, {
-                method: 'GET',
+            const response = await this.http.fetch<Position[]>({
+                url: sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit),
+                method: `GET`,
                 headers: getHeaders(ctx.unit)
             })
-            const response = await request.json()
-            if (isBinanceError(response)) {
-                throw new Error(`response.msg`)
-            }
             if (!(response || []).length) {
                 throw new Error(`Could not fetch position ${ctx.side} ${ctx.symbol}`)
             }
@@ -333,12 +326,11 @@ export class TradeService {
             const params = queryParams({
                 timestamp: Date.now()
             })
-            const url = sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit)
-            const request = await fetch(url, {
+            const trades = await this.http.fetch<Position[]>({
+                url: sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit),
                 method: 'GET',
                 headers: getHeaders(unit)
             })
-            const trades = await request.json()
             this.logger.log(`fetched ${trades.length} positions`)
             if (trades.length >= 500) {
                 throw new Error(`limit exceeded /positionRisk`)
@@ -358,12 +350,13 @@ export class TradeService {
             if (symbol) {
                 params['symbol'] = symbol
             }
-            const url = sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit)
-            const request = await fetch(url, {
+            const orders = await this.http.fetch<FuturesResult[]>({
+                url: sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit),
                 method: 'GET',
                 headers: getHeaders(unit)
             })
-            return request.json()
+            return orders
+
         } catch (error) {
             this.handleFetchError(error, `FETCH OPEN ORDERS ERROR`)
             return []

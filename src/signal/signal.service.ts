@@ -42,8 +42,9 @@ export class SignalService {
             if (signal.valid || SignalUtil.anyAction(signal)) {
                 this.tradeSubject$.next(signal)
             } 
-            else throw new Error('Signal is not valid and no any other action detected')
-
+            else {
+                SignalUtil.addError(`Signal is not valid and no any other action detected`, signal, this.logger)
+            }
         } catch (error) {
             SignalUtil.addError(error, signal, this.logger)
             telegramMessage.error = error

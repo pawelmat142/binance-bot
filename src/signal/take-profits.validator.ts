@@ -29,6 +29,9 @@ export class TakeProfitsValidator extends BaseValidator {
     
     
     validate(): void {
+        if (!this.signal.variant.side || !this.signal.variant.symbol) {
+            return
+        }
         if (this.signal.variant.takeProfits?.length) {
             this.addLog(`[SKIP] TakeProfitsValidator`)
             return

@@ -7,6 +7,7 @@ import { findMax, getHeaders, queryParams, roundWithFraction, sign } from 'src/g
 import { isBinanceError } from './model/binance.error';
 import { TradeCtx } from './model/trade-variant';
 import { Decimal } from 'decimal.js'
+import { Http } from 'src/global/http/http.service';
 
 
 @Injectable()
@@ -15,6 +16,7 @@ export class CalculationsService implements OnModuleInit {
     private readonly logger = new Logger(CalculationsService.name)
 
     constructor(
+        private readonly http: Http
     ) {}
 
     private readonly _exchangeInfo$ = new BehaviorSubject<FuturesExchangeInfo | null>(null)
@@ -25,15 +27,14 @@ export class CalculationsService implements OnModuleInit {
     
     @Cron(CronExpression.EVERY_HOUR)
     private async loadExchangeInfo() {
-        if (process.env.SKIP_TRADE === 'true') {
+        if (process.env.SKIP_LOAD_EXCHANGE_INFO === 'true') {
             this.logger.debug(`[SKIP] EXCHANGE INFO LOADING`)
             return
         }
         try {
-            const request = await fetch(`${TradeUtil.futuresUri}/exchangeInfo`)
-            const result = await request.json()
-            if (result) {
-                this._exchangeInfo$.next(result)
+            const info = await this.http.fetch<FuturesExchangeInfo>({url: `${TradeUtil.futuresUri}/exchangeInfo` })
+            if (info) {
+                this._exchangeInfo$.next(info)
                 this.logger.log(`EXCHANGE INFO INITIALIZED`)
             } else {
                 throw new Error(`Exchange info empty respone`)

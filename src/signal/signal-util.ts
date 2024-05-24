@@ -29,7 +29,7 @@ export abstract class SignalUtil {
     public static addWarning(msg: string, signal: Signal, logger: Logger) {
         const log = `[${toDateString(new Date())}] [WARN] ${msg}`
         signal.logs.push(log)
-        logger.error(msg)
+        logger.warn(msg)
     }
 
     public static takeProfitsPercentageSum(takeProfits: TakeProfit[]) {

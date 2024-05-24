@@ -24,8 +24,6 @@ export class TakeProfitsWizard extends UnitWizard {
 
     private error: string
 
-    private anyTpToRemove: boolean
-
 
     public getSteps(): WizardStep[] {
         return [
@@ -62,36 +60,41 @@ export class TakeProfitsWizard extends UnitWizard {
                 order: 5,
                 message: [`Take profits added to trade! :)`],
                 nextOrder: 0
-            // }, {
-            //     order: 6,
-            //     message: [`Are you sure you want to remove take profits?`],
-            //     buttons: [[{d
-            //         text: `No`,
-            //         callback_data: `no`,
-            //         process: async () => 0
-            //     }, {
-            //         text: `YES`,
-            //         callback_data: `yes`,
-            //         process: async () => {
-            //             // todo - TO ZLE DZIALA
-            //             this.selectedTrade.variant.takeProfits = this.takeProfitsAggregator
-            //             const ctx = new TradeCtx({
-            //                 unit: this.unit,
-            //                 trade: this.selectedTrade
-            //             })
-            //             await this.services.tradeService.closePendingTakeProfit(ctx)
-            //             ctx.trade.variant.takeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
-            //             await this.services.binanceServie.update(ctx)
-            //             this.takeProfitsAggregator = ctx.trade.variant.takeProfits
-            //             return 1
-            //         }
-            //     }
+            }, {
+                order: 6,
+                message: [`Are you sure you want to remove take profits?`],
+                buttons: [[{
+                    text: `No`,
+                    callback_data: `no`,
+                    process: async () => 0
+                }, {
+                    text: `YES`,
+                    callback_data: `yes`,
+                    process: async () => {
+                        // todo - TO ZLE DZIALA
+                        const trade = this.selectedTrade
+
+                        console.log('this.takeProfitsAggregator')
+                        console.log(this.takeProfitsAggregator)
+                        trade.variant.takeProfits = this.takeProfitsAggregator
+                        const ctx = new TradeCtx({
+                            unit: this.unit,
+                            trade: trade
+                        })
+                        await this.services.tradeService.closePendingTakeProfit(ctx)
+                        trade.variant.takeProfits = []
+                        await this.services.binanceServie.update(ctx)
+
+                        this.takeProfitsAggregator = ctx.trade.variant.takeProfits
+                        return 1
+                    }
+                }
             
-            // ]]
+            ]]
             }]
     }
 
-    private cleanTpsButton(step: WizardStep) {
+    private removeTakeProfitsButtons(step: WizardStep) {
         step.buttons[0].push({
             text: `Remove not filled TPs`,
             callback_data: `cleantps`,
@@ -99,7 +102,7 @@ export class TakeProfitsWizard extends UnitWizard {
         })
     }
 
-    private addTpButton(step: WizardStep) {
+    private addTakeProfitsButton(step: WizardStep) {
         step.buttons[0].push({
             text: `Add TP`,
             callback_data: `addtp`,
@@ -114,45 +117,47 @@ export class TakeProfitsWizard extends UnitWizard {
     private getStepZero(): WizardStep {
         if (this.selectedTrade) {
             const step = { order: 0, message: [], buttons: [[]] }
-            this.anyTpToRemove = this.takeProfitsAggregator.some(tp => !tp.reuslt || tp.reuslt.status === TradeStatus.NEW)
-
+            
             if (this.takeProfitsAggregator.length) {
                 step.message.push(`Take profits:`)
                 for (let tp of this.takeProfitsAggregator) {
                     step.message.push(this.tpContentString(tp))
                 }
-                if (this.anyTpToRemove) {
-                    this.cleanTpsButton(step)
-                    this.addTpButton(step)
+
+                const anyTpToRemove = this.takeProfitsAggregator.some(tp => !tp.reuslt || tp.reuslt.status === TradeStatus.NEW)
+                if (anyTpToRemove) {
+                    this.removeTakeProfitsButtons(step)
                 }
+
+                
             } else {
                 step.message.push(`Take profits are empty`)
-                this.addTpButton(step)
+                this.addTakeProfitsButton(step)
             }
 
-            step.buttons.push([{
-                text: `CONFIRM and order first take profit`,
-                callback_data: `confitm`,
-                process: async () => {
-                    this.calculatePercentages()
-                    this.selectedTrade.variant.takeProfits = this.takeProfitsAggregator
-                    try {
-                        const ctx = new TradeCtx({
-                            unit: this.unit,
-                            trade: this.selectedTrade
-                        })
-                        await this.services.binanceServie.openFirstTakeProfit(ctx)
-                        await this.services.binanceServie.update(ctx)
-                        return 5
-                    } catch (error) {
-                        this.error = error
-                        this.logger.error(this.error)
-                        return 4
-                    }
-                    // TODO
-                    return 0
-                }
-            }])
+            // step.buttons.push([{
+            //     text: `CONFIRM and order first take profit`,
+            //     callback_data: `confitm`,
+            //     process: async () => {
+            //         this.calculatePercentages()
+            //         this.selectedTrade.variant.takeProfits = this.takeProfitsAggregator
+            //         try {
+            //             const ctx = new TradeCtx({
+            //                 unit: this.unit,
+            //                 trade: this.selectedTrade
+            //             })
+            //             await this.services.binanceServie.openFirstTakeProfit(ctx)
+            //             await this.services.binanceServie.update(ctx)
+            //             return 5
+            //         } catch (error) {
+            //             this.error = error
+            //             this.logger.error(this.error)
+            //             return 4
+            //         }
+            //         // TODO
+            //         return 0
+            //     }
+            // }])
             return step
         }
         return null

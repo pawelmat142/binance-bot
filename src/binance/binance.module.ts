@@ -11,12 +11,14 @@ import { UnitModule } from 'src/unit/unit.module';
 import { WizardBinanceService } from './wizard-binance.service';
 import { DuplicateService } from './duplicate.service';
 import { TradeRepository } from './trade.repo';
+import { AppHttpModule } from 'src/global/http/http.module';
 
 @Module({
   imports: [
     AppTelegramModule,
     SignalModule,
     UnitModule,
+    AppHttpModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: 'config/trade-units.json',

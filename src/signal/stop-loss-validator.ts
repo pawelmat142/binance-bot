@@ -21,6 +21,9 @@ export class StopLossValidator extends BaseValidator {
     }
 
     validate(): void {
+        if (!this.signal.variant.side || !this.signal.variant.symbol) {
+            return
+        }
         if (this.signal.variant.stopLoss) {
             this.addLog(`[SKIP] StopLossValidator`)
             return

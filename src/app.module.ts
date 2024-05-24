@@ -8,6 +8,7 @@ import { BinanceModule } from './binance/binance.module';
 import { AppTelegramModule } from './telegram/telegram.module';
 import { UnitModule } from './unit/unit.module';
 import { WizardModule } from './wizard/wizard.module';
+import { AppHttpModule } from './global/http/http.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { WizardModule } from './wizard/wizard.module';
     
     UnitModule,
     WizardModule,
+    AppHttpModule,
   ],
   controllers: [AppController],
   providers: [AppService],
