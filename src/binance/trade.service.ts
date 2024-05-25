@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
 import { getHeaders, queryParams, sign } from 'src/global/util';
-import { FuturesResult, Trade, TradeStatus } from './model/trade';
+import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
@@ -11,9 +11,7 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { Unit } from 'src/unit/unit';
 import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
-import { AxiosError } from 'axios';
 import { CalculationsService } from './calculations.service';
-import { error } from 'console';
 import { BinanceErrors } from './model/binance.error';
 
 @Injectable()
@@ -144,6 +142,7 @@ export class TradeService {
 
     public async takeSomeProfit(ctx: TradeCtx): Promise<boolean> {
         try {
+            this.calculationsService.calculateSingleTakeProfitQuantityIfEmpty(ctx)
             const takeProfits = ctx.trade.variant.takeProfits
             takeProfits.sort((a, b) => a.order - b.order)
             for (let i = takeProfits.length-1; i>=0; i--) {
@@ -163,7 +162,7 @@ export class TradeService {
                     return !!result
                 }
             }
-            return false
+            throw new Error(`Take profits are empty`)
         } catch (error) {
             this.handleError(error, `TAKE SOME PROFIT ERROR`, ctx)
             return false
@@ -277,7 +276,6 @@ export class TradeService {
         TradeUtil.addLog(`Leverage is set to ${lever}x for symbol: ${ctx.trade.variant.symbol}`, ctx, this.logger)
     } 
 
-
     public placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
         return this.http.fetch<FuturesResult>({
@@ -286,7 +284,6 @@ export class TradeService {
             headers: getHeaders(ctx.unit)
         })
     }
-
 
     public async closePosition(ctx: TradeCtx): Promise<FuturesResult> {
         try {
@@ -368,7 +365,6 @@ export class TradeService {
             return []
         }
     }
-
 
     private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: string): string {
         const url = `${TradeUtil.futuresUri}${urlPath}`

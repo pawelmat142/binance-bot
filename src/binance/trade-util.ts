@@ -147,7 +147,7 @@ export abstract class TradeUtil {
 
     public static positionFullyFilled(ctx: TradeCtx): boolean {
         const positionQuantity = new Decimal(ctx.trade.futuresResult?.origQty ?? 0)
-        const result = positionQuantity.equals(this.takeProfitsExecutedQuantitySum(ctx.trade))
+        const result = positionQuantity.equals(this.takeProfitsFilledQuantitySum(ctx.trade))
         if (result) {
             ctx.trade.closed = true
         }
@@ -156,11 +156,11 @@ export abstract class TradeUtil {
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
         let stopLossQuantity = new Decimal(ctx.trade.futuresResult.origQty ?? 0)
-            .minus(this.takeProfitsExecutedQuantitySum(ctx.trade))
+            .minus(this.takeProfitsFilledQuantitySum(ctx.trade))
         return stopLossQuantity
     }
 
-    public static takeProfitsExecutedQuantitySum = (trade: Trade): Decimal => {
+    public static takeProfitsFilledQuantitySum = (trade: Trade): Decimal => {
         const takeProfits = trade.variant.takeProfits
         return takeProfits
             .filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
@@ -196,7 +196,7 @@ export abstract class TradeUtil {
         if (trade.futuresResult) {
             result = result
                 .plus(new Decimal(trade.futuresResult.origQty)) // has to be orig here, not executed!
-                .minus(this.takeProfitsExecutedQuantitySum(trade))
+                .minus(this.takeProfitsFilledQuantitySum(trade))
         }
         return result
     }
@@ -234,4 +234,15 @@ export abstract class TradeUtil {
         }
         return 'BUY'
     }
+
+    public static findNextTakeProfitOrder = (trade: Trade): number => {
+        let result = 0
+        const takeProfits = trade.variant.takeProfits
+        for (let tp of takeProfits) {
+            result = tp.order+1
+        }
+        return result
+    }
+
+
 }

@@ -4,10 +4,11 @@ import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, Ticker24hRespo
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { findMax, getHeaders, queryParams, roundWithFraction, sign } from 'src/global/util';
-import { TradeCtx } from './model/trade-variant';
+import { TakeProfit, TradeCtx } from './model/trade-variant';
 import { Decimal } from 'decimal.js'
 import { Http } from 'src/global/http/http.service';
 import * as fs from 'fs';
+import { TradeStatus } from './model/trade';
 
 
 @Injectable()
@@ -223,6 +224,33 @@ export class CalculationsService implements OnModuleInit {
         if (sum.equals(origQuantity)) {
             TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`, ctx, this.logger)
         } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`)
+    }
+
+    public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) =>{
+        const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status !== TradeStatus.FILLED)
+        if (!notFilledTakeProfits.length) {
+            TradeUtil.addLog(`Take profits are empty, preparing one...`, ctx, this.logger)
+
+            const tradeOriginQuantity = ctx.origQuantity
+            let takeProfitQuantity = tradeOriginQuantity.div(3)
+            const tradeQuantityLeft = tradeOriginQuantity.minus(TradeUtil.takeProfitsFilledQuantitySum(ctx.trade))
+            if (tradeQuantityLeft.lessThan(takeProfitQuantity)) {
+                takeProfitQuantity = tradeQuantityLeft
+            }
+            const symbolInfo = this.getExchangeInfo(ctx.symbol)
+            const { minQty, stepSize } = this.getLotSize(symbolInfo)
+            let quantity = roundWithFraction(takeProfitQuantity, stepSize)
+            quantity = findMax(quantity, minQty)
+            
+            const newTakeProfit: TakeProfit = {
+                order: TradeUtil.findNextTakeProfitOrder(ctx.trade),
+                price: 0,
+                closePercent: 0,
+                quantity: quantity.toNumber(),
+            }
+            TradeUtil.addLog(`Calculated ${newTakeProfit.order}. take profit quantity: ${newTakeProfit.quantity}`, ctx, this.logger)
+            ctx.trade.variant.takeProfits.push(newTakeProfit)
+        }
     }
 
 

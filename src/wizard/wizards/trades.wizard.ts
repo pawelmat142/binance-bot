@@ -149,6 +149,21 @@ export class TradesWizard extends UnitWizard {
             order: 13,
             message: [`Closed position`],
             close: true
+        }, {
+            order: 14,
+            message: [`Are you sure you want to close position?`],
+            buttons: [[{
+                text: 'Cancel',
+                callback_data: `cancel`,
+                process: async () => 1
+            }, {
+                text: `CONFIRM`,
+                callback_data: `confirm`,
+                process: async () => {
+                    const success = await this.fullClosePosition()
+                    return success ? 13 : 3
+                }
+            }]]
         } ]
     }
 
@@ -189,14 +204,14 @@ export class TradesWizard extends UnitWizard {
                 return 3
             }
         }, {
+            text: `Edit take profits`,
+            callback_data: `addtps`,
+            switch: TakeProfitsWizard.name
+        }], [{
             text: `Close by market`,
             callback_data: WizBtn.closePosition,
-            process: async () => {
-                const success = await this.fullClosePosition()
-                return success ? 13 : 3
-            }
-        },]]
-        this.addTakeProfitsButton(buttons)
+            process: async () => 14
+        }]]
         return buttons
     }
     
@@ -208,6 +223,10 @@ export class TradesWizard extends UnitWizard {
                 const success = await this.fullCloseOrder() 
                 return success ? 7 : 3
             }
+        }, {
+            text: `Edit take profits`,
+            callback_data: `addtps`,
+            switch: TakeProfitsWizard.name
         }], [{
             text: `Force order by marker price`,
             callback_data: WizBtn.forceOrderByMarket,
@@ -216,16 +235,7 @@ export class TradesWizard extends UnitWizard {
                 return 8
             }
         }]]
-        this.addTakeProfitsButton(buttons)
         return buttons
-    }
-
-    private addTakeProfitsButton(buttons: WizardButton [][]) {
-        buttons.push([{
-            text: `Edit take profits`,
-            callback_data: `addtps`,
-            switch: TakeProfitsWizard.name
-        }])
     }
 
     private getErrorMessage(): string[] {

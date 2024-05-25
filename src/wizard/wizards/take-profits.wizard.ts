@@ -34,7 +34,7 @@ export class TakeProfitsWizard extends UnitWizard {
                 nextOrder: 0
             }, {
                 order: 2,
-                message: [`Provide stop price of index ${this.takeProfitsIterator} take profit...`],
+                message: [`Provide stop price of ${this.takeProfitsIterator+1}. take profit...`],
                 process: async (input: string) => {
                     const price = Number(input)
                     if (isNaN(price)) return 3
@@ -95,23 +95,11 @@ export class TakeProfitsWizard extends UnitWizard {
     }
 
     private removeTakeProfitsButtons(step: WizardStep) {
-        step.buttons[0].push({
-            text: `Remove not filled TPs`,
-            callback_data: `cleantps`,
-            process: async () => 6
-        })
+
     }
 
     private addTakeProfitsButton(step: WizardStep) {
-        step.buttons[0].push({
-            text: `Add TP`,
-            callback_data: `addtp`,
-            process: async () => {
-                const tpsLength = this.takeProfitsAggregator.length
-                this.takeProfitsIterator = tpsLength
-                return 2
-            }
-        })
+
     }
 
     private getStepZero(): WizardStep {
@@ -123,18 +111,29 @@ export class TakeProfitsWizard extends UnitWizard {
                 for (let tp of this.takeProfitsAggregator) {
                     step.message.push(this.tpContentString(tp))
                 }
-
-                const anyTpToRemove = this.takeProfitsAggregator.some(tp => !tp.reuslt || tp.reuslt.status === TradeStatus.NEW)
-                if (anyTpToRemove) {
-                    this.removeTakeProfitsButtons(step)
-                }
-
-                
             } else {
                 step.message.push(`Take profits are empty`)
-                this.addTakeProfitsButton(step)
+                step.buttons[0].push({
+                    text: `Add TP`,
+                    callback_data: `addtp`,
+                    process: async () => {
+                        const tpsLength = this.takeProfitsAggregator.length
+                        this.takeProfitsIterator = tpsLength
+                        return 2
+                    }
+                })
             }
 
+            const anyTpToRemove = this.takeProfitsAggregator.some(tp => !tp.reuslt || tp.reuslt.status === TradeStatus.NEW)
+            if (anyTpToRemove) {
+                step.buttons[0].push({
+                    text: `Remove not filled TPs`,
+                    callback_data: `cleantps`,
+                    process: async () => 6
+                })
+            }
+
+                
             // step.buttons.push([{
             //     text: `CONFIRM and order first take profit`,
             //     callback_data: `confitm`,
