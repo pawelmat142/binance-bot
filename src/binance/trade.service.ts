@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
 import { getHeaders, queryParams, sign } from 'src/global/util';
-import { FuturesResult, TradeStatus } from './model/trade';
+import { FuturesResult, Trade, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
@@ -11,6 +11,7 @@ import { TelegramService } from 'src/telegram/telegram.service';
 import { Unit } from 'src/unit/unit';
 import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class TradeService {
@@ -83,14 +84,13 @@ export class TradeService {
 
         const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)
         const result = await this.placeOrder(params, ctx)
-        ctx.trade.stopLossTime = new Date()
-        ctx.trade.stopLossResult = result
-
-        if (this.testNetwork) {
-            ctx.trade.stopLossResult.origQty = ctx.trade.quantity.toString()
-            ctx.trade.stopLossResult.status = 'NEW'
+        if (result) {
+            ctx.trade.stopLossTime = new Date()
+            ctx.trade.stopLossResult = result
+            TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
+        } else {
+            TradeUtil.addError(`Error while placing stop loss order`, ctx, this.logger)
         }
-        TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
     }
 
 
@@ -159,7 +159,7 @@ export class TradeService {
             }
             return false
         } catch (error) {
-            this.handleFetchError(error, `TAKE SOME PROFIT ERROR`, ctx)
+            this.handleError(error, `TAKE SOME PROFIT ERROR`, ctx)
             return false
         }
     }
@@ -266,19 +266,13 @@ export class TradeService {
     } 
 
 
-    public async placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
-        try {
-            const path = this.testNetwork ? '/order/test' : '/order'
-            const response = await this.http.fetch<FuturesResult>({
-                url: this.signUrlWithParams(path, ctx, params),
-                method: method ?? 'POST',
-                headers: getHeaders(ctx.unit)
-            })
-            return response
-        } catch (error) {
-            this.handleFetchError(error, `PLACE ORDER ERROR`, ctx)
-            return null
-        }
+    public placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
+        const path = this.testNetwork ? '/order/test' : '/order'
+        return this.http.fetch<FuturesResult>({
+            url: this.signUrlWithParams(path, ctx, params),
+            method: method ?? 'POST',
+            headers: getHeaders(ctx.unit)
+        })
     }
 
 
@@ -295,7 +289,7 @@ export class TradeService {
             })
             return this.placeOrder(params, ctx, 'POST')
         } catch (error) {
-            this.handleFetchError(error, `CLOSE POSITION ERROR`, ctx)
+            this.handleError(error, `CLOSE POSITION ERROR`, ctx)
             return null
         }
     }
@@ -316,7 +310,7 @@ export class TradeService {
             }
             return response[0] as Position
         } catch (error) {
-            this.handleFetchError(error, `FETCH SINGLE POSITIONS ERROR`, ctx)
+            this.handleError(error, `FETCH SINGLE POSITIONS ERROR`, ctx)
             return null
         }
     }
@@ -337,7 +331,7 @@ export class TradeService {
             }
             return trades
         } catch (error) {
-            this.handleFetchError(error, `FETCH POSITIONS ERROR`)
+            this.handleError(error, `FETCH POSITIONS ERROR`)
             return []
         }
     }
@@ -358,7 +352,7 @@ export class TradeService {
             return orders
 
         } catch (error) {
-            this.handleFetchError(error, `FETCH OPEN ORDERS ERROR`)
+            this.handleError(error, `FETCH OPEN ORDERS ERROR`)
             return []
         }
     }
@@ -369,14 +363,13 @@ export class TradeService {
         return sign(url, params, tradeContext.unit)
     }
 
-    public handleFetchError(error, msg?: string, ctx?: TradeCtx) {
+    private handleError(error, msg?: string, ctx?: TradeCtx) {
+        const errorMessage = this.http.handleFetchError(error)
         if (msg) {
-            this.logger.error(msg)
+            TradeUtil.addError(msg, ctx, this.logger)
         }
-        if (ctx) {
-            TradeUtil.addError(error, ctx, this.logger)
-        } else {
-            this.logger.error(error)
-        }
+        TradeUtil.addError(errorMessage, ctx, this.logger)
     }
+
+
 }

@@ -7,6 +7,7 @@ import { TradeUtil } from "./trade-util";
 import { BinanceError } from "./model/binance.error";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
+import { Http } from "src/global/http/http.service";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -49,6 +50,7 @@ export class WizardBinanceService {
     constructor(
         private readonly tradeService: TradeService,
         private readonly tradeRepo: TradeRepository,
+        private readonly http: Http,
     ) {}
 
 
@@ -94,7 +96,8 @@ export class WizardBinanceService {
             await this.tradeRepo.update(ctx)
             return true
         } catch(error) {
-            TradeUtil.addError(error, ctx, this.logger)
+            const errorMsg = this.http.handleFetchError(error)
+            TradeUtil.addError(errorMsg, ctx, this.logger)
             return false
         }
     }

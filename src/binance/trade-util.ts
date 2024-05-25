@@ -38,7 +38,9 @@ export abstract class TradeUtil {
 
     public static addError(msg: string, ctx: TradeCtx, logger: Logger) {
         ctx.error = true
-        this.addLog(msg, ctx, logger, '[ERROR]')
+        const log = `[${toDateString(new Date())}] ${msg}`
+        ctx.trade.logs.push(log)
+        logger.error(msg)
     }
     
     public static addWarning(msg: string, ctx: TradeCtx, logger: Logger) {

@@ -8,6 +8,7 @@ import { isBinanceError } from './model/binance.error';
 import { TradeCtx } from './model/trade-variant';
 import { Decimal } from 'decimal.js'
 import { Http } from 'src/global/http/http.service';
+import * as fs from 'fs';
 
 
 @Injectable()
@@ -24,15 +25,35 @@ export class CalculationsService implements OnModuleInit {
     async onModuleInit() {
         await this.loadExchangeInfo()
     }
+
+    private readonly exchangeInfoFilename = 'exchange-info.json'
+
+    private saveExchangeInfoInFile(info: FuturesExchangeInfo) {
+        const json = JSON.stringify(info)
+        fs.writeFileSync(this.exchangeInfoFilename, json, 'utf8');
+    }
+
+    private loadExchangeInfoFromFile() {
+        try {
+            const jsonData = fs.readFileSync(this.exchangeInfoFilename, 'utf8')
+            const info = JSON.parse(jsonData) as FuturesExchangeInfo
+            this._exchangeInfo$.next(info)
+            this.logger.log(`EXCHANGE INFO INITIALIZED from file <<`)
+        } catch (error) {
+            this.logger.error('Could not load exchange info from file')
+        }
+    }
     
-    @Cron(CronExpression.EVERY_HOUR)
+    @Cron(CronExpression.EVERY_12_HOURS)
     private async loadExchangeInfo() {
         if (process.env.SKIP_LOAD_EXCHANGE_INFO === 'true') {
             this.logger.debug(`[SKIP] EXCHANGE INFO LOADING`)
+            this.loadExchangeInfoFromFile()
             return
         }
         try {
-            const info = await this.http.fetch<FuturesExchangeInfo>({url: `${TradeUtil.futuresUri}/exchangeInfo` })
+            const info = await this.http.fetch<FuturesExchangeInfo>({ url: `${TradeUtil.futuresUri}/exchangeInfo` })
+            // this.saveExchangeInfoInFile(info) <- do it once in test env
             if (info) {
                 this._exchangeInfo$.next(info)
                 this.logger.log(`EXCHANGE INFO INITIALIZED`)

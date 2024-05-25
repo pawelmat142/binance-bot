@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { HttpMethod } from '../http-method';
-import { AxiosRequestConfig } from 'axios';
+import { AxiosError, AxiosRequestConfig } from 'axios';
 import { isBinanceError } from 'src/binance/model/binance.error';
 
 export interface FetchOptions {
@@ -32,6 +32,18 @@ export class Http {
             throw new Error(response.data.msg)
         }
         return response.data
+    }
+
+    public handleFetchError(error): string {
+        if (error instanceof AxiosError) {
+            const errorData = error.response?.data
+            if (typeof errorData?.code === 'number') {
+                return errorData.msg
+            }
+        }
+        // TODO remove
+        console.log(error)
+        return error
     }
 
 }
