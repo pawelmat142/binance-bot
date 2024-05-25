@@ -12,6 +12,7 @@ import { Unit } from 'src/unit/unit';
 import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
 import { AxiosError } from 'axios';
+import { CalculationsService } from './calculations.service';
 
 @Injectable()
 export class TradeService {
@@ -24,6 +25,7 @@ export class TradeService {
         private readonly tradeRepo: TradeRepository,
         private readonly telegramService: TelegramService,
         private readonly http: Http,
+        private readonly calculationsService: CalculationsService,
     ) {}
 
     public async openPosition(ctx: TradeCtx) {
@@ -79,7 +81,9 @@ export class TradeService {
             return
         }
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
-        const stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : Number(forcedPrice)
+        let stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : forcedPrice
+        stopLossPrice = this.calculationsService.fixPricePrecision(stopLossPrice, ctx.symbol)
+
         TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
 
         const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)

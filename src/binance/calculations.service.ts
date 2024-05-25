@@ -79,6 +79,16 @@ export class CalculationsService implements OnModuleInit {
         return symbolInfo
     }
 
+    public fixPricePrecision(price: number, symbol: string): number {
+        const info = this.getExchangeInfo(symbol)
+        const precision = info.pricePrecision
+        if (!precision) {
+            this.logger.warn(`Could not find precission for symbol: ${symbol}`)
+            return price
+        }
+        return Number(price.toFixed(precision))
+    }
+
     private checkInitialized() {
         if (!this.initialized) {
             throw new Error(`exchange info not initialized!`)

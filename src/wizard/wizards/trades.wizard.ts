@@ -11,7 +11,6 @@ import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
 import { TradeCtx } from "src/binance/model/trade-variant"
 import { TakeProfitsWizard } from "./take-profits.wizard"
-import e from "express"
 
 export class TradesWizard extends UnitWizard {
 
