@@ -54,28 +54,26 @@ export class WizardBinanceService {
     ) {}
 
 
-    public async fetchAllOrders(unit: Unit): Promise<FuturesResult[] | BinanceError> {
+    public async fetchAllOrders(unit: Unit): Promise<FuturesResult[]> {
         const params = queryParams({
             timestamp: Date.now()
         })
-        const url = sign(`${TradeUtil.futuresUri}/allOrders`, params, unit)
-        const request = await fetch(url, {
+        return this.http.fetch<FuturesResult[]>({
+            url: sign(`${TradeUtil.futuresUri}/allOrders`, params, unit),
             method: 'GET',
             headers: getHeaders(unit)
         })
-        return request.json()
     }
 
     public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
         const params = queryParams({
             timestamp: Date.now()
         })
-        const url = sign(`${TradeUtil.futuresUriV2}/balance`, params, unit)
-        const request = await fetch(url, {
+        const accountInfos = await this.http.fetch<BinanceFuturesAccountInfo[]>({
+            url: sign(`${TradeUtil.futuresUriV2}/balance`, params, unit),
             method: 'GET',
             headers: getHeaders(unit)
         })
-        const accountInfos: BinanceFuturesAccountInfo[] = await request.json()
         return (accountInfos || []).find(info => info.asset === 'USDT')
     }
 
@@ -96,7 +94,7 @@ export class WizardBinanceService {
             await this.tradeRepo.update(ctx)
             return true
         } catch(error) {
-            const errorMsg = this.http.handleFetchError(error)
+            const errorMsg = this.http.handleErrorMessage(error)
             TradeUtil.addError(errorMsg, ctx, this.logger)
             return false
         }

@@ -7,14 +7,14 @@ import { TradeService } from './trade.service';
 import { TradeCtx } from './model/trade-variant';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { UnitService } from 'src/unit/unit.service';
-import { TradeEventData } from './model/trade-event-data';
 import { Unit } from 'src/unit/unit';
 import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
 import { SignalUtil } from 'src/signal/signal-util';
 import { TradeRepository } from './trade.repo';
 import { Signal } from 'src/signal/signal';
-import { TradeType } from './model/model';
+import { TradeEventData, TradeType } from './model/model';
+import { Http } from 'src/global/http/http.service';
 
 
 // TODO close the trade signal 
@@ -31,14 +31,9 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         private readonly unitService: UnitService,
         private readonly duplicateService: DuplicateService,
         private readonly tradeRepo: TradeRepository,
+        private readonly http: Http,
     ) {}
 
-
-    async listSignalsTest(): Promise<Signal[]> {
-        const uri = 'http://193.56.240.228:8008/signal/list'
-        const request = await fetch(uri)
-        return request.json()
-    }
 
     private signalSubscription: Subscription
     private tradeEventSubscription: Subscription
@@ -174,7 +169,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.calcService.calculateTradeQuantity(ctx)
             await this.tradeService.openPosition(ctx)
         } catch (error) {
-            TradeUtil.addError(error, ctx, this.logger)
+            const errorMessage = this.http.handleErrorMessage(error)
+            TradeUtil.addError(errorMessage, ctx, this.logger)
             this.telegramService.tradeErrorMessage(ctx)
         } finally {
             const saved = await this.tradeRepo.save(ctx)

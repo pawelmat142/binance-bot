@@ -1,10 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
-import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize } from './model/model';
+import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, Ticker24hResponse } from './model/model';
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { findMax, getHeaders, queryParams, roundWithFraction, sign } from 'src/global/util';
-import { isBinanceError } from './model/binance.error';
 import { TradeCtx } from './model/trade-variant';
 import { Decimal } from 'decimal.js'
 import { Http } from 'src/global/http/http.service';
@@ -105,18 +104,15 @@ export class CalculationsService implements OnModuleInit {
 
 
     public async getCurrentPrice(ctx: TradeCtx): Promise<number> {
-        const uri = sign(`${TradeUtil.futuresUri}/ticker/24hr`, queryParams({
+        const params = queryParams({
             symbol: ctx.symbol,
             timestamp: Date.now()
-        }), ctx.unit)
-
-        const request = await fetch(uri, {
+        })
+        const response = await this.http.fetch<Ticker24hResponse>({
+            url: sign(`${TradeUtil.futuresUri}/ticker/24hr`, params, ctx.unit),
+            method: 'GET',  
             headers: getHeaders(ctx.unit)
         })
-        const response = await request.json()
-        if (isBinanceError(response)) {
-            throw new Error(response.msg)
-        }
         const result = Number(response?.lastPrice)
         if (isNaN(result)) {
             throw new Error(`Current price error: ${result}`)

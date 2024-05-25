@@ -13,6 +13,8 @@ import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
 import { AxiosError } from 'axios';
 import { CalculationsService } from './calculations.service';
+import { error } from 'console';
+import { BinanceErrors } from './model/binance.error';
 
 @Injectable()
 export class TradeService {
@@ -211,20 +213,26 @@ export class TradeService {
     }
 
     public async setIsolatedMode(ctx: TradeCtx) {
-        const params = queryParams({
-            symbol: ctx.symbol,
-            marginType: 'ISOLATED',
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
-        const response = await this.http.fetch<FuturesResult>({
-            url: this.signUrlWithParams(`/marginType`, ctx, params),
-            method: 'POST',
-            headers: getHeaders(ctx.unit)
-        })
-        TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
-        return response
+        try {
+            const params = queryParams({
+                symbol: ctx.symbol,
+                marginType: 'ISOLATED',
+                timestamp: Date.now(),
+                timeInForce: 'GTC',
+                recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+            })
+            await this.http.fetch<FuturesResult>({
+                url: this.signUrlWithParams(`/marginType`, ctx, params),
+                method: 'POST',
+                headers: getHeaders(ctx.unit)
+            })
+            TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
+        } catch (error) {
+            const e = this.http.handleFetchError(error)
+            if (e.code === BinanceErrors.CHANGE_MODE) {
+                TradeUtil.addWarning(e.msg, ctx, this.logger)
+            } else throw error
+        }
     }
 
     private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
@@ -368,7 +376,7 @@ export class TradeService {
     }
 
     private handleError(error, msg?: string, ctx?: TradeCtx) {
-        const errorMessage = this.http.handleFetchError(error)
+        const errorMessage = this.http.handleErrorMessage(error)
         if (msg) {
             TradeUtil.addError(msg, ctx, this.logger)
         }

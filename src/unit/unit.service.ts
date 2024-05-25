@@ -10,8 +10,9 @@ import { UnitUtil } from './unit.util';
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
 import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 import { HttpMethod } from 'src/global/http-method';
-import { TradeEventData } from 'src/binance/model/trade-event-data';
 import { BotUtil } from 'src/wizard/bot.util';
+import { Http } from 'src/global/http/http.service';
+import { ListeKeyResponse, TradeEventData } from 'src/binance/model/model';
 
 
 @Injectable()
@@ -21,6 +22,7 @@ export class UnitService implements OnModuleInit {
 
     constructor(
         @InjectModel(Unit.name) private unitModel: Model<Unit>,
+        private readonly http: Http,
     ) {}
 
     private adminChannelIds = BotUtil.adminChannelIds()
@@ -151,8 +153,7 @@ export class UnitService implements OnModuleInit {
         if (!listenKey) {
             this.logger.error(`Could not find listenKey for unit ${unit.identifier}`)
         }
-        const response = await this.request(unit, 'PUT')
-        return response
+        return this.request(unit, 'PUT')
     }
 
     public stopListening(unit: Unit) {
@@ -163,8 +164,7 @@ export class UnitService implements OnModuleInit {
 
     private async fetchListenKey(unit: Unit): Promise<string> {
         try {
-            const response = await this.request(unit, 'POST')
-            const listenKey = response?.listenKey
+            const listenKey = await this.request(unit, 'POST')
             if (!listenKey || typeof listenKey !== 'string') {
                 throw new Error(`Listen key error response for unit: ${unit.identifier}`)
             }
@@ -176,18 +176,13 @@ export class UnitService implements OnModuleInit {
         }
     }
 
-    private async request(unit: Unit, method: HttpMethod) {
-        const url = this.signUrlWithParams(`/listenKey`, unit, '')
-        const request = await fetch(url, {
+    private async request(unit: Unit, method: HttpMethod): Promise<string> {
+        const response = await this.http.fetch<ListeKeyResponse>({
+            url: this.signUrlWithParams(`/listenKey`, unit, ''),
             method: method,
             headers: getHeaders(unit)
         })
-        const response = await request.json()
-        if (isBinanceError(response)) {
-            this.onBinanceError(response, unit)
-            return
-        }
-        return response
+        return response.listenKey
     }
 
 

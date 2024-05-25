@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { HttpMethod } from '../http-method';
 import { AxiosError, AxiosRequestConfig } from 'axios';
-import { isBinanceError } from 'src/binance/model/binance.error';
+import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 
 export interface FetchOptions {
     url: string
@@ -34,11 +34,23 @@ export class Http {
         return response.data
     }
 
-    public handleFetchError(error): string {
+    public handleErrorMessage(error): string {
         if (error instanceof AxiosError) {
             const errorData = error.response?.data
-            if (typeof errorData?.code === 'number') {
+            if (isBinanceError(errorData)) {
                 return errorData.msg
+            }
+        }
+        // TODO remove
+        console.log(error)
+        return error
+    }
+
+    public handleFetchError(error): BinanceError {
+        if (error instanceof AxiosError) {
+            const errorData = error.response?.data
+            if (isBinanceError(errorData)) {
+                return errorData
             }
         }
         // TODO remove
