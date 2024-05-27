@@ -226,7 +226,7 @@ export class CalculationsService implements OnModuleInit {
         } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`)
     }
 
-    public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) =>{
+    public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) => {
         const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status !== TradeStatus.FILLED)
         if (!notFilledTakeProfits.length) {
             TradeUtil.addLog(`Take profits are empty, preparing one...`, ctx, this.logger)

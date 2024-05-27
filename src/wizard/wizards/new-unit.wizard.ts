@@ -177,7 +177,7 @@ export class NewUnitWizard extends Wizard {
             `Select 'System generated' -> Next`,
             `Provide label of your API key (doesnt matter for me)`,
             `You may need authenticate now`,
-            `You should see API Key and Secret Key now, save them for a moment`,
+            `You should see API Key and Secret Key now, save them for a moment. API Secret is visible ONLY ONCE!`,
             `Go to 'Edit restrictions'`,
             `Select 'Restrict access to trusted IPs only' and provide: ${this.getBotIp()}`,
             `Select 'Enable Futures'`,

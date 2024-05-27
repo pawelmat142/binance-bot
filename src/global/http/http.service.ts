@@ -9,7 +9,7 @@ export interface FetchOptions {
     url: string
     method: HttpMethod,
     body?: any
-    headers: { [key: string]: string }
+    headers: Object
 }
 
 @Injectable()
@@ -39,6 +39,9 @@ export class Http {
             const errorData = error.response?.data
             if (isBinanceError(errorData)) {
                 return errorData.msg
+            }
+            if (error.response?.status ?? 0 > 300) {
+                return `[${error.response?.status}] ${error.response?.statusText}`
             }
         }
         // TODO remove

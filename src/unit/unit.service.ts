@@ -101,9 +101,13 @@ export class UnitService implements OnModuleInit {
             this.logger.debug(`[SKIP] listening websockets`)
             return
         }
-        const units = this._units$.value
+        let units = this._units$.value
+        const websocketOnlyFor = process.env.WEBSOCKET_ONLY_FOR
+        if (websocketOnlyFor) {
+            units = units.filter(u => u.identifier === websocketOnlyFor)
+        }
         await Promise.all(units.map(this.startListening))
-        this.logger.log(`Stared listening for ${units.length} units: [ ${units.map(u=>u.identifier).join(', ')} ]`)
+        this.logger.log(`Started listening for ${units.length} units: [ ${units.map(u=>u.identifier).join(', ')} ]`)
     }
 
 
@@ -172,7 +176,8 @@ export class UnitService implements OnModuleInit {
             this.updateListenKey(unit, listenKey)
             return listenKey
         } catch (error) {
-            this.addError(unit, error)
+            const message = this.http.handleErrorMessage(error)
+            this.logger.error(message)
         }
     }
 

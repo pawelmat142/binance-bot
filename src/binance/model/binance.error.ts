@@ -3,8 +3,11 @@ export interface BinanceError {
     msg: string
 }
 
-export const isBinanceError = (object: any): object is BinanceError => {
-    return 'code' in object && 'msg' in object
+export const isBinanceError = (object: Object): object is BinanceError => {
+    if (object instanceof Object) {
+        return 'code' in object && 'msg' in object
+    }
+    return false
 }
 
 export abstract class BinanceErrors {
