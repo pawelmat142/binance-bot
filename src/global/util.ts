@@ -4,7 +4,6 @@ import { Types } from 'mongoose';
 import { Unit } from 'src/unit/unit';
 import Decimal from 'decimal.js';
 import { Logger } from '@nestjs/common';
-import { Object } from './type';
 
 export const toDateString = (date: Date): string => {
     return moment(date).format('YY-MM-DD hh:mm:ss')
@@ -24,7 +23,7 @@ export const sign = (uri: string, queryString: string, unit: Unit): string => {
 export const newObjectId = (): string => new Types.ObjectId().toHexString()
 
 
-export const getHeaders = (unit: Unit): Object => {
+export const getHeaders = (unit: Unit): { [key: string]: string } => {
     return {
         'X-MBX-APIKEY': unit.binanceApiKey,
         'Content-Type': 'application/x-www/form-urlencoded'

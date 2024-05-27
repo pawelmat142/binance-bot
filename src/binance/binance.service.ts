@@ -275,7 +275,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } 
         const trade = await this.tradeRepo.findInProgress(ctx)
         if (trade) {
-            this.unitService.addLog(ctx.unit, `Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}`)
+            this.logger.warn(`Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}, unit: ${ctx.unit.identifier}`)
             return true
         }
         return false
@@ -285,7 +285,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
         let trade = await this.tradeRepo.findByTradeEvent(eventTradeResult, unit)
         if (!trade) {
-            this.unitService.addError(unit, `Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
+            this.logger.error(`Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
             return
         }
         return new TradeCtx({ unit, trade })

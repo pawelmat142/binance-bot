@@ -113,19 +113,18 @@ export class UnitService implements OnModuleInit {
 
     public startListening = async (unit: Unit) => {
         if (UnitUtil.socketOpened(unit)) {
-            this.logger.debug(`Socket fot unit ${unit.identifier} already opened`)
+            this.logger.warn(`Socket fot unit ${unit.identifier} already opened`)
             return
         }
         const listenKey = await this.fetchListenKey(unit)
         const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
 
         ws.onopen = (event: Event) => {
-            this.addLog(unit, `Opened socket for unit: ${unit.identifier}`)
+            this.logger.log(`Opened socket for unit: ${unit.identifier}`)
         }
         
         ws.onclose = (event: CloseEvent) => {
-            this.addLog(unit, `Closed socket for unit: ${unit.identifier}`)
-            this.removeListenKey(unit)
+            this.logger.warn(`Closed socket for unit: ${unit.identifier}`)
         }
         
         ws.onerror = (event: ErrorEvent) => {
@@ -143,9 +142,8 @@ export class UnitService implements OnModuleInit {
                 tradeEvent.unitIdentifier = unit.identifier
                 this.tradeEventSubject$.next(tradeEvent)
             } else {
-                console.error('nottradeevent')
+                this.logger.log(`Event ${tradeEvent.e} received`)
             }
-            this.addLog(unit, event.data)
         }
         unit.socket = ws
     }
@@ -233,7 +231,7 @@ export class UnitService implements OnModuleInit {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
             { $unset: { listenKey: 1 } }
-        ).exec().finally(() => this.addLog(unit, `Removed listen key for unit ${unit.identifier}`))
+        ).exec().finally(() => this.logger.warn(`Removed listen key for unit ${unit.identifier}`))
     }
 
 
@@ -313,8 +311,6 @@ export class UnitService implements OnModuleInit {
     }
 
 
-    // LOGS
-
     public async addLog(unit: Unit, data: Data | string, prefix?: string) {
         const _prefix = prefix ? `${prefix} ` : ''
         if (data) {
@@ -351,7 +347,6 @@ export class UnitService implements OnModuleInit {
             throw new BadRequestException(`Cound not find listenJsons for unit ${identifier}`)
         }
         return listenJsons
-        return listenJsons.map(j => TradeUtil.parseToFuturesResult(JSON.parse(j.split("] ")[1])))
     } 
 
     public async identifierTaken(identifier: string): Promise<boolean> {

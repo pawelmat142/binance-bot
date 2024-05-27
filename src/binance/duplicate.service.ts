@@ -1,31 +1,23 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { FuturesResult } from "./model/trade";
-import { UnitService } from "src/unit/unit.service";
 import { Unit } from "src/unit/unit";
-import { TelegramService } from "src/telegram/telegram.service";
-import { TradeCtx } from "./model/trade-variant";
 
 @Injectable()
 export class DuplicateService {
 
-    constructor(
-        private readonly unitService: UnitService,
-        private readonly telegramService: TelegramService,
-    ) {}
+    private readonly logger = new Logger(DuplicateService.name)
 
-    filledOrderIdsPreventDuplicateStorafe: number[] = []
+    filledOrderIdsPreventDuplicateStorage: number[] = []
 
     public preventDuplicate(eventTradeResult: FuturesResult, unit: Unit): boolean {
         const orderId = eventTradeResult.orderId
-        if (this.filledOrderIdsPreventDuplicateStorafe.includes(eventTradeResult.orderId)) {
-            const message = `Prevented duplicate  ${eventTradeResult.side} ${eventTradeResult.symbol},orderId: ${orderId}`
-            this.unitService.addLog(unit, message)
-            this.telegramService.sendUnitMessage(new TradeCtx({trade: null, unit: unit}), [message])
+        if (this.filledOrderIdsPreventDuplicateStorage.includes(eventTradeResult.orderId)) {
+            this.logger.warn(`Prevented duplicate  ${eventTradeResult.side} ${eventTradeResult.symbol}, orderId: ${orderId}, unit: ${unit.identifier}`)
             return true
         }
-        this.filledOrderIdsPreventDuplicateStorafe.push(eventTradeResult.orderId)
-        if (this.filledOrderIdsPreventDuplicateStorafe.length > 50) {
-            this.filledOrderIdsPreventDuplicateStorafe.unshift()
+        this.filledOrderIdsPreventDuplicateStorage.push(eventTradeResult.orderId)
+        if (this.filledOrderIdsPreventDuplicateStorage.length > 50) {
+            this.filledOrderIdsPreventDuplicateStorage.unshift()
         }
         return false
     }
