@@ -11,6 +11,7 @@ import { WizBtn } from "./wizard-buttons"
 import { WizardButton, WizardStep } from "./wizard"
 import { TradeCtx } from "src/binance/model/trade-variant"
 import { TakeProfitsWizard } from "./take-profits.wizard"
+import { BotUtil } from "../bot.util"
 
 export class TradesWizard extends UnitWizard {
 
@@ -84,14 +85,17 @@ export class TradesWizard extends UnitWizard {
             buttons: stepZeroButtons,
             message: stepZeroMsg,
             close: !stepZeroButtons.length,
+            backButton: true
         }, {
             order: 1,
             message: this.selectedPositionMessage(),
             buttons: this.selectedPositionStepButtons(),
+            backButton: true
         }, {
             order: 2,
             message: this.selectedOrderMessage(),
-            buttons: this.selectedOrderStepButtons()
+            buttons: this.selectedOrderStepButtons(),
+            backButton: true
         }, {
             order: 3,
             message: this.getErrorMessage(),
@@ -103,6 +107,7 @@ export class TradesWizard extends UnitWizard {
         }, {
             order: 5,
             message: [`Provide new stop loss level...`],
+            backButton: true,
             process: async (input: string) => {
                 const price = Number(input)
                 if (isNaN(price)) {
@@ -374,14 +379,7 @@ export class TradesWizard extends UnitWizard {
                 } else {
                     message.push(`MISSING stop loss`)
                 }
-                if (this.selectedTrade.variant.takeProfits.length) {
-                    message.push(`Take profits:`)
-                } else {
-                    message.push(`MISSING take profits!`)
-                }
-                for (const tp of this.selectedTrade.variant.takeProfits) {
-                    message.push(`- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`)
-                }
+                BotUtil.prepareTakeProfitMsgLines(this.selectedTrade.variant.takeProfits, message)
                 return message
             }
         }
@@ -402,14 +400,7 @@ export class TradesWizard extends UnitWizard {
                 } else {
                     message.push(`MISSING stop loss`)
                 }
-                if (this.selectedTrade.variant.takeProfits.length) {
-                    message.push(`Take profits:`)
-                } else {
-                    message.push(`MISSING take profits!`)
-                }
-                for (const tp of this.selectedTrade.variant.takeProfits) {
-                    message.push(`- ${tp.closePercent}% : ${tp.price} USDT`)
-                }
+                BotUtil.prepareTakeProfitMsgLines(this.selectedTrade.variant.takeProfits, message)
                 return message
             }
         }

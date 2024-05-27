@@ -15,7 +15,8 @@ export interface WizardStep {
     switch?: string
     buttons?: WizardButton[][],
     process?: (input: string) => Promise<number>,
-    nextOrder?: number
+    nextOrder?: number,
+    backButton?: boolean
 }
 
 export interface WizardButton {

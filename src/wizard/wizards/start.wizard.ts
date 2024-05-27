@@ -18,7 +18,7 @@ export class StartWizard extends UnitWizard {
 
         const stepZero: WizardStep = {
             order: 0,
-            message: ['Actions:'],
+            message: [`Hi, ${this.unit?.identifier}`],
             buttons: [[{
                 text: 'Account',
                 callback_data: WizBtn.amount,
@@ -27,7 +27,7 @@ export class StartWizard extends UnitWizard {
                 text: 'Trades & orders',
                 callback_data: WizBtn.trade,
                 switch: TradesWizard.name
-            }]]
+            }]],
         }
 
         if (this.isAdmin(this.unit?.telegramChannelId)) {

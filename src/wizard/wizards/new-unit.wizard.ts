@@ -39,6 +39,7 @@ export class NewUnitWizard extends Wizard {
         }, {
             order: 1,
             message: [`Provide your unique identifier...`],
+            backButton: true,
             process: async (input: string) => {
                 const taken = await this.services.unitService.identifierTaken(input)
                 if (taken) return 2
@@ -52,6 +53,7 @@ export class NewUnitWizard extends Wizard {
         }, {
             order: 3,
             message: [`Provide your Binance Futures API Key...`],
+            backButton: true,
             process: async (input: string) => {
                 const apiKeyTaken = await this.services.unitService.apiKeyTaken(input)
                 if (apiKeyTaken) return 4
@@ -65,6 +67,7 @@ export class NewUnitWizard extends Wizard {
         }, {
             order: 5,
             message: [`Provide your Binance Futures Secret Key...`],
+            backButton: true,
             process: async (input: string) => {
                 this.unit.binanceApiSecret = input
                     const apiKeyError = await this.services.unitService.apiKeyError(this.unit as Unit)
@@ -81,6 +84,7 @@ export class NewUnitWizard extends Wizard {
         }, {
             order: 7,
             message: [`Provide USDT amount per single transaction...`],
+            backButton: true,
             process: async (input: string) => {
                 const usdtPerTransaction = Number(input)
                 if (isNaN(usdtPerTransaction)) {
@@ -126,9 +130,8 @@ export class NewUnitWizard extends Wizard {
             }]]
         }, {
             order: 11,
-            message: [
-                `Subscription will be ready...`,
-            ],
+            message: [`Subscription will be ready...`],
+            backButton: true,
             buttons: [[{
                 text: 'Cancel',
                 callback_data: `cancel`,

@@ -1,5 +1,8 @@
 import TelegramBot from "node-telegram-bot-api"
-import { Wizard } from "./wizards/wizard"
+import { Wizard, WizardButton, WizardStep } from "./wizards/wizard"
+import { TakeProfit } from "src/binance/model/trade-variant"
+import { TradeUtil } from "src/binance/trade-util"
+import { WizBtn } from "./wizards/wizard-buttons"
 
 export abstract class BotUtil {
 
@@ -46,4 +49,42 @@ export abstract class BotUtil {
     public static getRandomInt = (min: number, max: number) => {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+
+    public static prepareTakeProfitMsgLines = (takeProfits: TakeProfit[] = [], lines: string[]) => {
+        if (takeProfits.length) {
+            lines.push(`Take profits:`)
+        } else {
+            lines.push(`MISSING take profits!`)
+        }
+        for (const tp of takeProfits) {
+            lines.push(`-${tp.price} USDT, ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}`)
+        }
+    }
+
+    public static findClickedButton = (step: WizardStep, callbackData: string): WizardButton => {
+        if (step.backButton) {
+            BotUtil.addBackBtnIfNeeded(step)
+            const btns = step.buttons.pop()
+            return btns[0]
+        }
+        for (let btns of step.buttons || []) {
+            for (let btn of btns) {
+                if (btn.callback_data === callbackData) {
+                    return btn
+                }
+            }
+        }
+    }
+
+    public static addBackBtnIfNeeded = (step: WizardStep): void => {
+        if (step.backButton) {
+            step.buttons = step.buttons || []
+            step.buttons.push([{
+                text: '<< Back',
+                callback_data: WizBtn.BACK,
+                process: async () => 0
+            }])
+        }
+    }
+
 }

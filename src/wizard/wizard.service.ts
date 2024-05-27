@@ -5,7 +5,7 @@ import { TelegramService } from "src/telegram/telegram.service";
 import { BotUtil } from "./bot.util";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ServiceProvider } from "./services.provider";
-import { Wizard, WizardStep } from "./wizards/wizard";
+import { Wizard, WizardButton, WizardStep } from "./wizards/wizard";
 import { StartWizard } from "./wizards/start.wizard";
 import { WizBtn } from "./wizards/wizard-buttons";
 import { AccountWizard } from "./wizards/account.wizard";
@@ -68,35 +68,25 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
           this.logger.error('Chat id not found')
           return
         }
-        const input = message.data
+        let input = message.data
         if (!input || input === WizBtn.AVOID_BUTTON_CALLBACK) {
             return
         }
 
-        const msgIdToRemoveButtons = this.lastMessageWithButtonsId[chatId]
-        if (msgIdToRemoveButtons) {
-            await this.removeCallbackButtons(message)
-        }
-        
         let wizard = await this.findOrCreateWizard(chatId)
-        this.telegramService.showTyping(wizard.chatId)
-        wizard.modified = new Date()
-
         let step = wizard.getStep()
-        
-        for (let btns of step.buttons || []) {
-            for (let btn of btns) {
-                if (btn.callback_data === message.data) {
-                    if (btn.switch) {
-                        this.stopWizard(wizard)
-                        wizard = this.switchWizard(btn.switch, wizard as UnitWizard) as UnitWizard
-                        await wizard.init()
-                    } else if (btn.process) {
-                        const order = await btn.process()
-                        wizard.order = order
-                    }
-                    step = wizard.getStep()
-                }
+
+        const clickedButton = BotUtil.findClickedButton(step, message.data)
+        await this.removeCallbackButtons(message)
+
+        if (clickedButton) {
+            if (clickedButton.switch) {
+                this.stopWizard(wizard)
+                wizard = this.switchWizard(clickedButton.switch, wizard as UnitWizard) as UnitWizard
+                await wizard.init()
+            } else if (clickedButton.process) {
+                const order = await clickedButton.process()
+                wizard.order = order
             }
         }
 
@@ -114,22 +104,18 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             return
         }
         let wizard = await this.findOrCreateWizard(chatId)
-        this.telegramService.showTyping(wizard.chatId)
-        wizard.modified = new Date()
-
         let step = wizard.getStep()
 
         if (step.process) {
             const order = await step.process(input)
             wizard.order = order
-            step = wizard.getStep()
         }
         this.sendMessage(wizard, input)
     }
 
-
     private async sendMessage(wizard: Wizard, _input: string) {
         const input = _input.toLowerCase()
+
         let step = wizard.getStep()
         
         let msg = step.message
@@ -139,6 +125,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             step = wizard.getStep()
             msg.push('', ...step.message)
         }
+        BotUtil.addBackBtnIfNeeded(step)
         if (step.close || input === WizBtn.STOP) {
             if (input === WizBtn.STOP) msg = ['Dialog interrupted']
             this.stopWizard(wizard)
@@ -146,13 +133,6 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 text: `Start new dialog`,
                 callback_data: WizBtn.START_NEW_DIALOG,
             }]]
-        } else {
-            if (input === WizBtn.BACK) {
-                wizard.order = 0
-                step = wizard.getStep()
-                msg = step.message
-            }
-            this.addStop(step)
         }
         const options: TelegramBot.SendMessageOptions = {}
         let buttons = step.buttons || []
@@ -174,20 +154,19 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private addStop(step: WizardStep) {
-        step.buttons = step.buttons || []
-        step.buttons.push([{
-            text: 'Stop',
-            callback_data: WizBtn.STOP,
-        }])
-    }
 
     private async findOrCreateWizard(chatId: number): Promise<Wizard> {
-        let wizard = this.wizards$.value.find(w => w.chatId === chatId)
+        this.telegramService.showTyping(chatId)
+        let wizard = this.findWizard(chatId)
         if (!wizard) {
             wizard = await this.prepareWizard(chatId)
         }
+        wizard.modified = new Date()
         return wizard
+    }
+
+    private findWizard(chatId: number): Wizard {
+        return this.wizards$.value.find(w => w.chatId === chatId)
     }
 
     private async prepareWizard(chatId: number): Promise<Wizard> {
@@ -219,21 +198,25 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         expiredWizardChatIds.forEach(chatId => this.telegramService.sendMessage(chatId, 'Dialog expired!'))
     }
 
-
     private removeCallbackButtons(callback: TelegramBot.CallbackQuery): Promise<TelegramBot.Message | boolean> {
+        const chatId = callback.from.id
+
+        const msgIdToRemoveButtons = this.lastMessageWithButtonsId[chatId]
+        if (!msgIdToRemoveButtons) return
+
         const buttons = callback.message.reply_markup.inline_keyboard
         const newButtons = []
         buttons.forEach(btns => {
             btns.forEach(btn => {
                 if (btn.callback_data === callback.data) {
-                    btn.callback_data = WizBtn.AVOID_BUTTON_CALLBACK
+                    btn.callback_data = WizBtn.AVOID_BUTTON_CALLBACK    //prevents process again same step action
                     newButtons.push([btn])
                 }
             })
         })
-        const chatId = callback.from.id
         return this.telegramService.removeChatButtons(chatId, this.lastMessageWithButtonsId[chatId], newButtons)
     }
+
 
 
     // SWITCH
@@ -260,5 +243,6 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             default: throw new Error('switch wizard error')
         }
     }
+
 
 }

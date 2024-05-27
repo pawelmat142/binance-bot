@@ -32,6 +32,7 @@ export class AdminWizard extends UnitWizard {
         }, {
             order: 1,
             message: [`Provide signal message...`],
+            backButton: true,
             process: async (input: string) => {
                 const result = await this.services.signalService.onReceiveTelegramMessage({
                     message: input,

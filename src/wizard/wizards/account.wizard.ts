@@ -41,9 +41,7 @@ export class AccountWizard extends UnitWizard {
             }],[{
                 text: 'Change USDT per transaction',
                 callback_data: WizBtn.usdtPerTransaction,
-                process: async () => {
-                    return 1
-                }
+                process: async () => 1,
             }], [{
                 text: allowMinNotional,
                 callback_data: WizBtn.allowMinNotional,
@@ -72,7 +70,8 @@ export class AccountWizard extends UnitWizard {
             }]],
         }, {
             order: 1,
-            message: ['Provide USDT amount per transaction...'],
+            message: ['Provide USDT per transaction...'],
+            backButton: true,
             process: async (input: string) => {
                 const usdtPerTransaction = Number(input)
                 if (isNaN(usdtPerTransaction)) {
@@ -167,6 +166,7 @@ export class AccountWizard extends UnitWizard {
         }, {
             order: 15,
             message: [`Provide your Binance Futures API Key...`],
+            backButton: true,
             process: async (input: string) => {
                 const apiKeyTaken = await this.services.unitService.apiKeyTaken(input)
                 if (apiKeyTaken) return 16
@@ -180,6 +180,7 @@ export class AccountWizard extends UnitWizard {
         }, {
             order: 17,
             message: [`Provide your Binance Futures Secret Key...`],
+            backButton: true,
             process: async (input: string) => {
                 this.unit.binanceApiSecret = input
                 const apiKeyError = await this.services.unitService.apiKeyError(this.unit)

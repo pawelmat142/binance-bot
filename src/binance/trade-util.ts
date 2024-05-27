@@ -223,7 +223,12 @@ export abstract class TradeUtil {
  
     public static takeProfitStatus = (tp: TakeProfit): string => {
         if (tp.reuslt) {
-            return tp.reuslt.status === TradeStatus.NEW ? 'pending' : 'filled'
+            switch (tp.reuslt.status) {
+                case TradeStatus.NEW: return `pending`
+                case TradeStatus.FILLED: return `filled`
+                case TradeStatus.CANCELED: return `canceled`
+                case TradeStatus.CLOSED_MANUALLY: return `closed manually`
+            }
         }
         return 'waiting'
     }

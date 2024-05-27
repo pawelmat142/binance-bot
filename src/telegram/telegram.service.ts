@@ -114,10 +114,6 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
 
 
-
-
-
-
     private async sendChatMessage(chatId: number, lines: string[]) {
         this.sendMessage(chatId, BotUtil.msgFrom(lines))
     }
