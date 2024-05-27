@@ -218,7 +218,6 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-
     // SWITCH
     private switchWizard(name: string, currentWizard: UnitWizard): UnitWizard {
         const wizard = this.selectSWitchWizard(name, currentWizard)
@@ -240,6 +239,8 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 return new LogsWizard(currentWizard.getUnit(), this.service)
             case TakeProfitsWizard.name:
                 return new TakeProfitsWizard(currentWizard.getUnit(), this.service)
+            case StartWizard.name:
+                return new StartWizard(currentWizard.getUnit(), this.service)
             default: throw new Error('switch wizard error')
         }
     }

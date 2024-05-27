@@ -6,6 +6,7 @@ import { WizardStep } from "./wizard"
 import { TelegramMessage } from "src/telegram/message"
 import { BotUtil } from "../bot.util"
 import { LogsWizard } from "./logs.wizard"
+import { StartWizard } from "./start.wizard"
 
 export class AdminWizard extends UnitWizard {
 
@@ -28,7 +29,7 @@ export class AdminWizard extends UnitWizard {
                 text: `LOGS`,
                 callback_data: `logswizard`,
                 switch: LogsWizard.name
-            }]],
+            }], [BotUtil.getBackSwitchButton(StartWizard.name)]],
         }, {
             order: 1,
             message: [`Provide signal message...`],

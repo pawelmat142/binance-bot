@@ -5,6 +5,7 @@ import { WizBtn } from "./wizard-buttons"
 import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
 import { WizardStep } from "./wizard"
 import { BotUtil } from "../bot.util"
+import { StartWizard } from "./start.wizard"
 
 export class AccountWizard extends UnitWizard {
 
@@ -63,7 +64,7 @@ export class AccountWizard extends UnitWizard {
                 text: `Change API Key`,
                 callback_data: `changeapikey`,
                 process: async () => 15
-            }], [{
+            }], [BotUtil.getBackSwitchButton(StartWizard.name), {
                 text: `Delete account`,
                 callback_data: `delete`,
                 process: async () => 12

@@ -12,6 +12,7 @@ import { WizardButton, WizardStep } from "./wizard"
 import { TradeCtx } from "src/binance/model/trade-variant"
 import { TakeProfitsWizard } from "./take-profits.wizard"
 import { BotUtil } from "../bot.util"
+import { StartWizard } from "./start.wizard"
 
 export class TradesWizard extends UnitWizard {
 
@@ -67,7 +68,7 @@ export class TradesWizard extends UnitWizard {
         const stepZeroButtons = [
             ...this.getPendingPositionsButtons(),
             ...this.getOpenOrdersButtons(),
-            [{
+            [BotUtil.getBackSwitchButton(StartWizard.name), {
                 text: `refresh`,
                 callback_data: `refresh`,
                 process: async () => {
@@ -85,7 +86,6 @@ export class TradesWizard extends UnitWizard {
             buttons: stepZeroButtons,
             message: stepZeroMsg,
             close: !stepZeroButtons.length,
-            backButton: true
         }, {
             order: 1,
             message: this.selectedPositionMessage(),

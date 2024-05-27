@@ -30,8 +30,6 @@ export class Wizard {
 
     protected readonly logger = new Logger(Wizard.name)
 
-    protected services: ServiceProvider
-
     chatId: number
     
     order: number
@@ -40,8 +38,10 @@ export class Wizard {
 
     private _steps: WizardStep[]
 
-    constructor(chatId: number, services: ServiceProvider) {
-        this.services = services
+    constructor(
+        chatId: number,
+        protected readonly services: ServiceProvider
+    ) {
         this.chatId = chatId
         this._steps = this.getSteps()
         this.order = 0

@@ -6,6 +6,8 @@ import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
 import { TradeUtil } from "src/binance/trade-util"
 import { TradeStatus } from "src/binance/model/trade"
 import Decimal from "decimal.js"
+import { BotUtil } from "../bot.util"
+import { TradesWizard } from "./trades.wizard"
 
 export class TakeProfitsWizard extends UnitWizard {
 
@@ -134,6 +136,7 @@ export class TakeProfitsWizard extends UnitWizard {
             }
 
                 
+            step.buttons.push([BotUtil.getBackSwitchButton(TradesWizard.name)])
             // step.buttons.push([{
             //     text: `CONFIRM and order first take profit`,
             //     callback_data: `confitm`,

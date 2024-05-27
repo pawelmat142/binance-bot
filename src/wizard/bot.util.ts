@@ -78,12 +78,24 @@ export abstract class BotUtil {
 
     public static addBackBtnIfNeeded = (step: WizardStep): void => {
         if (step.backButton) {
-            step.buttons = step.buttons || []
-            step.buttons.push([{
-                text: '<< Back',
-                callback_data: WizBtn.BACK,
-                process: async () => 0
-            }])
+            BotUtil.addBackBtn(step)
+        }
+    }
+
+    public static addBackBtn = (step: WizardStep): void => {
+        step.buttons = step.buttons || []
+        step.buttons.push([{
+            text: WizBtn.BACK_LABEL,
+            callback_data: WizBtn.BACK,
+            process: async () => 0
+        }])
+    }
+
+    public static getBackSwitchButton = (wizardName: string): WizardButton => {
+        return {
+            text: WizBtn.BACK_LABEL,
+            callback_data: WizBtn.BACK_LABEL,
+            switch: wizardName
         }
     }
 

@@ -13,7 +13,6 @@ export class StartWizard extends UnitWizard {
         super(unit, services)
     }
 
-
     public getSteps(): WizardStep[] {
 
         const stepZero: WizardStep = {

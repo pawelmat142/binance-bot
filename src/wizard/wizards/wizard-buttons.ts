@@ -5,6 +5,7 @@ export abstract class WizBtn {
 
     static readonly STOP = 'stop' 
     static readonly BACK = 'back' 
+    static readonly BACK_LABEL = '<< Back' 
 
     static readonly YES = 'yes' 
     static readonly NO = 'no' 

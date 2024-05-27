@@ -17,9 +17,7 @@ import { SelectedTradeProvider } from './selected-trade.service';
   providers: [
     ServiceProvider,
     WizardService,
-    SelectedTradeProvider
+    SelectedTradeProvider,
   ],
-  exports: [
-  ]
 })
 export class WizardModule {}
