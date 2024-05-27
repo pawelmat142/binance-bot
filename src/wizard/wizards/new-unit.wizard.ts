@@ -32,7 +32,7 @@ export class NewUnitWizard extends Wizard {
                 callback_data: `subscribe`,
                 process: async () => 1
             }], [{
-                text: `Show how to generate API key`,
+                text: `How to generate API key?`,
                 callback_data: `showgenapikey`,
                 process: async () => 14
             }]]
@@ -68,7 +68,7 @@ export class NewUnitWizard extends Wizard {
             process: async (input: string) => {
                 this.unit.binanceApiSecret = input
                     const apiKeyError = await this.services.unitService.apiKeyError(this.unit as Unit)
-                    if (apiKeyError) {
+                    if (!apiKeyError || apiKeyError.msg) {
                         this.error = apiKeyError.msg
                         return 6
                     }
@@ -107,7 +107,7 @@ export class NewUnitWizard extends Wizard {
                 `Some currency pairs require a minimum notional value to open an order,`,
                 `for example: BTCUSDT needs $100,`,
                 `so for x5 leverage it will be $20.`,
-                `Do you want to allow transactions that require more USDT than the given USDT per transaction?`,
+                `Do you want to ALLOW transactions that require more USDT than the given USDT per transaction?`,
             ],
             buttons: [[{
                 text: `DENY`,
@@ -151,40 +151,89 @@ export class NewUnitWizard extends Wizard {
             close: true
         }, {
             order: 13,
-            message: [`Successfully subscribed with identifier: ${this.unit?.identifier}`],
+            message: [
+                `Successfully subscribed`,
+                `Your identifier: ${this.unit?.identifier}`,
+                `Subscription need to be activated`
+            ],
             close: true
         }, {
             order: 14,
+            message: [`Mobile app or web browser?`],
+            buttons: [[{
+                text: `WEB`,
+                callback_data: `web`,
+                process: async () => 15
+            }, {
+                text: `MOBILE`,
+                callback_data: `mobile`,
+                process: async () => 16
+            }]]
+        }, {
+            order: 15,
             message: this.getApiKeyGenerationManualMessage(),
             buttons: [[{
                 text: `Subscribe`,
                 callback_data: `subscribe`,
                 process: async () => 1
             }]]
-        }]
+        }, {
+            order: 16,
+            message: this.getApiKeyGenerationManualMessageForMobile(),
+            buttons: [[{
+                text: `Subscribe`,
+                callback_data: `subscribe`,
+                process: async () => 1
+            }]]
+        }
+    ]
     }
 
     private getApiKeyGenerationManualMessage(): string[] {
-        if (this.order !== 14) return []
+        if (this.order !== 15) return []
         const message = [
             `Log in to Binance`,
             `Enable futures trading:`,
             `https://www.binance.com/en/support/faq/how-to-open-a-binance-futures-account-360033772992`,
             `Go to dashboard:`,
             `https://www.binance.com/en/my/dashboard`,
-            `Go to Account -> API Management -> Create API`,
-            ``,
-            `Select 'System generated' -> Next`,
-            `Provide label of your API key (doesnt matter for me)`,
-            `You may need authenticate now`,
-            `You should see API Key and Secret Key now, save them for a moment. API Secret is visible ONLY ONCE!`,
-            `Go to 'Edit restrictions'`,
-            `Select 'Restrict access to trusted IPs only' and provide: ${this.getBotIp()}`,
-            `Select 'Enable Futures'`,
-            `Save, and You can start subscribe now`,
+            `Go to Account -> API Management`,
+            `"Create API" by yellow button, choose "System generated", and click "Next"`,
+            `Give the label to the Key and click "Next"`,
+            `You may need to authenticate`,
+            `You can see your API Key, click "Edit"`,
+            `Copy your Secret Key, it is possible to see it only one time when you create API Key`,
+            `Choose "Restrict access to trusted IP's only(Recommended)" in IP access restriction use IP ${this.getBotIp()} and Accept`,
+            `When you set restricted IP check box "Enable Futures"`,
+            `"Save"`,
+            `You can start subscribe process now`,
         ]
+        return this.addListNumbers(message)
+    }
 
-        const result = []
+    private getApiKeyGenerationManualMessageForMobile(): string[] {
+        if (this.order !== 16) return []
+        const message = [
+            `Log in to Binance`,
+            `Enable futures trading:`,
+            `https://www.binance.com/en/support/faq/how-to-open-a-binance-futures-account-360033772992`,
+            `Go to profile settings(top left corner), and click "More Service"`,
+            `Bellow on the end of the list is API management, choose it`,
+            `"Create API" by yellow button, choose "System generated", and click "Next"`,
+            `Give the label to the Key and click "Next"`,
+            `You may need to authenticate`,
+            `You can see your API Key, click "Edit"`,
+            `Copy your Secret Key, it is possible to see it only one time when you create API Key`,
+            `Choose "Restrict access to trusted IP's only(Recommended)" in IP access restriction use IP ${this.getBotIp()} and Accept`,
+            `When you set restricted IP check box "Enable Futures"`,
+            `"Save"`,
+            `You can start subscribe process now`,
+        ]
+        return this.addListNumbers(message)
+    }
+
+    private addListNumbers(message: string[]): string[] {
+        const result: string[] = []
         let iterator = 1
         for (let line of message) { 
             if (!line.startsWith('http')) {

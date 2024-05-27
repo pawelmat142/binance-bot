@@ -101,21 +101,26 @@ export class UnitService implements OnModuleInit {
             this.logger.debug(`[SKIP] listening websockets`)
             return
         }
-        let units = this._units$.value
-        const websocketOnlyFor = process.env.WEBSOCKET_ONLY_FOR
-        if (websocketOnlyFor) {
-            units = units.filter(u => u.identifier === websocketOnlyFor)
-        }
+        const units = this._units$.value
+
         await Promise.all(units.map(this.startListening))
         this.logger.log(`Started listening for ${units.length} units: [ ${units.map(u=>u.identifier).join(', ')} ]`)
     }
 
 
     public startListening = async (unit: Unit) => {
+        const websocketOnlyFor = process.env.WEBSOCKET_ONLY_FOR
+        if (websocketOnlyFor) {
+            if (unit.identifier !== websocketOnlyFor) {
+                return
+            }
+        }
         if (UnitUtil.socketOpened(unit)) {
             this.logger.warn(`Socket fot unit ${unit.identifier} already opened`)
             return
         }
+
+
         const listenKey = await this.fetchListenKey(unit)
         const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
 
@@ -282,7 +287,7 @@ export class UnitService implements OnModuleInit {
     }
 
     private async loadUnit(identifier: string) {
-        const unit = await this.unitModel.findOne({ active: true }, { 
+        const unit = await this.unitModel.findOne({ identifier, active: true }, { 
             listenJsons: false,
             listenKey: false
         }).exec()
@@ -361,16 +366,17 @@ export class UnitService implements OnModuleInit {
         const params = queryParams({
             timestamp: Date.now(),
         })
-        const uri = sign(`${TradeUtil.futuresUriV2}/account`, params, unit)
-        const request = await fetch(uri, {
-            method: 'GET',
-            headers: getHeaders(unit)
-        })
-        const response = await request.json()
-        if (isBinanceError(response)) {
-            return response
+        try {
+            return this.http.fetch<BinanceError>({
+                url: sign(`${TradeUtil.futuresUriV2}/account`, params, unit),
+                method: 'GET',
+                headers: getHeaders(unit)
+            })
+        } catch (error) {
+            const message = this.http.handleErrorMessage(error)
+            this.logger.error(message)
+            return null
         }
-        return 
     } 
 
 
