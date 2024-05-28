@@ -6,8 +6,6 @@ import { WizBtn } from "./wizards/wizard-buttons"
 
 export abstract class BotUtil {
 
-    public static readonly USDT_PER_TRANSACTION_WIZARD = 'usdt-per-transaction'
-
     public static msgFrom = (lines: string[]) => {
         return (lines || []).reduce((acc, line) => acc + line + '\n', '')
     }
@@ -20,10 +18,6 @@ export abstract class BotUtil {
         return expirationTime < new Date()
     }
     
-    public static switchResponse = (wizardName: string) => {
-        return `switch ${wizardName}`
-    }
-
     public static adminChannelIds = (): string[] => {
         return process.env.ADMIN_CHAT_ID.split('_')
     }

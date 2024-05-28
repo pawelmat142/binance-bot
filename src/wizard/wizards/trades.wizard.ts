@@ -68,18 +68,19 @@ export class TradesWizard extends UnitWizard {
         const stepZeroButtons = [
             ...this.getPendingPositionsButtons(),
             ...this.getOpenOrdersButtons(),
-            [BotUtil.getBackSwitchButton(StartWizard.name), {
-                text: `refresh`,
-                callback_data: `refresh`,
-                process: async () => {
-                    await this._init()
-                    return 0
-                }
-            }]
         ]
         const stepZeroMsg = stepZeroButtons.length 
             ? [`Select position or order...`]
             : [`You have no pending positions or open orders`]
+
+        stepZeroButtons.push([BotUtil.getBackSwitchButton(StartWizard.name), {
+            text: `refresh`,
+            callback_data: `refresh`,
+            process: async () => {
+                await this._init()
+                return 0
+            }
+        }])
 
         return [{
             order: 0,

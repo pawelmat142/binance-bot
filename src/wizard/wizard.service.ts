@@ -5,7 +5,7 @@ import { TelegramService } from "src/telegram/telegram.service";
 import { BotUtil } from "./bot.util";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ServiceProvider } from "./services.provider";
-import { Wizard, WizardButton, WizardStep } from "./wizards/wizard";
+import { Wizard } from "./wizards/wizard";
 import { StartWizard } from "./wizards/start.wizard";
 import { WizBtn } from "./wizards/wizard-buttons";
 import { AccountWizard } from "./wizards/account.wizard";
@@ -129,10 +129,6 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         if (step.close || input === WizBtn.STOP) {
             if (input === WizBtn.STOP) msg = ['Dialog interrupted']
             this.stopWizard(wizard)
-            step.buttons = [[{
-                text: `Start new dialog`,
-                callback_data: WizBtn.START_NEW_DIALOG,
-            }]]
         }
         const options: TelegramBot.SendMessageOptions = {}
         let buttons = step.buttons || []
@@ -152,6 +148,15 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         if (buttons.length) {
             this.lastMessageWithButtonsId[result.chat.id] = result.message_id
         }
+
+        if (step.close) {
+            this.startNewWizard(wizard.chatId)
+        }
+    }
+
+    private async startNewWizard(chatId: number) {
+        let wizard = await this.findOrCreateWizard(chatId)
+        this.sendMessage(wizard, '')
     }
 
 

@@ -117,7 +117,7 @@ export class AccountWizard extends UnitWizard {
         }, {
             order: 6,
             message: this.getUsdtInfoMessage(this.usdtInfo),
-            close: true
+            backButton: true
         }, {
             order: 7,
             message: [`Its not a number!`],
@@ -137,7 +137,7 @@ export class AccountWizard extends UnitWizard {
         }, {
             order: 11,
             message: [`Subscription activated`],
-            close: true,
+            close: true
         }, {
             order: 12,
             message: [

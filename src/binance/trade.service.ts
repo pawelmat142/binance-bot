@@ -373,11 +373,15 @@ export class TradeService {
 
     private handleError(error, msg?: string, ctx?: TradeCtx) {
         const errorMessage = this.http.handleErrorMessage(error)
-        if (msg) {
-            TradeUtil.addError(msg, ctx, this.logger)
+        if (ctx) {
+            if (msg) {
+                TradeUtil.addError(msg, ctx, this.logger)
+            } else {
+                TradeUtil.addError(errorMessage, ctx, this.logger)
+            }
+        } else {
+            this.logger.error(errorMessage)
         }
-        TradeUtil.addError(errorMessage, ctx, this.logger)
     }
-
 
 }
