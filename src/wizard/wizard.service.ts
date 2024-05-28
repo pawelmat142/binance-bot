@@ -85,6 +85,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 wizard = this.switchWizard(clickedButton.switch, wizard as UnitWizard) as UnitWizard
                 await wizard.init()
             } else if (clickedButton.process) {
+                this.wizardLog(wizard, `processing...`)
                 const order = await clickedButton.process()
                 wizard.order = order
             }
@@ -145,10 +146,10 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             return
         }
         const result = await this.telegramService.sendMessage(wizard.chatId, BotUtil.msgFrom(msg), options)
+        this.wizardLog(wizard, `message sent`)
         if (buttons.length) {
             this.lastMessageWithButtonsId[result.chat.id] = result.message_id
         }
-
         if (step.close) {
             this.startNewWizard(wizard.chatId)
         }
@@ -190,7 +191,7 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
     private stopWizard(wizard: Wizard) {
         const wizards = this.wizards$.value.filter(w => w.chatId !== wizard.chatId)
         this.wizards$.next(wizards)
-        this.logger.log(`Stopped wizard ${wizard.chatId}`)
+        this.wizardLog(wizard, `stopped`)
     }
 
     @Cron(CronExpression.EVERY_30_MINUTES)
@@ -250,5 +251,9 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    private wizardLog(wizard: Wizard, log: string) {
+        const unitIdentifierLog = wizard instanceof UnitWizard ? `, unit: ${wizard.getUnit().identifier}` : ''
+        this.logger.log(`[${wizard.constructor.name}] step ${wizard.order}, chatId: ${wizard.chatId}${unitIdentifierLog} - ${log}`)
+    }
 
 }

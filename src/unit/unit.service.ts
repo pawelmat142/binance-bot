@@ -8,7 +8,7 @@ import { TradeUtil } from 'src/binance/trade-util';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UnitUtil } from './unit.util';
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
-import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
+import { BinanceError } from 'src/binance/model/binance.error';
 import { HttpMethod } from 'src/global/http-method';
 import { BotUtil } from 'src/wizard/bot.util';
 import { Http } from 'src/global/http/http.service';
@@ -104,7 +104,6 @@ export class UnitService implements OnModuleInit {
         const units = this._units$.value
 
         await Promise.all(units.map(this.startListening))
-        this.logger.log(`Started listening for ${units.length} units: [ ${units.map(u=>u.identifier).join(', ')} ]`)
     }
 
 
@@ -119,7 +118,6 @@ export class UnitService implements OnModuleInit {
             this.logger.warn(`Socket fot unit ${unit.identifier} already opened`)
             return
         }
-
 
         const listenKey = await this.fetchListenKey(unit)
         const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
