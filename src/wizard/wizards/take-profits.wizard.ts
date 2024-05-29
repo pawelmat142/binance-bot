@@ -3,7 +3,6 @@ import { ServiceProvider } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { WizardStep } from "./wizard"
 import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
-import { TradeUtil } from "src/binance/trade-util"
 import { TradeStatus } from "src/binance/model/trade"
 import Decimal from "decimal.js"
 import { BotUtil } from "../bot.util"
@@ -91,7 +90,6 @@ export class TakeProfitsWizard extends UnitWizard {
                         return 1
                     }
                 }
-            
             ]]
             }]
     }

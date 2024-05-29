@@ -43,8 +43,8 @@ export class TradeRepository {
         }).exec()
     }
 
-    public findBySignal(signal: Signal, unit: Unit): Promise<Trade> {
-        return this.model.findOne({
+    public findBySignal(signal: Signal, unit: Unit): Promise<Trade[]> {
+        return this.model.find({
             closed: { $ne: true },
             unitIdentifier: unit.identifier,
             "variant.symbol": signal.variant.symbol

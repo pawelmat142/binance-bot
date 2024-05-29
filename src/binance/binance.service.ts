@@ -121,49 +121,51 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         const units = this.unitService.units || []
 
         for (let unit of units) {
-            const trade = await this.tradeRepo.findBySignal(signal, unit)
-            if (!trade) {
+            const trades = await this.tradeRepo.findBySignal(signal, unit)
+            if (!(trades || []).length) {
                 SignalUtil.addLog(`Could not find trade ${signal.variant.side} ${signal.variant.symbol} for other signal action, unit: ${unit.identifier}`, signal, this.logger)
                 this.signalService.updateLogs(signal)
                 continue
             }
-            const ctx = new TradeCtx({ trade, unit })
-
-            if (signal.otherSignalAction.manualClose) {
-                if (trade.futuresResult?.status === TradeStatus.FILLED) {
-                    await this.fullClosePosition(ctx)
-                }
-                else if (trade.futuresResult?.status === TradeStatus.NEW) {
-                    await this.closeTradeOrderManual(ctx)
-                } else {
-                    TradeUtil.addError(`wrong trade status: ${trade.futuresResult?.status} when manual close`, ctx, this.logger)
-                } 
-            } 
-            else if (signal.otherSignalAction.tradeDone) {
-                this.telegramService.sendUnitMessage(ctx, [`${ctx.side} ${ctx.symbol}`, `Trade done, closing...`])
-                await this.fullClosePosition(ctx)
-            } 
-            else {
-                if (signal.otherSignalAction.takeSomgeProfit) {
-                    TradeUtil.addLog(`[START] take some profit for unit ${unit.identifier}`, ctx, this.logger)
-                    await this.tradeService.takeSomeProfit(ctx)
-                    TradeUtil.addLog(`[STOP] take some profit for unit ${unit.identifier}`, ctx, this.logger)
-                }
-                if (signal.otherSignalAction.moveSl) {
-                    if (signal.otherSignalAction.moveSlToEntryPoint) {
-                        TradeUtil.addLog(`[START] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
-                        const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
-                        if (!entryPrice) {
-                            TradeUtil.addError(`entry price to move SL not found: ${entryPrice}`, ctx, this.logger)
-                            this.tradeRepo.update(ctx)
-                        }
-                        await this.tradeService.moveStopLoss(ctx, entryPrice)
-                        TradeUtil.addLog(`[STOP] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
-                    } else {
-                        TradeUtil.addError(`Move sl where??`, ctx, this.logger)
+            for (let trade of trades) {
+                const ctx = new TradeCtx({ trade, unit })
+    
+                if (signal.otherSignalAction.manualClose) {
+                    if (trade.futuresResult?.status === TradeStatus.FILLED) {
+                        await this.fullClosePosition(ctx)
                     }
+                    else if (trade.futuresResult?.status === TradeStatus.NEW) {
+                        await this.closeTradeOrderManual(ctx)
+                    } else {
+                        TradeUtil.addError(`wrong trade status: ${trade.futuresResult?.status} when manual close`, ctx, this.logger)
+                    } 
+                } 
+                else if (signal.otherSignalAction.tradeDone) {
+                    this.telegramService.sendUnitMessage(ctx, [`${ctx.side} ${ctx.symbol}`, `Trade done, closing...`])
+                    await this.fullClosePosition(ctx)
+                } 
+                else {
+                    if (signal.otherSignalAction.takeSomgeProfit) {
+                        TradeUtil.addLog(`[START] take some profit for unit ${unit.identifier}`, ctx, this.logger)
+                        await this.tradeService.takeSomeProfit(ctx)
+                        TradeUtil.addLog(`[STOP] take some profit for unit ${unit.identifier}`, ctx, this.logger)
+                    }
+                    if (signal.otherSignalAction.moveSl) {
+                        if (signal.otherSignalAction.moveSlToEntryPoint) {
+                            TradeUtil.addLog(`[START] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
+                            const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
+                            if (!entryPrice) {
+                                TradeUtil.addError(`entry price to move SL not found: ${entryPrice}`, ctx, this.logger)
+                                this.tradeRepo.update(ctx)
+                            }
+                            await this.tradeService.moveStopLoss(ctx, entryPrice)
+                            TradeUtil.addLog(`[STOP] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
+                        } else {
+                            TradeUtil.addError(`Move sl where??`, ctx, this.logger)
+                        }
+                    }
+                    this.tradeRepo.update(ctx)
                 }
-                this.tradeRepo.update(ctx)
             }
         }
     }
@@ -363,6 +365,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.update(ctx)
         } catch (error) {
             const msg = this.http.handleErrorMessage(error)
+            this.tradeLog(ctx, `Error trying to close trade order ${ctx.trade.futuresResult.orderId} manualy`)
             this.logger.error(msg)
         }
     }

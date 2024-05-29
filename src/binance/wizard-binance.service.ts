@@ -4,7 +4,6 @@ import { TradeService } from "./trade.service";
 import { Unit } from "src/unit/unit";
 import { getHeaders, queryParams, sign } from "src/global/util";
 import { TradeUtil } from "./trade-util";
-import { BinanceError } from "./model/binance.error";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { Http } from "src/global/http/http.service";

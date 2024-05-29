@@ -205,8 +205,8 @@ export class TradeService {
             symbol: ctx.symbol,
             orderId: orderId,
             timestamp: Date.now(),
-            // timeInForce: 'GTC',
-            // recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            timeInForce: 'GTC',
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
         })
         return this.placeOrder(params, ctx, 'DELETE')
     }

@@ -1,6 +1,5 @@
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { HttpMethod } from '../http-method';
 import { AxiosError, AxiosRequestConfig } from 'axios';
 import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 import { lastValueFrom } from 'rxjs';
@@ -16,8 +15,6 @@ export class Http {
     ) {}
 
     async fetch<ResultType>(config: AxiosRequestConfig): Promise<ResultType> {
-        this.logger.warn(config.url)
-
         // const response = await lastValueFrom(this.httpService.request<ResultType>(config))
         config.responseType = 'text'
         const response = await lastValueFrom(this.httpService.request(config))
@@ -27,15 +24,16 @@ export class Http {
             this.logger.error(`[${status}] Http status`)
             throw new Error(response.statusText)
         }
-        if (isBinanceError(response.data)) {
-            throw new Error(response.data.msg)
-        }
 
         const responseDataString = response.data
         if (!responseDataString) {
             return null
         }
-        return JSONbig.parse(responseDataString) as ResultType
+        const data = JSONbig.parse(responseDataString)
+        if (isBinanceError(data)) {
+            throw new Error(response.data.msg)
+        }
+        return data as ResultType
     }
 
     public handleErrorMessage(error): string {
@@ -50,6 +48,7 @@ export class Http {
         }
         // TODO remove
         console.log(error)
+        console.log('console.log')
         return error
     }
 
@@ -61,6 +60,7 @@ export class Http {
             }
         }
         // TODO remove
+        console.log('console.log2')
         console.log(error)
         return error
     }
