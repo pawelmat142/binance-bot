@@ -98,7 +98,7 @@ export class SignalService {
 
     private async verifyIfDuplicate(signal: Signal) {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.debug('SKIP PREVENT DUPLICATE')
+            this.logger.warn('SKIP PREVENT DUPLICATE')
             return
         } 
         const found = await this.signalModel.findOne(

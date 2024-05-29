@@ -16,7 +16,7 @@ const getSignature = (queryString: string, unit: Unit): string => {
 export const sign = (uri: string, queryString: string, unit: Unit): string => {
     const andSeparator = queryString ? `&` : ''
     const result = `${uri}?${queryString}${andSeparator}signature=${getSignature(queryString, unit)}`
-    Logger.debug(result)
+    Logger.warn(result)
     return result
 }
 

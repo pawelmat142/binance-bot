@@ -20,10 +20,10 @@ export class TradeRepository {
         @InjectModel(Trade.testName) private testTradeModel: Model<Trade>,
     ) {
         if (process.env.TEST_TRADE_COLLECTION === 'true') {
-            this.logger.debug(`TEST_TRADE_COLLECTION ON`)
+            this.logger.warn(`TEST_TRADE_COLLECTION ON`)
             this.model = this.testTradeModel
         } else {
-            this.logger.debug(`TEST_TRADE_COLLECTION OFF`)
+            this.logger.warn(`TEST_TRADE_COLLECTION OFF`)
             this.model = this.tradeModel
         }
     }
@@ -75,7 +75,7 @@ export class TradeRepository {
 
     public async save(ctx: TradeCtx) {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
-            this.logger.debug('[SKIP] Saved trade')
+            this.logger.warn('[SKIP] Saved trade')
         }
         ctx.trade._id = newObjectId()
         ctx.trade.timestamp = new Date()
@@ -89,7 +89,7 @@ export class TradeRepository {
 
     public update(ctx: TradeCtx) {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
-            this.logger.debug('[SKIP] Updated trade')
+            this.logger.warn('[SKIP] Updated trade')
         }
         ctx.trade.timestamp = new Date()
         TradeUtil.addLog(`Updating trade ${ctx.trade._id}`, ctx, this.logger)

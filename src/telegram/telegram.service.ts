@@ -40,7 +40,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     private initBot() {
         if (process.env.SKIP_TELEGRAM === 'true') {
-            this.logger.debug('[SKIP] Initializing telegram bot')
+            this.logger.warn('[SKIP] Initializing telegram bot')
             return undefined
         } else {
             this.logger.log('Initializing telegram bot')

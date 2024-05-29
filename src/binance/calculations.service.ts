@@ -47,7 +47,7 @@ export class CalculationsService implements OnModuleInit {
     @Cron(CronExpression.EVERY_12_HOURS)
     private async loadExchangeInfo() {
         if (process.env.SKIP_LOAD_EXCHANGE_INFO === 'true') {
-            this.logger.debug(`[SKIP] EXCHANGE INFO LOADING`)
+            this.logger.warn(`[SKIP] EXCHANGE INFO LOADING`)
             this.loadExchangeInfoFromFile()
             return
         }

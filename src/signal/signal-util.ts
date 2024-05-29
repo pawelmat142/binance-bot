@@ -13,6 +13,8 @@ export abstract class SignalUtil {
 
     public static readonly stopLossRegex = /\bstop\s*loss\b/i
 
+    public static readonly dolarValueSpaceRegex = /\$ ?\d+[.,]?\d*|\d+[.,]?\d* ?\$/g //  [ 0,014033$ 0.014033$ 0,014033 $  0.014033 $  $0.014033  $ 0,014033 ] 
+
 
     public static addLog(msg: string, signal: Signal, logger: Logger) {
         const log = `[${toDateString(new Date())}] ${msg}`
@@ -43,7 +45,7 @@ export abstract class SignalUtil {
     }
 
     public static withoutDollar(input: string): number {
-        return Number(input?.trim().replace(' ', '').replace(/\$/g, ''))
+        return Number(input?.trim().replace(',', '.').replace(' ', '').replace(/\$/g, ''))
     }
 
 }

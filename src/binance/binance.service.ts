@@ -96,6 +96,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private openTradesPerUnit = async (signal: Signal) => {
+        if (process.env.SKIP_TRADE === 'true') {
+            this.logger.warn('SKIP TRADE')
+            return
+        }
         const trade = this.tradeRepo.prepareTrade(signal)
         if (!trade.logs) {
             trade.logs = []
@@ -107,7 +111,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             if (await this.findInProgressTrade(ctx)) {
                 return
             }
-            TradeUtil.addLog(`Opening trade ${ctx.side} ${ctx.symbol}`, ctx, this.logger)
+            this.tradeLog(ctx, `Opening trade`)
             trade.timestamp = new Date()
             await this.openTradeForUnit(ctx)
         }
@@ -165,10 +169,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async openTradeForUnit(ctx: TradeCtx) {
-        if (process.env.SKIP_TRADE === 'true') {
-            this.logger.debug('SKIP TRADE')
-            return
-        }
         try {
             await this.tradeService.setIsolatedMode(ctx)
             await this.tradeService.setPositionLeverage(ctx)
@@ -277,7 +277,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.debug('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
+            this.logger.warn('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
             return false
         } 
         const trade = await this.tradeRepo.findInProgress(ctx)
@@ -358,6 +358,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             const msg = this.http.handleErrorMessage(error)
             this.logger.error(msg)
         }
+    }
+
+    private tradeLog(ctx: TradeCtx, log: string) {
+        TradeUtil.addLog(`${ctx.side} ${ctx.symbol}, unit ${ctx.unit.identifier} - ${log}`, ctx, this.logger)
     }
 
 }

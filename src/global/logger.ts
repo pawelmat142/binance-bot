@@ -14,6 +14,7 @@ export const createMyLogger = () => WinstonModule.createLogger({
             nestWinstonModuleUtilities.format.nestLike('MyApp', {
               colors: true,
               prettyPrint: true,
+
             }),
           ),
         }),

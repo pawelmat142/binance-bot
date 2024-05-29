@@ -134,21 +134,24 @@ export class SignalValidator extends BaseValidator {
 
     private findEntryZone() {
         const linesToScan = `${this.lines[this.entryZoneLineIndex]}${this.lines[this.entryZoneLineIndex+1]}${this.lines[this.entryZoneLineIndex+2]}${this.lines[this.entryZoneLineIndex+3]}`
-        let entryZoneMatch = linesToScan.match(SignalUtil.dolarValueDolarRegex)
-        if (Array.isArray(entryZoneMatch) && entryZoneMatch.length > 1) {
-            const one = SignalUtil.withoutDollar(entryZoneMatch[0])
-            const two = SignalUtil.withoutDollar(entryZoneMatch[1])
-            if (!isNaN(one) && !isNaN(two)) {
-                const max = Math.max(one, two)
-                const min = Math.min(one, two)
-                if (this.variant.side === 'BUY') {
-                    this.variant.entryZoneStart = min
-                    this.variant.entryZoneEnd = max
-                } else {
-                    this.variant.entryZoneStart = max
-                    this.variant.entryZoneEnd = min
-                }
-            } 
+        let values = (linesToScan.match(SignalUtil.dolarValueSpaceRegex) || [])
+            .map(val => SignalUtil.withoutDollar(val))
+            .filter(val => !isNaN(val))
+        
+        if (!values.length) {
+            SignalUtil.addError(`Not found entry zone for signal ${this.signal._id}`, this.signal, this.logger)
+            return
+        }
+
+        const max = Math.max(...values)
+        const min = Math.min(...values)
+
+        if (this.variant.side === 'BUY') {
+            this.variant.entryZoneStart = min
+            this.variant.entryZoneEnd = max
+        } else {
+            this.variant.entryZoneStart = max
+            this.variant.entryZoneEnd = min
         }
     }
 

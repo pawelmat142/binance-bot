@@ -65,7 +65,7 @@ export class UnitService implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_30_MINUTES)
     private async keepAliveListenKeyForEveryUnit() {
-        this.logger.debug('Refreshing listen keys')
+        this.logger.warn('Refreshing listen keys')
         const units = await this.unitModel.find(
             { active: true, listenKey: { $exists: true } },
             { listenJsons: false, tradeObjectIds: false }).exec()
@@ -98,7 +98,7 @@ export class UnitService implements OnModuleInit {
 
     private async startListeningForEveryUnit() {
         if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
-            this.logger.debug(`[SKIP] listening websockets`)
+            this.logger.warn(`[SKIP] listening websockets`)
             return
         }
         const units = this._units$.value
