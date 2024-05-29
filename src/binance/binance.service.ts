@@ -315,8 +315,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         const symbol = ctx.trade.variant.symbol
         const unit = ctx.unit
         const unitIdentifier = unit.identifier
-
-        TradeUtil.addLog(`[START] Closing position ${ctx.side} ${symbol} for unit: ${unitIdentifier}`, ctx, this.logger)
+        this.tradeLog(ctx, `[START] Closing position`)
 
         const openOrders = await this.tradeService.fetchOpenOrders(ctx.unit, symbol)
         if (Array.isArray(openOrders)) {
@@ -324,12 +323,12 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 const result = await this.tradeService.closeOrder(ctx, order.orderId)
                 if (result.type === TradeType.STOP_MARKET) {
                     ctx.trade.stopLossResult = result
-                    TradeUtil.addLog(`Closed STOP LOSS ${order.orderId} for unit: ${unitIdentifier}`, ctx, this.logger)
+                    this.tradeLog(ctx, `Closed STOP LOSS  ${order.orderId}`)
                 } else if (result.type === TradeType.TAKE_PROFIT_MARKET) {
                     ctx.trade.variant.takeProfits
                         .filter(tp => tp.reuslt?.orderId === result.orderId)
                         .forEach(tp => tp.reuslt = result)
-                    TradeUtil.addLog(`Closed TAKE PROFIT ${order.orderId} for unit: ${unitIdentifier}`, ctx, this.logger)
+                    this.tradeLog(ctx, `Closed TAKE PROFIT ${order.orderId}`)
                 } else {
                     TradeUtil.addError(`Closed order ${order.orderId}, type: ${result.type}`, ctx, this.logger)
                 }
@@ -339,8 +338,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
 
         const result = await this.tradeService.closePosition(ctx)
-        TradeUtil.addLog(`Closed position ${ctx.side} ${ctx.symbol}`, ctx, this.logger)
-        
+        this.tradeLog(ctx, `Closed position`)
+
         const trades = await this.tradeRepo.findBySymbol(ctx)
         TradeUtil.addLog(`Found ${trades.length} open trades`, ctx, this.logger)
 
@@ -348,13 +347,14 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             if (trade._id === ctx.trade._id) {
                 trade.futuresResult = result
                 await this.tradeRepo.closeTrade(ctx)
+                this.tradeLog(ctx, `Closed trade: ${trade._id}`)
             } else {
                 const tradeCtx = new TradeCtx({ unit, trade })
                 await this.tradeRepo.closeTrade(tradeCtx)
+                this.tradeLog(tradeCtx, `Closed trade: ${trade._id}`)
             }
-            TradeUtil.addLog(`Closed trade: ${trade._id} fot unit: ${unitIdentifier}`, ctx, this.logger)
         }
-        TradeUtil.addLog(`[STOP] Closing position ${symbol} for unit: ${unitIdentifier}`, ctx, this.logger)
+        this.tradeLog(ctx, `[STOP] Closing position`)
     }
 
     private async closeTradeOrderManual(ctx: TradeCtx) {

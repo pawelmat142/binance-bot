@@ -15,7 +15,7 @@ export class BaseValidator {
 
     private prepareLines() {
         if (!this.lines?.length){
-            this.signal.lines = this.message?.split(/\r?\n/) ?? []
+            this.signal.lines = (this.message?.split(/\r?\n/) ?? []).map(line => line.toLowerCase())
         }
     }
 

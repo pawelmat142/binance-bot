@@ -74,7 +74,7 @@ export class SignalOtherActionValidator extends BaseValidator {
             if (!line) continue
 
             if (line.includes('move')) {
-                if (line.includes('sl') || line.includes('stop loss')) {
+                if (line.includes('sl') || line.includes('stop los') || line.includes('stoplos')) {
 
                     this.signal.otherSignalAction.moveSl = true
                     
