@@ -2,7 +2,6 @@ import { Unit } from "src/unit/unit"
 import { ServiceProvider } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { FuturesResult, Trade, TradeStatus } from "src/binance/model/trade"
-import { isBinanceError } from "src/binance/model/binance.error"
 import { TradeType } from "src/binance/model/model"
 import { Position } from "src/binance/wizard-binance.service"
 import { TradeUtil } from "src/binance/trade-util"
@@ -20,16 +19,24 @@ export class TradesWizard extends UnitWizard {
         super(unit, services)
     }
 
-    private pendingPositions: Position[]
+    private trades: Trade[]
+    private orders: FuturesResult[]
+    private positions: Position[]
+
+    private openPositions: Position[]
 
     private openOrders: FuturesResult[] = []
-    private openOrdersPositions: Position[] = []
+    private openStopLosses: FuturesResult[] = []
+    private openTakeProfits: FuturesResult[] = []
+
+
+
+
 
     private stopLoses: FuturesResult[] = []
 
     private takeProfits: FuturesResult[] = []
-
-    private trades: Trade[]
+    private openOrdersPositions: Position[] = []
 
 
     private error: any
@@ -38,55 +45,77 @@ export class TradesWizard extends UnitWizard {
     private sl: number
 
     protected _init = async () => {
-        const [trades, positions, openOrders] = await Promise.all([
+        await Promise.all([
             this.fetchTrades(),
+            this.fetchOrders(),
             this.fetchPositions(),
-            this.fetchOpenOrders(),
         ])
-        this.trades = trades
-        this.pendingPositions = positions
-            .filter(p => Number(p.positionAmt) !== 0)
 
-        for (let order of openOrders) {
-            if (order.type === TradeType.LIMIT) {
-                this.openOrders.push(order)
-                this.openOrdersPositions.push(positions.find(p => p.symbol === order.symbol))
-                continue
-            }
-            if (order.type === TradeType.STOP_MARKET) {
-                this.stopLoses.push(order)
-                continue
-            }
-            if (order.type === TradeType.TAKE_PROFIT_MARKET) {
-                this.takeProfits.push(order)
-                continue
-            }
-        }
+        const tradeSymbols = new Set(this.trades.map(t => t.variant.symbol))
+
+        this.openPositions = this.positions
+            .filter(p => Number(p.positionAmt) !== 0)
+            .filter(p => tradeSymbols.has(p.symbol))
+
+        this.openOrders = this.orders
+            .filter(o => o.status === TradeStatus.NEW)
+            .filter(o => o.type === TradeType.LIMIT)
+            .filter(o => tradeSymbols.has(o.symbol))
+
+        this.openStopLosses = this.orders
+            .filter(o => o.status === TradeStatus.NEW)
+            .filter(o => o.type === TradeType.STOP_MARKET)
+
+        this.openTakeProfits = this.orders
+            .filter(o => o.status === TradeStatus.NEW)
+            .filter(o => o.type === TradeType.TAKE_PROFIT_MARKET)
+
+        this.openOrdersPositions = this.openOrders
+            .map(o => this.positions.find(p => p.symbol === o.symbol))
+            .filter(p => !!p)
+    }
+
+    private get anyOpenPositionOrOrder(): boolean {
+        return !!this.openOrders?.length || !!this.openPositions?.length
     }
 
     public getSteps(): WizardStep[] {
-        const stepZeroButtons = [
-            ...this.getPendingPositionsButtons(),
-            ...this.getOpenOrdersButtons(),
-        ]
-        const stepZeroMsg = stepZeroButtons.length 
-            ? [`Select position or order...`]
-            : [`You have no pending positions or open orders`]
-
-        stepZeroButtons.push([BotUtil.getBackSwitchButton(StartWizard.name), {
-            text: `refresh`,
-            callback_data: `refresh`,
-            process: async () => {
-                await this._init()
-                return 0
-            }
-        }])
+        const anyOpenPositionOrOrder = this.anyOpenPositionOrOrder
 
         return [{
             order: 0,
-            buttons: stepZeroButtons,
-            message: stepZeroMsg,
-            close: !stepZeroButtons.length,
+            message: anyOpenPositionOrOrder 
+                ? [`Select position or order...`]
+                : [`You have no pending positions or open orders`],
+
+            buttons: [
+                ...(this.order !== 0 || !this.openPositions?.length ? [] : [
+                    [{
+                        text: `Pending positions:`,
+                        callback_data: WizBtn.AVOID_BUTTON_CALLBACK
+                    }],
+                    ...this.openPositions.map(p => this.positionButton(p))
+                ]),
+
+                ...(this.order !== 0 || !this.openOrders?.length ? [] : [
+                    [{
+                        text: `Open orders:`,
+                        callback_data: WizBtn.AVOID_BUTTON_CALLBACK
+                    }],
+                    ...this.openOrders.map(o => this.orderButton(o))
+                ]),
+
+
+                [BotUtil.getBackSwitchButton(StartWizard.name), {
+                    text: `refresh`,
+                    callback_data: `refresh`,
+                    process: async () => {
+                        await this._init()
+                        return 0
+                    }
+                }],
+            ],
+            close: !anyOpenPositionOrOrder,
         }, {
             order: 1,
             message: this.selectedPositionMessage(),
@@ -252,42 +281,35 @@ export class TradesWizard extends UnitWizard {
         return result
     }
     
-    private async fetchTrades(): Promise<Trade[]> {
-        const trades = await this.services.binance.fetchTrades(this.unit)
-        this.logger.log(`fetched ${trades.length} trades`)
-        return Array.isArray(trades) ? trades : []
+    private async fetchTrades() {
+        try {
+            this.trades = await this.services.binance.fetchTrades(this.unit)
+        } catch (error) {
+            const msg = this.services.http.handleErrorMessage(error)
+            this.logger.error(msg)
+            this.trades = []
+        }
+        this.logger.log(`Fetched ${this.trades.length} trades`)
     } 
 
-    private async fetchOpenOrders(): Promise<FuturesResult[]> {
-        const trades = await this.services.tradeService.fetchOpenOrders(this.unit)
-        if (isBinanceError(trades)) {
-            this.logger.error(trades)
-            return []
-        }
-        this.logger.log(`fetched ${trades.length} orders`)
-        return trades
+    private async fetchOrders() {
+        this.orders = await this.services.tradeService.fetchOpenOrders(this.unit)
+        this.logger.log(`Fetched ${this.orders.length} orders`)
     }
 
-    private async fetchPositions(): Promise<Position[]> {
-        const trades = await this.services.tradeService.fetchPositions(this.unit)
-
-        return trades
+    private async fetchPositions(){
+        this.positions = await this.services.tradeService.fetchPositions(this.unit)
+        this.logger.log(`Fetched ${this.positions.length} orders`)
     }
 
 
 
-    private getPendingPositionsButtons(): WizardButton[][] {
-        if (this.order !== 0 || !this.pendingPositions?.length) return []
-        const buttons: WizardButton[][] = [[{
-            text: `Pending positions:`,
-            callback_data: WizBtn.AVOID_BUTTON_CALLBACK
-        }]]
-        for (const position of this.pendingPositions) {
-            const trade = this.findMatchingTrade(position)
-            if (!trade) continue
-            const profit = Number(position.unRealizedProfit)
-            const profitPrefix = profit > 0 ? '+' : ''
-            buttons.push([{
+    private positionButton(position: Position): WizardButton[] {
+        const profit = Number(position.unRealizedProfit)
+        const profitPrefix = profit > 0 ? '+' : ''
+        const trade = this.findMatchingTrade(position)
+        if (trade) {
+            return [{
                 text: `${TradeUtil.msgHeader(trade)}  /  ${profitPrefix}${profit.toFixed(2)} USDT  (${TradeUtil.profitPercent(position)}%)`,
                 callback_data: position.symbol,
                 process: async () => {
@@ -299,36 +321,32 @@ export class TradesWizard extends UnitWizard {
                     }
                     return 6
                 }
-            }])
+            }]
+        } else {
+            return [{
+                text: `${position.symbol}`,
+                callback_data: position.symbol,
+                // TODO
+                process: async () => 8
+            }]
+
         }
-        return buttons
     }
 
-    private getOpenOrdersButtons(): WizardButton[][] {
-        if (this.order !== 0 || !this.openOrders?.length) return []
-        const buttons: WizardButton[][] = [[{
-            text: `Open orders:`,
-            callback_data: WizBtn.AVOID_BUTTON_CALLBACK
-        }]]
-        for (const order of this.openOrders) {
-            const trade = this.findMatchingOrderTrade(order)
-            if (trade) {
-                buttons.push([{
-                    text: `${TradeUtil.orderMsgHeader(order)} [${trade.variant.leverMax}x]`,
-                    callback_data: order.symbol,
-                    process: async () => {
-                        if (order) {
-                            this.select(trade)
-                            if (this.selectedTrade) {
-                                return 2
-                            }
-                        }
-                        return 6
-                    }
-                }])
+    private orderButton(order: FuturesResult): WizardButton[] {
+        const trade = this.findMatchingOrderTrade(order)
+        const leverTextPart = !!trade ? ` ${trade.variant.leverMax}x` : ` error`
+        return [{
+            text: `${TradeUtil.orderMsgHeader(order)}${leverTextPart}`,
+            callback_data: order.symbol,
+            process: async () => {
+                if (trade) {
+                    this.select(trade)
+                    return 2
+                }
+                return 8
             }
-        }
-        return buttons
+        }]
     }
 
     private findMatchingTrade(position: Position) {
@@ -361,7 +379,7 @@ export class TradesWizard extends UnitWizard {
     }
 
     private findPosition(symbol: string): Position {
-        return this.pendingPositions.find(p => p.symbol.toLowerCase() === symbol.toLowerCase())
+        return this.openPositions.find(p => p.symbol.toLowerCase() === symbol.toLowerCase())
     }
 
     private selectedPositionMessage(): string[] {
@@ -440,7 +458,7 @@ export class TradesWizard extends UnitWizard {
         })
         try {
             await this.services.binanceServie.fullClosePosition(ctx)
-            this.pendingPositions = this.pendingPositions.filter(p => p.symbol === this.selectedTrade.variant.symbol)
+            this.openPositions = this.openPositions.filter(p => p.symbol === this.selectedTrade.variant.symbol)
             this.unselectTrade()
             return true
         } catch (error) {

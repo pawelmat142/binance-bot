@@ -13,6 +13,7 @@ import { HttpMethod } from 'src/global/http-method';
 import { BotUtil } from 'src/wizard/bot.util';
 import { Http } from 'src/global/http/http.service';
 import { ListeKeyResponse, TradeEventData } from 'src/binance/model/model';
+import * as JSONbig from 'json-bigint';
 
 
 @Injectable()
@@ -140,7 +141,7 @@ export class UnitService implements OnModuleInit {
         ws.onmessage = (event: MessageEvent) => {
             this.logger.log(`ON MESSAGE for ${unit.identifier}`)
             this.removeListenKeyIfMessageIsAboutClose(event, unit)
-            const tradeEvent: TradeEventData = JSON.parse(event.data as string)
+            const tradeEvent: TradeEventData = JSONbig.parse(event.data as string)
             if (TradeUtil.isTradeEvent(tradeEvent)) {
                 tradeEvent.unitIdentifier = unit.identifier
                 this.tradeEventSubject$.next(tradeEvent)

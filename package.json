@@ -34,6 +34,7 @@
     "axios": "^1.7.2",
     "class-transformer": "^0.5.1",
     "decimal.js": "^10.4.3",
+    "json-bigint": "^1.0.0",
     "moment-timezone": "^0.5.45",
     "mongoose": "^8.1.1",
     "nest-winston": "^1.10.0",

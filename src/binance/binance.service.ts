@@ -84,7 +84,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private onSignalEvent = async (signal: Signal) => {
         if (signal.valid) {
-            SignalUtil.addLog(`Signal ${signal._id} is valid, opening trade per unit... `, signal, this.logger)
+            SignalUtil.addLog(`Signal ${signal._id} ${signal.variant.side} ${signal.variant.symbol}  is valid, opening trade per unit... `, signal, this.logger)
             this.openTradesPerUnit(signal)
         } 
         else if (SignalUtil.anyAction(signal)) {
@@ -169,6 +169,13 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async openTradeForUnit(ctx: TradeCtx) {
+        const tradeOnlyFor = process.env.TRADE_ONLY_FOR
+        if (tradeOnlyFor) {
+            if (ctx.unit.identifier !== tradeOnlyFor) {
+                this.tradeLog(ctx, `[SKIP TRADE]`)
+                return
+            }
+        }
         try {
             await this.tradeService.setIsolatedMode(ctx)
             await this.tradeService.setPositionLeverage(ctx)
@@ -199,7 +206,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private takeProfitOrderIds(order: Trade): number[] {
+    private takeProfitOrderIds(order: Trade): BigInt[] {
         return order.variant.takeProfits.filter(tp => !!tp.reuslt).map(tp => tp.reuslt?.orderId)
     }
 

@@ -111,7 +111,7 @@ export class TakeProfitsWizard extends UnitWizard {
             if (this.takeProfitsAggregator.length) {
                 step.message.push(`Take profits:`)
                 for (let tp of this.takeProfitsAggregator) {
-                    step.message.push(this.tpContentString(tp))
+                    step.message.push(BotUtil.tpContentString(tp))
                 }
             } else {
                 step.message.push(`Take profits are empty`)
@@ -165,9 +165,6 @@ export class TakeProfitsWizard extends UnitWizard {
         return null
     }
 
-    private tpContentString(tp: TakeProfit): string {
-        return `- ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}: ${tp.price} USDT`
-    }
 
     private isPriceOk(price: number) {
         const side = this.selectedTrade.variant.side

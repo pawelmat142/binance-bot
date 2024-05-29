@@ -1,6 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { Http } from './http.service';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
     imports: [
@@ -8,6 +9,5 @@ import { Http } from './http.service';
     ],
     providers: [Http], 
     exports: [Http]
-
 })
 export class AppHttpModule {}

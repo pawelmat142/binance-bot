@@ -200,7 +200,7 @@ export class TradeService {
         return result
     }
 
-    public closeOrder(ctx: TradeCtx, orderId: number): Promise<FuturesResult> {
+    public closeOrder(ctx: TradeCtx, orderId: BigInt): Promise<FuturesResult> {
         const params = queryParams({
             symbol: ctx.symbol,
             orderId: orderId,
@@ -230,7 +230,9 @@ export class TradeService {
             const e = this.http.handleFetchError(error)
             if (e.code === BinanceErrors.CHANGE_MODE) {
                 TradeUtil.addWarning(e.msg, ctx, this.logger)
-            } else throw error
+            } else {
+                this.logger.error(error)
+            }
         }
     }
 
@@ -353,13 +355,12 @@ export class TradeService {
             if (symbol) {
                 params['symbol'] = symbol
             }
-            const orders = await this.http.fetch<FuturesResult[]>({
+            const result = await this.http.fetch<FuturesResult[]>({
                 url: sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit),
                 method: 'GET',
                 headers: getHeaders(unit)
             })
-            return orders
-
+            return result
         } catch (error) {
             this.handleError(error, `FETCH OPEN ORDERS ERROR`)
             return []

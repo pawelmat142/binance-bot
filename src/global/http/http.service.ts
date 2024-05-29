@@ -1,16 +1,10 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
-import { lastValueFrom } from 'rxjs';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HttpMethod } from '../http-method';
 import { AxiosError, AxiosRequestConfig } from 'axios';
 import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
-
-export interface FetchOptions {
-    url: string
-    method: HttpMethod,
-    body?: any
-    headers: Object
-}
+import { lastValueFrom } from 'rxjs';
+import * as JSONbig from 'json-bigint';
 
 @Injectable()
 export class Http {
@@ -18,12 +12,16 @@ export class Http {
     private readonly logger = new Logger(Http.name)
 
     constructor (
-        private readonly httpService: HttpService
+        private readonly httpService: HttpService,
     ) {}
 
     async fetch<ResultType>(config: AxiosRequestConfig): Promise<ResultType> {
         this.logger.warn(config.url)
-        const response = await lastValueFrom(this.httpService.request<ResultType>(config))
+
+        // const response = await lastValueFrom(this.httpService.request<ResultType>(config))
+        config.responseType = 'text'
+        const response = await lastValueFrom(this.httpService.request(config))
+
         const status = response.status
         if (status >= 300) {
             this.logger.error(`[${status}] Http status`)
@@ -32,7 +30,12 @@ export class Http {
         if (isBinanceError(response.data)) {
             throw new Error(response.data.msg)
         }
-        return response.data
+
+        const responseDataString = response.data
+        if (!responseDataString) {
+            return null
+        }
+        return JSONbig.parse(responseDataString) as ResultType
     }
 
     public handleErrorMessage(error): string {

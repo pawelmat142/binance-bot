@@ -105,7 +105,7 @@ export interface TradeEventData {
         sp: string; // Stop price
         x: string; // Execution type
         X: string; // Order status
-        i: number; // Order ID
+        i: BigInt; // Order ID - ZAMIENIAM TYP number na string przez buga z parsowaniem BigInt! https://github.com/jaggedsoft/node-binance-api/issues/539
         l: string; // Order last executed quantity
         z: string; // Order filled quantity
         L: string; // Last filled price

@@ -211,12 +211,13 @@ export abstract class TradeUtil {
     public static token = (symbol: string): string => symbol.replace('USDT', '')
     
     public static msgHeader = (trade: Trade): string => 
-        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} [x${TradeUtil.getLever(trade)}]`
+        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${TradeUtil.getLever(trade)}`
 
     public static orderMsgHeader = (order: FuturesResult) => `${TradeUtil.mode(order.side)} ${TradeUtil.token(order.symbol)}`
 
 
     public static profitPercent = (position: Position): string => {
+        // TODO zle to dziala!
         const profit = 100*Number(position.unRealizedProfit)/Number(position.positionAmt)/Number(position.entryPrice)
         return profit.toFixed()
     }

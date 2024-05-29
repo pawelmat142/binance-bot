@@ -78,11 +78,10 @@ export class WizardBinanceService {
     }
 
     public async fetchTrades(unit: Unit) {
-        const trades = await this.tradeRepo.findByUnit(unit)
-        return trades
+        return this.tradeRepo.findByUnit(unit)
     }
 
-    public async closeOrder(ctx: TradeCtx, orderId: number) {
+    public async closeOrder(ctx: TradeCtx, orderId: BigInt) {
         await this.tradeService.closeOrder(ctx, orderId)
         await this.tradeRepo.closeTrade(ctx)
     }

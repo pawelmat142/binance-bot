@@ -51,9 +51,14 @@ export abstract class BotUtil {
             lines.push(`MISSING take profits!`)
         }
         for (const tp of takeProfits) {
-            lines.push(`-${tp.price} USDT, ${tp.closePercent}% ${TradeUtil.takeProfitStatus(tp)}`)
+            lines.push(this.tpContentString(tp))
         }
     }
+
+    public static tpContentString(tp: TakeProfit): string {
+        return ` ${tp.order+1}) ${tp.price} USDT, ${TradeUtil.takeProfitStatus(tp)} (${tp.closePercent}%)`
+    }
+
 
     public static findClickedButton = (step: WizardStep, callbackData: string): WizardButton => {
         if (step.backButton && callbackData === WizBtn.BACK) {

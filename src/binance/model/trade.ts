@@ -14,7 +14,7 @@ export abstract class TradeStatus {
 export type TradeDocument = HydratedDocument<Trade>
 
 export class FuturesResult {
-    @Expose() @Prop() orderId: number // The unique identifier for the order
+    @Expose() @Prop({ type: 'string' }) orderId: BigInt // The unique identifier for the order  zamieniam typ przez buga z BigInt  https://github.com/jaggedsoft/node-binance-api/issues/539
     @Expose() @Prop() symbol: string // The trading pair symbol for the order (e.g., ‘BTCUSDT’).
     @Expose() @Prop() status: string // The current status of the order (e.g., ‘FILLED’, ‘NEW’).
     @Expose() @Prop() clientOrderId: string //The unique identifier for the order provided by the client
