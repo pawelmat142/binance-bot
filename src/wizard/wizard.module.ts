@@ -6,13 +6,15 @@ import { AppTelegramModule } from 'src/telegram/telegram.module';
 import { SignalModule } from 'src/signal/signal.module';
 import { WizardService } from './wizard.service';
 import { SelectedTradeProvider } from './selected-trade.service';
+import { AppHttpModule } from 'src/global/http/http.module';
 
 @Module({
   imports: [
     AppTelegramModule,
     UnitModule,
     BinanceModule,
-    SignalModule
+    SignalModule,
+    AppHttpModule
   ],
   providers: [
     ServiceProvider,

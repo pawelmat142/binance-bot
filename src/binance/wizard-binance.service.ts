@@ -82,8 +82,8 @@ export class WizardBinanceService {
         return trades
     }
 
-    public async closeOrder(ctx: TradeCtx) {
-        await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
+    public async closeOrder(ctx: TradeCtx, orderId: number) {
+        await this.tradeService.closeOrder(ctx, orderId)
         await this.tradeRepo.closeTrade(ctx)
     }
 

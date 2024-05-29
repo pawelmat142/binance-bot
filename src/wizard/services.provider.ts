@@ -5,6 +5,7 @@ import { WizardBinanceService } from "src/binance/wizard-binance.service";
 import { SignalService } from "src/signal/signal.service";
 import { UnitService } from "src/unit/unit.service";
 import { SelectedTradeProvider } from "./selected-trade.service";
+import { Http } from "src/global/http/http.service";
 
 @Injectable()
 export class ServiceProvider {
@@ -16,6 +17,7 @@ export class ServiceProvider {
         public readonly signalService: SignalService,
         public readonly tradeService: TradeService,
         public readonly selectedTradeService: SelectedTradeProvider,
+        public readonly http: Http,
     ) {}
 
 }

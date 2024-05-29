@@ -234,7 +234,7 @@ export class TradesWizard extends UnitWizard {
             callback_data: `addtps`,
             switch: TakeProfitsWizard.name
         }], [{
-            text: `Force order by marker price`,
+            text: `Force order by market price`,
             callback_data: WizBtn.forceOrderByMarket,
             process: async () => {
                 // TODO
@@ -412,19 +412,21 @@ export class TradesWizard extends UnitWizard {
     // CLOSING
 
     private async fullCloseOrder(): Promise<boolean> {
+        const order = this.openOrders.find(o => o.symbol === this.selectedTrade.variant.symbol)
+        const ctx = new TradeCtx({
+            unit: this.unit,
+            trade: this.selectedTrade
+        })
         try {
-            const ctx = new TradeCtx({
-                unit: this.unit,
-                trade: this.selectedTrade
-            })
             TradeUtil.addLog(`[START] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
-            await this.services.binance.closeOrder(ctx)
+            await this.services.binance.closeOrder(ctx, order.orderId)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
             TradeUtil.addLog(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             this.unselectTrade()
             return true
         } catch (error) {
-            this.error = error
+            this.error = this.services.http.handleErrorMessage(error)
+            TradeUtil.addError(error, ctx, this.logger)
             return false
         }
     }

@@ -119,14 +119,21 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         for (let unit of units) {
             const trade = await this.tradeRepo.findBySignal(signal, unit)
             if (!trade) {
-                SignalUtil.addLog(`Could not find trade ${signal.variant.side} ${signal.variant.symbol} for other signal action`, signal, this.logger)
+                SignalUtil.addLog(`Could not find trade ${signal.variant.side} ${signal.variant.symbol} for other signal action, unit: ${unit.identifier}`, signal, this.logger)
                 this.signalService.updateLogs(signal)
-                return
+                continue
             }
             const ctx = new TradeCtx({ trade, unit })
 
             if (signal.otherSignalAction.manualClose) {
-                await this.fullClosePosition(ctx)
+                if (trade.futuresResult?.status === TradeStatus.FILLED) {
+                    await this.fullClosePosition(ctx)
+                }
+                else if (trade.futuresResult?.status === TradeStatus.NEW) {
+                    await this.closeTradeOrderManual(ctx)
+                } else {
+                    TradeUtil.addError(`wrong trade status: ${trade.futuresResult?.status} when manual close`, ctx, this.logger)
+                } 
             } 
             else if (signal.otherSignalAction.tradeDone) {
                 this.telegramService.sendUnitMessage(ctx, [`${ctx.side} ${ctx.symbol}`, `Trade done, closing...`])
@@ -339,6 +346,18 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             TradeUtil.addLog(`Closed trade: ${trade._id} fot unit: ${unitIdentifier}`, ctx, this.logger)
         }
         TradeUtil.addLog(`[STOP] Closing position ${symbol} for unit: ${unitIdentifier}`, ctx, this.logger)
+    }
+
+    private async closeTradeOrderManual(ctx: TradeCtx) {
+        try {
+            const result = await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
+            ctx.trade.futuresResult = result
+            ctx.trade.closed = true
+            this.update(ctx)
+        } catch (error) {
+            const msg = this.http.handleErrorMessage(error)
+            this.logger.error(msg)
+        }
     }
 
 }

@@ -10,17 +10,8 @@ export class SelectedTradeProvider {
     private readonly selectedTrade$ = new BehaviorSubject<TradeCtx[]>([])
 
     public selectTrade(ctx: TradeCtx) {
-        const ctxs = this.selectedTrade$.value
-
-        if (ctxs.find(c => c.unit.identifier === ctx.unit.identifier)) {
-            for (let c of ctxs) {
-                if (c.unit.identifier === ctx.unit.identifier) {
-                    c = ctx
-                }
-            }
-        } else {
-            ctxs.push(ctx)
-        }
+        const ctxs = this.selectedTrade$.value.filter(c => c.unit.identifier !== ctx.unit.identifier)
+        ctxs.push(ctx)
         this.selectedTrade$.next(ctxs)
     }
 

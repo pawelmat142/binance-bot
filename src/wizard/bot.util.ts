@@ -56,7 +56,7 @@ export abstract class BotUtil {
     }
 
     public static findClickedButton = (step: WizardStep, callbackData: string): WizardButton => {
-        if (step.backButton) {
+        if (step.backButton && callbackData === WizBtn.BACK) {
             BotUtil.addBackBtnIfNeeded(step)
             const btns = step.buttons.pop()
             return btns[0]

@@ -201,7 +201,7 @@ export class TakeProfitsValidator extends BaseValidator {
         if (this.signal.variant.side === 'BUY') {
             let valueBefore = 0
             for (let takeProfit of this.signal.variant.takeProfits) {
-                if (takeProfit.price > valueBefore && takeProfit.price > this.signal.variant.entryZoneEnd) {
+                if (takeProfit.price > valueBefore) {
                     valueBefore = takeProfit.price
                 } else {
                     return false
@@ -210,7 +210,7 @@ export class TakeProfitsValidator extends BaseValidator {
         } else {
             let valueBefore = Infinity
             for (let takeProfit of this.signal.variant.takeProfits) {
-                if (takeProfit.price < valueBefore && takeProfit.price < this.signal.variant.entryZoneEnd) {
+                if (takeProfit.price < valueBefore) {
                     valueBefore = takeProfit.price
                 } else {
                     return false

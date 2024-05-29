@@ -22,6 +22,7 @@ export class Http {
     ) {}
 
     async fetch<ResultType>(config: AxiosRequestConfig): Promise<ResultType> {
+        this.logger.debug(config.url)
         const response = await lastValueFrom(this.httpService.request<ResultType>(config))
         const status = response.status
         if (status >= 300) {
