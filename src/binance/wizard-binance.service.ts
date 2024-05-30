@@ -1,12 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { FuturesResult } from "./model/trade";
+import { FuturesResult, Trade, TradeStatus } from "./model/trade";
 import { TradeService } from "./trade.service";
 import { Unit } from "src/unit/unit";
 import { getHeaders, queryParams, sign } from "src/global/util";
 import { TradeUtil } from "./trade-util";
-import { TradeCtx } from "./model/trade-variant";
+import { TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { Http } from "src/global/http/http.service";
+import { TradeSide, TradeType } from "./model/model";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -95,6 +96,47 @@ export class WizardBinanceService {
             const errorMsg = this.http.handleErrorMessage(error)
             TradeUtil.addError(errorMsg, ctx, this.logger)
             return false
+        }
+    }
+
+    public async closePositionWithoutTrade(position: Position, unit: Unit): Promise<string> {
+        try {
+            const amount = Number(position.positionAmt)
+            if (isNaN(amount)) {
+                throw new Error(`Position amount is not a number`)
+            }
+            const side = amount > 0 ? TradeSide.SELL : TradeSide.BUY;
+            const quantity = Math.abs(amount)
+            const params = queryParams({
+                symbol: position.symbol,
+                side: side,
+                type: TradeType.MARKET,
+                quantity: quantity,
+                reduceOnly: true,
+                timestamp: Date.now()
+            })
+            const result = await this.tradeService.placeOrderByUnit(params, unit, 'POST')
+            this.logger.log(``)
+            result.status = TradeStatus.CLOSED_MANUALLY
+            const trade = {
+                futuresResult: result,
+                unitIdentifier: unit.identifier,
+                quantity: quantity,
+                closed: true,
+                variant: { 
+                    symbol: position.symbol,
+                    side: side
+                } as TradeVariant,
+            } as Trade
+
+            const ctx = new TradeCtx({ trade, unit})
+            TradeUtil.addLog(`Closed position without trade`, ctx, this.logger)
+            await this.tradeRepo.update(ctx)
+            return ''
+        } catch (error) {
+            const msg = this.http.handleErrorMessage(error)
+            this.logger.error(msg)
+            return msg
         }
     }
 

@@ -30,15 +30,19 @@ export class TradesWizard extends UnitWizard {
     private openTakeProfits: FuturesResult[] = []
 
 
+    private selectedPosition?: Position
+
+    private readonly STEP = {
+        TRADES_ORDERS: 0,
+        POSITION: 1,
+        ORDER: 2,
+        ERROR: 3,
+        POSITION_CLOSED: 13,
+        POSITION_WITHOUT_TRADE: 15,
+    }
 
 
-
-    private stopLoses: FuturesResult[] = []
-
-    private takeProfits: FuturesResult[] = []
     private openOrdersPositions: Position[] = []
-
-
     private error: any
 
     private liqPrice: number
@@ -55,7 +59,6 @@ export class TradesWizard extends UnitWizard {
 
         this.openPositions = this.positions
             .filter(p => Number(p.positionAmt) !== 0)
-            .filter(p => tradeSymbols.has(p.symbol))
 
         this.openOrders = this.orders
             .filter(o => o.status === TradeStatus.NEW)
@@ -107,27 +110,27 @@ export class TradesWizard extends UnitWizard {
 
 
                 [BotUtil.getBackSwitchButton(StartWizard.name), {
-                    text: `refresh`,
+                    text: `Refresh`,
                     callback_data: `refresh`,
                     process: async () => {
                         await this._init()
-                        return 0
+                        return this.STEP?.TRADES_ORDERS
                     }
                 }],
             ],
             close: !anyOpenPositionOrOrder,
         }, {
-            order: 1,
+            order: this.STEP?.POSITION,
             message: this.selectedPositionMessage(),
             buttons: this.selectedPositionStepButtons(),
             backButton: true
         }, {
-            order: 2,
+            order: this.STEP?.ORDER,
             message: this.selectedOrderMessage(),
             buttons: this.selectedOrderStepButtons(),
             backButton: true
         }, {
-            order: 3,
+            order: this.STEP?.ERROR,
             message: this.getErrorMessage(),
             close: true
         }, {
@@ -150,7 +153,7 @@ export class TradesWizard extends UnitWizard {
                 }
                 const success = await this.services.binance.moveStopLoss(this.getCtxForSelected(), price)
                 this.sl = price
-                return success ? 11 : 3
+                return success ? 11 : this.STEP?.ERROR
             },
         }, {
             order: 6,
@@ -162,7 +165,7 @@ export class TradesWizard extends UnitWizard {
             nextOrder: 0
         }, {
             order: 8,
-            message: [`TODO`],
+            message: [`TODO Force order by market price`],
             nextOrder: 0
         }, {
             order: 9,
@@ -175,28 +178,46 @@ export class TradesWizard extends UnitWizard {
         }, {
             order: 11,
             message: [`Successfully moved SL to level ${this.sl} USDT`],
-            nextOrder: 1
+            nextOrder: this.STEP?.POSITION
         }, {
             order: 12,
             message: [`Took some profit`],
-            nextOrder: 1
+            nextOrder: this.STEP?.POSITION
         }, {
-            order: 13,
+            order: this.STEP?.POSITION_CLOSED,
             message: [`Closed position`],
-            close: true
+            nextOrder: this.STEP?.TRADES_ORDERS
         }, {
             order: 14,
             message: [`Are you sure you want to close position?`],
             buttons: [[{
                 text: 'Cancel',
                 callback_data: `cancel`,
-                process: async () => 1
+                process: async () => this.STEP?.POSITION
             }, {
                 text: `CONFIRM`,
                 callback_data: `confirm`,
                 process: async () => {
                     const success = await this.fullClosePosition()
-                    return success ? 13 : 3
+                    return success ? this.STEP?.POSITION_CLOSED : this.STEP?.ERROR
+                }
+            }]]
+        }, {
+            order: this.STEP?.POSITION_WITHOUT_TRADE,
+            message: [
+                `Found ${this.selectedPosition?.symbol} position in your Binance Futures account without bot reference`,
+                `Would you like to close it?`
+            ],
+            buttons: [[{
+                text: 'No',
+                callback_data: WizBtn.NO,
+                process: async () => this.STEP?.TRADES_ORDERS
+            }, {
+                text: `Yes`,
+                callback_data: WizBtn.YES,
+                process: async () => {
+                    this.error = await this.services.binance.closePositionWithoutTrade(this.selectedPosition, this.unit)
+                    return !!this.error ? this.STEP?.ERROR : this.STEP?.POSITION_CLOSED
                 }
             }]]
         } ]
@@ -302,42 +323,31 @@ export class TradesWizard extends UnitWizard {
         this.logger.log(`Fetched ${this.positions.length} orders`)
     }
 
-
-
     private positionButton(position: Position): WizardButton[] {
         const profit = Number(position.unRealizedProfit)
         const profitPrefix = profit > 0 ? '+' : ''
         const trade = this.findMatchingTrade(position)
-        if (trade) {
-            return [{
-                text: `${TradeUtil.msgHeader(trade)}  /  ${profitPrefix}${profit.toFixed(2)} USDT  (${TradeUtil.profitPercent(position)}%)`,
-                callback_data: position.symbol,
-                process: async () => {
-                    if (position) {
-                        this.select(trade)
-                        if (this.selectedTrade) {
-                            return 1
-                        }
-                    }
-                    return 6
+        return [{
+            text: !!trade 
+                ? `${BotUtil.btnTradeLabel(trade)}  /  ${profitPrefix}${profit.toFixed(2)} USDT  (${TradeUtil.profitPercent(position)}%)`
+                : `${BotUtil.btnPositionLabel(position)}`,
+            callback_data: position.symbol,
+            process: async () => {
+                this.selectedPosition = position
+                if (trade) {
+                    this.select(trade)
+                    return this.STEP?.POSITION
                 }
-            }]
-        } else {
-            return [{
-                text: `${position.symbol}`,
-                callback_data: position.symbol,
-                // TODO
-                process: async () => 8
-            }]
-
-        }
+                return this.STEP?.POSITION_WITHOUT_TRADE
+            }
+        }]
     }
 
     private orderButton(order: FuturesResult): WizardButton[] {
         const trade = this.findMatchingOrderTrade(order)
         const leverTextPart = !!trade ? ` ${trade.variant.leverMax}x` : ` error`
         return [{
-            text: `${TradeUtil.orderMsgHeader(order)}${leverTextPart}`,
+            text: `${BotUtil.btnOrderMsg(order)}${leverTextPart}`,
             callback_data: order.symbol,
             process: async () => {
                 if (trade) {
@@ -356,13 +366,13 @@ export class TradesWizard extends UnitWizard {
                 const tradeAmount = TradeUtil.tradeAmount(t)
                 const positionAmount = new Decimal(position.positionAmt)
                 // TODO check/test if any TP is filled
-                console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
-                console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
+                // console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
+                // console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
                 return tradeAmount.equals(positionAmount)
             }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]
         if (!result) {
-            this.logger.error(`Could not find matching trade for position ${position.symbol}`)
+            this.logger.warn(`Could not find matching trade for position ${position.symbol}, unit: ${this.unit.identifier}`)
         }
         return result
     }
@@ -454,8 +464,9 @@ export class TradesWizard extends UnitWizard {
         if (!this.selectedTrade) throw new Error('missing selected trade')
         const ctx = new TradeCtx({
             unit: this.unit,
-            trade: this.selectedTrade
+            trade: this.selectedTrade,
         })
+        ctx.position = this.findPosition(ctx.symbol)
         try {
             await this.services.binanceServie.fullClosePosition(ctx)
             this.openPositions = this.openPositions.filter(p => p.symbol === this.selectedTrade.variant.symbol)

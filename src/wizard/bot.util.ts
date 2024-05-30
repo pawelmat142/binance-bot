@@ -3,6 +3,8 @@ import { Wizard, WizardButton, WizardStep } from "./wizards/wizard"
 import { TakeProfit } from "src/binance/model/trade-variant"
 import { TradeUtil } from "src/binance/trade-util"
 import { WizBtn } from "./wizards/wizard-buttons"
+import { FuturesResult, Trade } from "src/binance/model/trade"
+import { Position } from "src/binance/wizard-binance.service"
 
 export abstract class BotUtil {
 
@@ -97,5 +99,13 @@ export abstract class BotUtil {
             switch: wizardName
         }
     }
+
+    public static btnTradeLabel = (trade: Trade): string => 
+        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${TradeUtil.getLever(trade)}`
+
+    public static btnPositionLabel = (position: Position): string => 
+        `${TradeUtil.token(position.symbol)} x${position.leverage}`
+
+    public static btnOrderMsg = (order: FuturesResult) => `${TradeUtil.mode(order.side)} ${TradeUtil.token(order.symbol)}`
 
 }

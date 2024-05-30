@@ -314,7 +314,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     public async fullClosePosition(ctx: TradeCtx) {
         const symbol = ctx.trade.variant.symbol
         const unit = ctx.unit
-        const unitIdentifier = unit.identifier
         this.tradeLog(ctx, `[START] Closing position`)
 
         const openOrders = await this.tradeService.fetchOpenOrders(ctx.unit, symbol)
@@ -330,7 +329,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                         .forEach(tp => tp.reuslt = result)
                     this.tradeLog(ctx, `Closed TAKE PROFIT ${order.orderId}`)
                 } else {
-                    TradeUtil.addError(`Closed order ${order.orderId}, type: ${result.type}`, ctx, this.logger)
+                    TradeUtil.addError(`Closed order: ${order.orderId}, type: ${result.type}`, ctx, this.logger)
                 }
             }
         } else {
@@ -371,7 +370,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private tradeLog(ctx: TradeCtx, log: string) {
-        TradeUtil.addLog(`${ctx.side} ${ctx.symbol}, unit ${ctx.unit.identifier} - ${log}`, ctx, this.logger)
+        TradeUtil.addLog(log, ctx, this.logger)
     }
-
 }

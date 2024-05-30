@@ -3,6 +3,7 @@ import { FuturesResult, Trade } from "./trade";
 import { TradeStatus } from "./model";
 import { Unit } from "src/unit/unit";
 import Decimal from "decimal.js";
+import { Position } from "../wizard-binance.service";
 
 export type TradeSide = 'BUY' | 'SELL'
 
@@ -41,6 +42,7 @@ export class TradeCtx implements TradeContext {
 
     trade: Trade
     unit: Unit
+    position?: Position
 
     constructor(ctx: TradeContext) {
         this.trade = ctx.trade

@@ -5,7 +5,7 @@ import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
-import { TradeType } from './model/model';
+import { TradeSide, TradeType } from './model/model';
 import { TradeRepository } from './trade.repo';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { Unit } from 'src/unit/unit';
@@ -13,6 +13,7 @@ import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
 import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
+import { error } from 'console';
 
 @Injectable()
 export class TradeService {
@@ -287,9 +288,18 @@ export class TradeService {
         })
     }
 
+    public placeOrderByUnit(params: string, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
+        const path = this.testNetwork ? '/order/test' : '/order'
+        return this.http.fetch<FuturesResult>({
+            url: this.signUrlWithParamsAndUnit(path, unit, params),
+            method: method ?? 'POST',
+            headers: getHeaders(unit)
+        })
+    }
+
     public async closePosition(ctx: TradeCtx): Promise<FuturesResult> {
         try {
-            const position = await this.fetchPosition(ctx)
+            const position = ctx.position ?? await this.fetchPosition(ctx)
             const params = queryParams({
                 symbol: ctx.symbol,
                 side: TradeUtil.opositeSide(ctx.side),
@@ -368,8 +378,12 @@ export class TradeService {
     }
 
     private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: string): string {
+        return this.signUrlWithParamsAndUnit(urlPath, tradeContext.unit, params)
+    }
+    
+    private signUrlWithParamsAndUnit(urlPath: string, unit: Unit, params: string): string {
         const url = `${TradeUtil.futuresUri}${urlPath}`
-        return sign(url, params, tradeContext.unit)
+        return sign(url, params, unit)
     }
 
     private handleError(error, msg?: string, ctx?: TradeCtx) {
