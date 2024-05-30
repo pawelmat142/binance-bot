@@ -116,7 +116,6 @@ export class WizardBinanceService {
                 timestamp: Date.now()
             })
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'POST')
-            this.logger.log(``)
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {
                 futuresResult: result,
@@ -131,7 +130,7 @@ export class WizardBinanceService {
 
             const ctx = new TradeCtx({ trade, unit})
             TradeUtil.addLog(`Closed position without trade`, ctx, this.logger)
-            await this.tradeRepo.update(ctx)
+            await this.tradeRepo.save(ctx)
             return ''
         } catch (error) {
             const msg = this.http.handleErrorMessage(error)
@@ -139,5 +138,37 @@ export class WizardBinanceService {
             return msg
         }
     }
+
+    public async closeOrderWithoutTrade(order: FuturesResult, unit: Unit): Promise<string> {
+        try {
+            const params = queryParams({
+                symbol: order.symbol,
+                orderId: order.orderId,
+                timestamp: Date.now(),
+                timeInForce: 'GTC',
+                recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            })
+            const result = await this.tradeService.placeOrderByUnit(params, unit, 'DELETE')
+            result.status = TradeStatus.CLOSED_MANUALLY
+            const trade = {
+                futuresResult: result,
+                unitIdentifier: unit.identifier,
+                closed: true,
+                variant: { 
+                    symbol: order.symbol,
+                    side: order.side
+                } as TradeVariant,
+            } as Trade
+            const ctx = new TradeCtx({ trade, unit})
+            TradeUtil.addLog(`Closed order without trade`, ctx, this.logger)
+            await this.tradeRepo.save(ctx)
+            return ''
+        } catch (error) {
+            const msg = this.http.handleErrorMessage(error)
+            this.logger.error(msg)
+            return msg
+        }
+    }
+
 
 }

@@ -12,6 +12,7 @@ import { TradeCtx } from "src/binance/model/trade-variant"
 import { TakeProfitsWizard } from "./take-profits.wizard"
 import { BotUtil } from "../bot.util"
 import { StartWizard } from "./start.wizard"
+import { error } from "console"
 
 export class TradesWizard extends UnitWizard {
 
@@ -29,16 +30,19 @@ export class TradesWizard extends UnitWizard {
     private openStopLosses: FuturesResult[] = []
     private openTakeProfits: FuturesResult[] = []
 
-
     private selectedPosition?: Position
+    private selectedOrder?: FuturesResult
 
     private readonly STEP = {
         TRADES_ORDERS: 0,
         POSITION: 1,
         ORDER: 2,
         ERROR: 3,
+        TRADE_NOT_FOUND: 6,
+        ORDER_CLOSED: 7,
         POSITION_CLOSED: 13,
         POSITION_WITHOUT_TRADE: 15,
+        ORDER_WITHOUT_TRADE: 16,
     }
 
 
@@ -63,7 +67,6 @@ export class TradesWizard extends UnitWizard {
         this.openOrders = this.orders
             .filter(o => o.status === TradeStatus.NEW)
             .filter(o => o.type === TradeType.LIMIT)
-            .filter(o => tradeSymbols.has(o.symbol))
 
         this.openStopLosses = this.orders
             .filter(o => o.status === TradeStatus.NEW)
@@ -156,11 +159,11 @@ export class TradesWizard extends UnitWizard {
                 return success ? 11 : this.STEP?.ERROR
             },
         }, {
-            order: 6,
+            order: this.STEP?.TRADE_NOT_FOUND,
             message: [`Trade not found`],
             nextOrder: 0
         }, {
-            order: 7,
+            order: this.STEP?.ORDER_CLOSED,
             message: [`Order closed`],
             nextOrder: 0
         }, {
@@ -217,12 +220,39 @@ export class TradesWizard extends UnitWizard {
                 callback_data: WizBtn.YES,
                 process: async () => {
                     this.error = await this.services.binance.closePositionWithoutTrade(this.selectedPosition, this.unit)
-                    return !!this.error ? this.STEP?.ERROR : this.STEP?.POSITION_CLOSED
+                    if (this.error) {
+                        return this.STEP?.ERROR
+                    }
+                    this.openOrdersPositions = this.openOrdersPositions.filter(p => p.symbol !== this.selectedPosition.symbol)
+                    this.selectedPosition = undefined
+                    return this.STEP?.POSITION_CLOSED
+                }
+            }]]
+        }, {
+            order: this.STEP?.ORDER_WITHOUT_TRADE,
+            message: [
+                `Found ${this.selectedOrder?.symbol} order in your Binance Futures account without bot reference`,
+                `Would you like to close it?`
+            ],
+            buttons: [[{
+                text: 'No',
+                callback_data: WizBtn.NO,
+                process: async () => this.STEP?.TRADES_ORDERS
+            }, {
+                text: `Yes`,
+                callback_data: WizBtn.YES,
+                process: async () => {
+                    this.error = await this.services.binance.closeOrderWithoutTrade(this.selectedOrder, this.unit)
+                    if (this.error) {
+                        return this.STEP?.ERROR
+                    }
+                    this.openOrders = this.openOrders.filter(o => o.orderId !== this.selectedOrder.orderId)
+                    this.selectedOrder = undefined
+                    return this.STEP?.ORDER_CLOSED
                 }
             }]]
         } ]
     }
-
 
 
     private selectedPositionStepButtons(): WizardButton[][] {
@@ -345,16 +375,17 @@ export class TradesWizard extends UnitWizard {
 
     private orderButton(order: FuturesResult): WizardButton[] {
         const trade = this.findMatchingOrderTrade(order)
-        const leverTextPart = !!trade ? ` ${trade.variant.leverMax}x` : ` error`
+        const leverTextPart = !!trade ? ` ${trade.variant.leverMax}x` : ''
         return [{
             text: `${BotUtil.btnOrderMsg(order)}${leverTextPart}`,
             callback_data: order.symbol,
             process: async () => {
+                this.selectedOrder = order
                 if (trade) {
                     this.select(trade)
-                    return 2
+                    return this.STEP.ORDER
                 }
-                return 8
+                return this.STEP.ORDER_WITHOUT_TRADE
             }
         }]
     }
@@ -383,7 +414,7 @@ export class TradesWizard extends UnitWizard {
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]
         if (!result) {
-            this.logger.error(`Could not find matching trade for order ${order.symbol}`)
+            this.logger.warn(`Could not find matching trade for order ${order.symbol}`)
         }
         return matchingTrades[0]
     }

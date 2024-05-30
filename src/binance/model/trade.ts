@@ -45,7 +45,7 @@ export class Trade {
     _id: string
 
     @Expose() 
-    @Prop({ required: true })
+    @Prop()
     signalObjectId: string
 
     @Expose() 
