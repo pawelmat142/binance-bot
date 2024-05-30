@@ -302,7 +302,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
         let trade = await this.tradeRepo.findByTradeEvent(eventTradeResult, unit)
         if (!trade) {
-            this.logger.error(`Could not find matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
+            this.logger.error(`[${unit.identifier}] Not found matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
             return
         }
         return new TradeCtx({ unit, trade })
