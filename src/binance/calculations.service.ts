@@ -185,22 +185,26 @@ export class CalculationsService implements OnModuleInit {
     public calculateTakeProfitQuantities(ctx: TradeCtx) {
         const length = ctx.trade.variant.takeProfits.length
         const symbol = ctx.trade.variant.symbol
-        const origQuantity = ctx.origQuantity
+        const quantityForCalculation = new Decimal(ctx.origQuantity).minus(TradeUtil.takeProfitsFilledQuantitySum(ctx.trade))
         const symbolInfo = this.getExchangeInfo(symbol)
         const minNotional = this.getMinNotional(symbolInfo)
         const { minQty, stepSize } = this.getLotSize(symbolInfo)
         for (let i = 0; i < length; i++) {
             let breakLoop = false
             const tp = ctx.trade.variant.takeProfits[i]
+            if (tp.reuslt?.status === TradeStatus.FILLED) {
+                TradeUtil.addLog(`Skipped calculation for TP with order: ${tp.order}`, ctx, this.logger)
+                continue
+            }
             const minQuantityByNotional = roundWithFraction(minNotional.div(tp.price), stepSize)
-            let quantity = roundWithFraction(origQuantity.times(tp.closePercent).div(100), stepSize)
+            let quantity = roundWithFraction(quantityForCalculation.times(tp.closePercent).div(100), stepSize)
             quantity = findMax(quantity, minQuantityByNotional, minQty)
             const sum = ctx.takeProfitQuentitesSum.plus(quantity)
-            if (sum.equals(origQuantity)) {
+            if (sum.equals(quantityForCalculation)) {
                 tp.quantity = quantity.toNumber()
                 breakLoop = true
-            } else if (sum.greaterThan(origQuantity)) {
-                const correctedQuantity = quantity.minus(sum.minus(origQuantity)) 
+            } else if (sum.greaterThan(ctx.origQuantity)) {
+                const correctedQuantity = quantity.minus(sum.minus(quantityForCalculation)) 
                 if (correctedQuantity.lessThan(minQuantityByNotional)) {
                     if (i > 0) {
                         const prevTp = ctx.trade.variant.takeProfits[i-1]
@@ -221,9 +225,9 @@ export class CalculationsService implements OnModuleInit {
             .map(tp => tp.quantity)
             .filter(q => !!q)
             .join(', ')
-        if (sum.equals(origQuantity)) {
-            TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`, ctx, this.logger)
-        } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, executed: ${origQuantity}`)
+        if (sum.equals(ctx.origQuantity)) {
+            TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`, ctx, this.logger)
+        } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`)
     }
 
     public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) => {

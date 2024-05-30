@@ -7,19 +7,25 @@ import { TradeStatus } from "src/binance/model/trade"
 import Decimal from "decimal.js"
 import { BotUtil } from "../bot.util"
 import { TradesWizard } from "./trades.wizard"
+import { TradeUtil } from "src/binance/trade-util"
 
 export class TakeProfitsWizard extends UnitWizard {
 
     constructor(unit: Unit, services: ServiceProvider) {
         super(unit, services)
-        this.takeProfitsAggregator = this.takeProfits
-    }
-
-    private get takeProfits(): TakeProfit[] {
-        return this.selectedTrade?.variant.takeProfits ?? []
+        this.initTakeProfitAggregator()
     }
 
     private takeProfitsAggregator: TakeProfit[] = []
+
+    private get takeProfits(): TakeProfit[] {
+        return this.takeProfitsAggregator || []
+    }
+
+    private initTakeProfitAggregator() {
+        this.takeProfitsAggregator = this.selectedTrade?.variant.takeProfits.map(tp => tp) ?? []
+        this.takeProfitsIterator = 0
+    }
 
     private takeProfitsIterator = 0
 
@@ -27,15 +33,40 @@ export class TakeProfitsWizard extends UnitWizard {
 
 
     public getSteps(): WizardStep[] {
-        return [
-            this.getStepZero(),
-            {
+        return [{ 
+                order: 0, 
+                message: [
+                    BotUtil.btnTradeLabel(this.selectedTrade),
+                    ...this.getTakeProfitsMessage()
+                ],
+                buttons: this.anyTpToRemove 
+                    ? [[{
+                        text: `Remove pending & waiting take profits`,
+                        callback_data: `cleantps`,
+                        process: async () => 6
+                    }], [BotUtil.getBackSwitchButton(TradesWizard.name)]]
+                    : this.hasOnlyFilledTps 
+                    ? [[{
+                        text: `Add Take Profit number ${this.takeProfitsIterator+1}`,
+                        callback_data: `addtp`,
+                        process: async () => {
+                            const tpsLength = this.takeProfits.length
+                            this.takeProfitsIterator = tpsLength
+                            return 2
+                        }
+                    }], [BotUtil.getBackSwitchButton(TradesWizard.name)]] 
+                    : [[BotUtil.getBackSwitchButton(TradesWizard.name)]]
+            }, {
                 order: 1,
                 message: [`Removed not filled take profits`],
                 nextOrder: 0
             }, {
                 order: 2,
-                message: [`Provide stop price of ${this.takeProfitsIterator+1}. take profit...`],
+                message: [
+                    ...this.getTakeProfitsMessage(),
+                    ``,
+                    `Provide stop price of Take Profit number ${this.takeProfitsIterator+1} ...`
+                ],
                 process: async (input: string) => {
                     const price = Number(input)
                     if (isNaN(price)) return 3
@@ -47,8 +78,37 @@ export class TakeProfitsWizard extends UnitWizard {
 
                     this.takeProfitsAggregator.push(newTakeProfit)
                     this.takeProfitsIterator++
-                    return 0
+                    return 2
                 }, 
+                buttons: [[{
+                    text: `Interrupt`,
+                    callback_data: 'interrupt',
+                    process: async () => {
+                        this.initTakeProfitAggregator()
+                        return 0
+                    }
+                }, {
+                    text: `CONFIRM`,
+                    callback_data: 'confirm',
+                    process: async () => {
+                        this.calculatePercentages()
+                        this.selectedTrade.variant.takeProfits = this.takeProfits
+                        const anyPendingTakeProfit = this.takeProfits.some(tp => tp.reuslt?.status === TradeStatus.NEW)
+                        if (anyPendingTakeProfit) {
+                            throw new Error(`Should be no any pending Take Profit now!`)
+                        }
+                        const ctx = new TradeCtx({
+                            trade: this.selectedTrade,
+                            unit: this.unit
+                        })
+                        await this.services.binanceServie.openFirstTakeProfit(ctx)
+                        TradeUtil.addLog(`Opened first take profit`, ctx, this.logger)
+                        await this.services.binanceServie.update(ctx)
+                        this.select(ctx.trade)
+                        this.initTakeProfitAggregator()
+                        return 0
+                    }
+                }]]
             }, {
                 order: 3,
                 message: [`It's not a number`],
@@ -63,7 +123,7 @@ export class TakeProfitsWizard extends UnitWizard {
                 nextOrder: 0
             }, {
                 order: 6,
-                message: [`Are you sure you want to remove take profits?`],
+                message: [`Take profits ${this.takeProfitsAggregator?.filter(tp => TradeUtil.tpNotFilled(tp)).map(tp => tp.order+1).join(', ')} will be removed`],
                 buttons: [[{
                     text: `No`,
                     callback_data: `no`,
@@ -72,11 +132,7 @@ export class TakeProfitsWizard extends UnitWizard {
                     text: `YES`,
                     callback_data: `yes`,
                     process: async () => {
-                        // todo - TO ZLE DZIALA
                         const trade = this.selectedTrade
-
-                        console.log('this.takeProfitsAggregator')
-                        console.log(this.takeProfitsAggregator)
                         trade.variant.takeProfits = this.takeProfitsAggregator
                         const ctx = new TradeCtx({
                             unit: this.unit,
@@ -85,7 +141,6 @@ export class TakeProfitsWizard extends UnitWizard {
                         await this.services.tradeService.closePendingTakeProfit(ctx)
                         trade.variant.takeProfits = []
                         await this.services.binanceServie.update(ctx)
-
                         this.takeProfitsAggregator = ctx.trade.variant.takeProfits
                         return 1
                     }
@@ -94,73 +149,19 @@ export class TakeProfitsWizard extends UnitWizard {
             }]
     }
 
-    private removeTakeProfitsButtons(step: WizardStep) {
-
+    private getTakeProfitsMessage(): string[] {
+        if (!this.selectedTrade) return []
+        const lines = []
+        BotUtil.prepareTakeProfitMsgLines(this.takeProfits, lines)
+        return lines
     }
 
-    private addTakeProfitsButton(step: WizardStep) {
-
+    private get anyTpToRemove(): boolean {
+        return this.takeProfits.some(tp => TradeUtil.tpNotFilled(tp))
     }
 
-    private getStepZero(): WizardStep {
-        if (this.selectedTrade) {
-            const step = { order: 0, message: [], buttons: [[]] }
-            
-            if (this.takeProfitsAggregator.length) {
-                step.message.push(`Take profits:`)
-                for (let tp of this.takeProfitsAggregator) {
-                    step.message.push(BotUtil.tpContentString(tp))
-                }
-            } else {
-                step.message.push(`Take profits are empty`)
-                step.buttons[0].push({
-                    text: `Add TP`,
-                    callback_data: `addtp`,
-                    process: async () => {
-                        const tpsLength = this.takeProfitsAggregator.length
-                        this.takeProfitsIterator = tpsLength
-                        return 2
-                    }
-                })
-            }
-
-            const anyTpToRemove = this.takeProfitsAggregator.some(tp => !tp.reuslt || tp.reuslt.status === TradeStatus.NEW)
-            if (anyTpToRemove) {
-                step.buttons[0].push({
-                    text: `Remove not filled TPs`,
-                    callback_data: `cleantps`,
-                    process: async () => 6
-                })
-            }
-
-                
-            step.buttons.push([BotUtil.getBackSwitchButton(TradesWizard.name)])
-            // step.buttons.push([{
-            //     text: `CONFIRM and order first take profit`,
-            //     callback_data: `confitm`,
-            //     process: async () => {
-            //         this.calculatePercentages()
-            //         this.selectedTrade.variant.takeProfits = this.takeProfitsAggregator
-            //         try {
-            //             const ctx = new TradeCtx({
-            //                 unit: this.unit,
-            //                 trade: this.selectedTrade
-            //             })
-            //             await this.services.binanceServie.openFirstTakeProfit(ctx)
-            //             await this.services.binanceServie.update(ctx)
-            //             return 5
-            //         } catch (error) {
-            //             this.error = error
-            //             this.logger.error(this.error)
-            //             return 4
-            //         }
-            //         // TODO
-            //         return 0
-            //     }
-            // }])
-            return step
-        }
-        return null
+    private get hasOnlyFilledTps(): boolean {
+        return this.takeProfits.every(tp => tp.reuslt?.status === TradeStatus.FILLED)
     }
 
 
@@ -206,11 +207,12 @@ export class TakeProfitsWizard extends UnitWizard {
     }
 
     private calculatePercentages() {
-        const singleTakeProfitPercentage = new Decimal(100).div(this.takeProfitsAggregator.length).floor()
-        this.takeProfitsAggregator.forEach(tp => {
+        const singleTakeProfitPercentage = new Decimal(100).div(this.takeProfits.length).floor()
+        this.takeProfits.forEach(tp => {
             tp.closePercent = singleTakeProfitPercentage.toNumber()
         })
+        const remainder = 100 % this.takeProfits.length
+        this.takeProfits[0].closePercent += remainder
     }
-    
 
 }

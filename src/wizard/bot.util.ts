@@ -58,7 +58,8 @@ export abstract class BotUtil {
     }
 
     public static tpContentString(tp: TakeProfit): string {
-        return ` ${tp.order+1}) ${tp.price} USDT, ${TradeUtil.takeProfitStatus(tp)} (${tp.closePercent}%)`
+        const percentPart = tp.closePercent ? ` (${tp.closePercent}%)` : ''
+        return ` ${tp.order+1}) ${tp.price} USDT, ${TradeUtil.takeProfitStatus(tp)}${percentPart}`
     }
 
 
@@ -100,7 +101,7 @@ export abstract class BotUtil {
         }
     }
 
-    public static btnTradeLabel = (trade: Trade): string => 
+    public static btnTradeLabel = (trade: Trade): string => !trade ? '' : 
         `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${TradeUtil.getLever(trade)}`
 
     public static btnPositionLabel = (position: Position): string => 

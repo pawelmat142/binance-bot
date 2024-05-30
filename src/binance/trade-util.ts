@@ -245,5 +245,8 @@ export abstract class TradeUtil {
         return result
     }
 
+    public static tpNotFilled = (takeProfit: TakeProfit): boolean => {
+        return !takeProfit.reuslt || takeProfit.reuslt.status === TradeStatus.NEW
+    }
 
 }
