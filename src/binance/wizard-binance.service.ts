@@ -83,7 +83,7 @@ export class WizardBinanceService {
 
     public async closeOrder(ctx: TradeCtx, orderId: BigInt) {
         await this.tradeService.closeOrder(ctx, orderId)
-        await this.tradeRepo.closeTrade(ctx)
+        await this.tradeRepo.closeTradeManual(ctx)
     }
 
     public async moveStopLoss(ctx: TradeCtx, stopLossPrice: number): Promise<boolean> {

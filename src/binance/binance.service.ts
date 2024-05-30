@@ -132,7 +132,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     
                 if (signal.otherSignalAction.manualClose) {
                     if (trade.futuresResult?.status === TradeStatus.FILLED) {
-                        await this.fullClosePosition(ctx)
+                        await this.fullClosePositionManual(ctx)
                     }
                     else if (trade.futuresResult?.status === TradeStatus.NEW) {
                         await this.closeTradeOrderManual(ctx)
@@ -142,7 +142,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 } 
                 else if (signal.otherSignalAction.tradeDone) {
                     this.telegramService.sendUnitMessage(ctx, [`${ctx.side} ${ctx.symbol}`, `Trade done, closing...`])
-                    await this.fullClosePosition(ctx)
+                    await this.fullClosePositionManual(ctx)
                 } 
                 else {
                     if (signal.otherSignalAction.takeSomgeProfit) {
@@ -252,16 +252,18 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.updateFilledTakeProfit(eventTradeResult, ctx)
 
             if (TradeUtil.positionFullyFilled(ctx)) {
+                ctx.trade.closed = true
                 await this.tradeService.closeStopLoss(ctx)
                 await this.tradeService.closePendingTakeProfit(ctx)
-                TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
+                this.fullClosePositionManual
+                this.tradeLog(ctx, `Every take profit filled, stop loss closed ${ctx.trade._id}`)
                 this.telegramService.onClosedPosition(ctx)
             } 
             else {
                 await this.tradeService.moveStopLoss(ctx)
-                TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
+                this.tradeLog(ctx, `Moved stop loss`)
                 await this.tradeService.openNextTakeProfit(ctx)
-                TradeUtil.addLog(`Opened next take profit ${ctx.trade._id}`, ctx, this.logger)
+                this.tradeLog(ctx, `Opened next take profit ${ctx.trade._id}`)
                 this.telegramService.onFilledTakeProfit(ctx)
             }
         } catch (error) {
@@ -280,7 +282,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         const takeProfits = ctx.trade.variant.takeProfits
         const tp = takeProfits.find(t => t.reuslt?.orderId === eventTradeResult.orderId)
         if (!tp) throw new Error(`Could not find TP with orderId: ${eventTradeResult.orderId} in found trade ${ctx.trade._id}`)
-        TradeUtil.addLog(`Filled take profit: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`, ctx, this.logger)
+        this.tradeLog(ctx, `Filled take profit: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`)
         tp.reuslt = eventTradeResult
     }
 
@@ -312,7 +314,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         return new Promise(resolve => setTimeout(resolve, 1000))
     }
 
-    public async fullClosePosition(ctx: TradeCtx) {
+    public async fullClosePositionManual(ctx: TradeCtx) {
         const symbol = ctx.trade.variant.symbol
         const unit = ctx.unit
         this.tradeLog(ctx, `[START] Closing position`)
@@ -341,16 +343,16 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         this.tradeLog(ctx, `Closed position`)
 
         const trades = await this.tradeRepo.findBySymbol(ctx)
-        TradeUtil.addLog(`Found ${trades.length} open trades`, ctx, this.logger)
+        this.tradeLog(ctx, `Found ${trades.length} open trades`)
 
         for (let trade of trades) {
             if (trade._id === ctx.trade._id) {
                 trade.futuresResult = result
-                await this.tradeRepo.closeTrade(ctx)
+                await this.tradeRepo.closeTradeManual(ctx)
                 this.tradeLog(ctx, `Closed trade: ${trade._id}`)
             } else {
                 const tradeCtx = new TradeCtx({ unit, trade })
-                await this.tradeRepo.closeTrade(tradeCtx)
+                await this.tradeRepo.closeTradeManual(tradeCtx)
                 this.tradeLog(tradeCtx, `Closed trade: ${trade._id}`)
             }
         }

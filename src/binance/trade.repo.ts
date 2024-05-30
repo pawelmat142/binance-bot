@@ -109,7 +109,7 @@ export class TradeRepository {
         return trade
     }
 
-    public closeTrade(ctx: TradeCtx) {
+    public closeTradeManual(ctx: TradeCtx) {
         ctx.trade.closed = true
         if (ctx.trade.futuresResult) {
             ctx.trade.futuresResult.status = TradeStatus.CLOSED_MANUALLY
