@@ -504,7 +504,8 @@ export class TradesWizard extends UnitWizard {
             this.unselectTrade()
             return true
         } catch (error) {
-            this.error = error
+            const msg = this.services.http.handleErrorMessage(error)
+            this.error = msg
             return false
         }
     }

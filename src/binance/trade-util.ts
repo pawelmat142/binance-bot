@@ -163,9 +163,14 @@ export abstract class TradeUtil {
 
     public static positionFullyFilled(ctx: TradeCtx): boolean {
         const positionQuantity = new Decimal(ctx.trade.futuresResult?.origQty ?? 0)
-        const result = positionQuantity.equals(this.takeProfitsFilledQuantitySum(ctx.trade))
+        const takeProfitsSum = this.takeProfitsFilledQuantitySum(ctx.trade)
+        const result = positionQuantity.equals(takeProfitsSum)
+        TradeUtil.addLog(`Position quantity: ${positionQuantity}, take profits filled sum: ${takeProfitsSum}`, ctx, new Logger(this.name))
         if (result) {
+            TradeUtil.addLog(`Position fully filled`, ctx, new Logger(this.name))
             ctx.trade.closed = true
+        } else {
+            TradeUtil.addLog(`Position filled not fully`, ctx, new Logger(this.name))
         }
         return result
     }

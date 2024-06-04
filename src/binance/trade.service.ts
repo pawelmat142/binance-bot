@@ -239,6 +239,7 @@ export class TradeService {
 
     private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
         const quantity = forcedQuantity ?? takeProfit.quantity
+        TradeUtil.addLog(`Placing Take Profit order: ${takeProfit.order} with quantity: ${quantity}`, ctx, this.logger)
         if (this.takeProfitQuantitiesFilled(ctx) || !quantity) {
             return
         }
@@ -250,7 +251,6 @@ export class TradeService {
             takeProfit.reuslt.executedQty = ctx.trade.quantity.toString()
             takeProfit.reuslt.status = 'NEW'
         }
-        TradeUtil.addLog(`Placed take profit order for tp: ${takeProfit.order} with quantity: ${result.origQty}`, ctx, this.logger)
     }
 
     private takeProfitQuantitiesFilled(ctx: TradeCtx): boolean {

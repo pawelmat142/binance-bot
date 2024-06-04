@@ -139,7 +139,7 @@ export class TakeProfitsWizard extends UnitWizard {
                             trade: trade
                         })
                         await this.services.tradeService.closePendingTakeProfit(ctx)
-                        trade.variant.takeProfits = []
+                        trade.variant.takeProfits = trade.variant.takeProfits.filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
                         await this.services.binanceServie.update(ctx)
                         this.takeProfitsAggregator = ctx.trade.variant.takeProfits
                         return 1

@@ -41,6 +41,8 @@ export class CalculationsService implements OnModuleInit {
             this.logger.log(`EXCHANGE INFO INITIALIZED from file <<`)
         } catch (error) {
             this.logger.error('Could not load exchange info from file')
+            const msg = this.http.handleErrorMessage(error)
+            this.logger.error(msg)
         }
     }
     
@@ -61,7 +63,8 @@ export class CalculationsService implements OnModuleInit {
                 throw new Error(`Exchange info empty respone`)
             }
         } catch (error) {
-            this.handleFetchError(error, `EXCHANGE INFO LOADING ERROR`)
+            const msg = this.http.handleErrorMessage(error)
+            this.logger.error(msg)
         }
     }
 
@@ -197,14 +200,14 @@ export class CalculationsService implements OnModuleInit {
                 continue
             }
             const minQuantityByNotional = roundWithFraction(minNotional.div(tp.price), stepSize)
-            let quantity = roundWithFraction(quantityForCalculation.times(tp.closePercent).div(100), stepSize)
+            let quantity = roundWithFraction(ctx.origQuantity.times(tp.closePercent).div(100), stepSize)
             quantity = findMax(quantity, minQuantityByNotional, minQty)
             const sum = ctx.takeProfitQuentitesSum.plus(quantity)
-            if (sum.equals(quantityForCalculation)) {
+            if (sum.equals(ctx.origQuantity)) {
                 tp.quantity = quantity.toNumber()
                 breakLoop = true
             } else if (sum.greaterThan(ctx.origQuantity)) {
-                const correctedQuantity = quantity.minus(sum.minus(quantityForCalculation)) 
+                const correctedQuantity = quantity.minus(sum.minus(ctx.origQuantity)) 
                 if (correctedQuantity.lessThan(minQuantityByNotional)) {
                     if (i > 0) {
                         const prevTp = ctx.trade.variant.takeProfits[i-1]
@@ -227,8 +230,12 @@ export class CalculationsService implements OnModuleInit {
             .join(', ')
         if (sum.equals(ctx.origQuantity)) {
             TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`, ctx, this.logger)
-        } else throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`)
+        } else {
+            throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`)
+        }
     }
+
+    private correctio
 
     public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) => {
         const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status !== TradeStatus.FILLED)
@@ -298,15 +305,4 @@ export class CalculationsService implements OnModuleInit {
         return tickSize
     }
 
-    public handleFetchError(error, msg?: string, ctx?: TradeCtx) {
-        if (msg) {
-            this.logger.error(msg)
-        }
-        if (ctx) {
-            TradeUtil.addError(error, ctx, this.logger)
-        } else {
-            this.logger.error(error)
-        }
-    }
-    
 }

@@ -219,7 +219,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             await this.tradeService.stopLossRequest(ctx)
             await this.openFirstTakeProfit(ctx)
         } catch (error) {
-            TradeUtil.addError(error, ctx, this.logger)
+            const msg = this.http.handleErrorMessage(error)
+            TradeUtil.addError(msg, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
             this.telegramService.onFilledPosition(ctx)
@@ -240,7 +241,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 }
             }
         } catch (error) {
-            TradeUtil.addError(error, ctx, this.logger)
+            const msg = this.http.handleErrorMessage(error)
+            TradeUtil.addError(msg, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
             this.telegramService.onFilledStopLoss(ctx)
@@ -267,7 +269,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 this.telegramService.onFilledTakeProfit(ctx)
             }
         } catch (error) {
-            TradeUtil.addError(error, ctx, this.logger)
+            const msg = this.http.handleErrorMessage(error)
+            TradeUtil.addError(msg, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
         }
@@ -367,8 +370,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.update(ctx)
         } catch (error) {
             const msg = this.http.handleErrorMessage(error)
-            this.tradeLog(ctx, `Error trying to close trade order ${ctx.trade.futuresResult.orderId} manualy`)
-            this.logger.error(msg)
+            TradeUtil.addError(`Error trying to close trade order ${ctx.trade.futuresResult.orderId} manualy`, ctx, this.logger)
+            TradeUtil.addError(msg, ctx, this.logger)
         }
     }
 
