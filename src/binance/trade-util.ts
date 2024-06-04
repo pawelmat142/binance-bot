@@ -33,7 +33,7 @@ export abstract class TradeUtil {
         const log = `${ctx.side} ${ctx.symbol}, unit ${ctx.unit.identifier} - ${_prefix}${msg}`
         ctx.trade.logs = ctx.trade.logs || []
         ctx.trade.logs.push(log)
-        logger.log(msg)
+        logger.log(log)
     } 
 
     public static addError(msg: string, ctx: TradeCtx, logger: Logger) {
