@@ -28,25 +28,40 @@ export abstract class TradeUtil {
         return `${token.toUpperCase()}USDT`
     }
 
+
+    
     public static addLog(msg: string, ctx: TradeCtx, logger: Logger, prefix?: string) {
-        const _prefix = prefix ? `${prefix} ` : ''
-        const log = `${ctx.side} ${ctx.symbol}, unit ${ctx.unit.identifier} - ${_prefix}${msg}`
-        ctx.trade.logs = ctx.trade.logs || []
-        ctx.trade.logs.push(log)
+        if (prefix) {
+            msg = `${prefix} ${msg}`
+        }
+        const log = this.prepareLog(msg, ctx)
+        TradeUtil.addToCtxLogs(log, ctx)
         logger.log(log)
     } 
 
     public static addError(msg: string, ctx: TradeCtx, logger: Logger) {
         ctx.error = true
-        const log = `[${toDateString(new Date())}] ${msg}`
-        ctx.trade.logs.push(log)
-        logger.error(msg)
+        const log = this.prepareLog(msg, ctx)
+        logger.error(log)
     }
     
     public static addWarning(msg: string, ctx: TradeCtx, logger: Logger) {
-        this.addLog(msg, ctx, logger, '[WARNING]')
+        const log = this.prepareLog(msg, ctx)
+        TradeUtil.addToCtxLogs(`[WARNING] ${log}`, ctx)
+        logger.warn(log)
     }
 
+    private static prepareLog(msg: string, ctx: TradeCtx): string {
+        return `${ctx.side} ${ctx.symbol}, unit ${ctx.unit.identifier} - ${msg}`
+    }
+
+
+    private static addToCtxLogs(log: string, ctx: TradeCtx) {
+        const date = new Date()
+        log = `[${date.toLocaleString()}] - ${log}`
+        ctx.trade.logs = ctx.trade.logs || []
+        ctx.trade.logs.push(log)
+    }
 
     public static tradeRequestLimitParams = (trade: Trade): string => {
         return queryParams({

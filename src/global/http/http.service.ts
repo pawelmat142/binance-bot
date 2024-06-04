@@ -60,8 +60,8 @@ export class Http {
             }
         }
         // TODO remove
-        console.log('console.log2')
         console.log(error)
+        console.log('console.log2')
         return error
     }
 

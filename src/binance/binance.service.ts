@@ -282,7 +282,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         const takeProfits = ctx.trade.variant.takeProfits
         const tp = takeProfits.find(t => t.reuslt?.orderId === eventTradeResult.orderId)
         if (!tp) throw new Error(`Could not find TP with orderId: ${eventTradeResult.orderId} in found trade ${ctx.trade._id}`)
-        this.tradeLog(ctx, `Filled take profit: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`)
+        this.tradeLog(ctx, `Filled take profit order: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`)
         tp.reuslt = eventTradeResult
     }
 
@@ -294,7 +294,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         } 
         const trade = await this.tradeRepo.findInProgress(ctx)
         if (trade) {
-            this.logger.warn(`Prevented duplicate trade: ${ctx.side} ${ctx.symbol}, found objectId: ${trade._id}, unit: ${ctx.unit.identifier}`)
+            TradeUtil.addWarning(`Prevented duplicate trade, found objectId: ${trade._id}`, ctx, this.logger)
             return true
         }
         return false
