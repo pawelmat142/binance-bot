@@ -327,7 +327,7 @@ export class TradeService {
                 headers: getHeaders(ctx.unit)
             })
             if (!(response || []).length) {
-                throw new Error(`Could not fetch position ${ctx.side} ${ctx.symbol}`)
+                throw new Error(`Could not fetch position ${TradeUtil.label(ctx)}`)
             }
             return response[0] as Position
         } catch (error) {

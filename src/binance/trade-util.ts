@@ -3,7 +3,7 @@ import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus } from "./model/trade"
 import { SignalMode } from "src/signal/signal-validator"
 import { TradeEventData, TradeSide, TradeType } from "./model/model"
-import { TakeProfit, TradeCtx } from "./model/trade-variant"
+import { TakeProfit, TradeCtx, TradeVariant } from "./model/trade-variant"
 import Decimal from "decimal.js"
 import { Position } from "./wizard-binance.service"
 
@@ -52,9 +52,12 @@ export abstract class TradeUtil {
     }
 
     private static prepareLog(msg: string, ctx: TradeCtx): string {
-        return `${ctx.side} ${ctx.symbol}, unit ${ctx.unit.identifier} - ${msg}`
+        return `${this.label(ctx)} [${ctx.unit.identifier}] - ${msg}`
     }
 
+    public static label(ctx: TradeCtx): string {
+        return `${this.mode(ctx.side)} ${ctx.symbol}`
+    }
 
     private static addToCtxLogs(log: string, ctx: TradeCtx) {
         const date = new Date()
@@ -228,6 +231,7 @@ export abstract class TradeUtil {
         }
         return 'SHORT'
     }
+
 
     public static token = (symbol: string): string => symbol.replace('USDT', '')
     

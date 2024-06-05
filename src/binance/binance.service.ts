@@ -141,7 +141,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                     } 
                 } 
                 else if (signal.otherSignalAction.tradeDone) {
-                    this.telegramService.sendUnitMessage(ctx, [`${ctx.side} ${ctx.symbol}`, `Trade done, closing...`])
+                    this.telegramService.sendUnitMessage(ctx, [`${TradeUtil.label(ctx)}`, `Trade done, closing...`])
                     await this.fullClosePositionManual(ctx)
                 } 
                 else {
@@ -257,10 +257,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 ctx.trade.closed = true
                 await this.tradeService.closeStopLoss(ctx)
                 await this.tradeService.closePendingTakeProfit(ctx)
-                this.fullClosePositionManual
+                this.fullClosePositionManual(ctx)
                 this.tradeLog(ctx, `Every take profit filled, stop loss closed ${ctx.trade._id}`)
                 this.telegramService.onClosedPosition(ctx)
-            } 
+            }
             else {
                 await this.tradeService.moveStopLoss(ctx)
                 this.tradeLog(ctx, `Moved stop loss`)

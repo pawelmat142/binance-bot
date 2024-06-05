@@ -8,6 +8,8 @@ import { StopLossValidator } from "./stop-loss-validator"
 
 export type SignalMode = 'SHORT' | 'LONG'
 
+export type TradeMode = SignalMode
+
 export class SignalValidator extends BaseValidator {
 
     

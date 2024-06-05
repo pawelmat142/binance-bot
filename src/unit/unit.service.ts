@@ -20,6 +20,7 @@ import * as JSONbig from 'json-bigint';
 export class UnitService implements OnModuleInit {
 
     private readonly logger = new Logger(UnitService.name)
+    private readonly WEBSOCKET_ONLY_FOR = process.env.WEBSOCKET_ONLY_FOR
 
     constructor(
         @InjectModel(Unit.name) private unitModel: Model<Unit>,
@@ -109,9 +110,8 @@ export class UnitService implements OnModuleInit {
 
 
     public startListening = async (unit: Unit) => {
-        const websocketOnlyFor = process.env.WEBSOCKET_ONLY_FOR
-        if (websocketOnlyFor) {
-            if (unit.identifier !== websocketOnlyFor) {
+        if (this.WEBSOCKET_ONLY_FOR) {
+            if (unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
                 return
             }
         }
@@ -153,7 +153,12 @@ export class UnitService implements OnModuleInit {
     }
 
 
-    public keepAliveListenKey = async (unit: Unit) =>  {
+    public keepAliveListenKey = async (unit: Unit) =>  { //
+        if (this.WEBSOCKET_ONLY_FOR) {
+            if (unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
+                return
+            }
+        }
         const fetched = await this.fetchUnit(unit.identifier)
         const listenKey = fetched?.listenKey
         if (!listenKey) {

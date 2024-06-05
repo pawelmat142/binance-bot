@@ -5,6 +5,7 @@ import { TradeCtx } from 'src/binance/model/trade-variant';
 import { BotUtil } from '../wizard/bot.util';
 import { Observable, Subject } from 'rxjs';
 import TelegramBot = require("node-telegram-bot-api")
+import { TradeUtil } from 'src/binance/trade-util';
 
 export interface TelegramMsg {
     message: string
@@ -108,7 +109,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onClosedPosition(ctx: TradeCtx) {
         return this.sendUnitMessage(ctx, [
-            `Closed position ${ctx.side} ${ctx.symbol}`
+            `Closed position ${TradeUtil.label(ctx)}`
         ])
     }
 
@@ -121,7 +122,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledPosition(ctx: TradeCtx) {
         const lines = [
-            `${ctx.side} ${ctx.symbol} FILLED`,
+            `${TradeUtil.label(ctx)} FILLED`,
             `entryPrice: ${this.print$(ctx.trade.entryPrice)}`,
             `${ctx.trade._id}`
         ]
@@ -142,7 +143,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledStopLoss(ctx: TradeCtx) {
         const lines = [
-            `Filled stop loss ${ctx.side} ${ctx.symbol}`,
+            `Filled stop loss ${TradeUtil.label(ctx)}`,
             `price: ${this.print$(ctx.trade.stopLossResult.averagePrice)}`,
             `take profits should be closed automatically`,
             `${ctx.trade._id}`
@@ -169,7 +170,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledTakeProfit(ctx: TradeCtx) {
         const lines = [
-            `Filled TP ${ctx.side} ${ctx.symbol}`,
+            `Filled TP ${TradeUtil.label(ctx)}`,
         ]
         this.addTakeProfitLines(ctx, lines)
         this.addStopLossLine(ctx, lines)

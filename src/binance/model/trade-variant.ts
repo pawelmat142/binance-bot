@@ -4,8 +4,12 @@ import { TradeStatus } from "./model";
 import { Unit } from "src/unit/unit";
 import Decimal from "decimal.js";
 import { Position } from "../wizard-binance.service";
+import { TradeMode } from "src/signal/signal-validator";
+import { TradeUtil } from "../trade-util";
 
 export type TradeSide = 'BUY' | 'SELL'
+
+// export type TradeMode = 'LONG' | 'SHORT'
 
 
 export interface TakeProfit {
@@ -70,6 +74,14 @@ export class TradeCtx implements TradeContext {
     public get side(): string {
         return this.trade?.variant?.side
     }
+
+    // public get mode(): string {
+    //     return TradeUtil.mode(this.side)
+    // }
+
+    // public get label(): string {
+    //     return TradeUtil.label(this.trade.variant)
+    // }
 
     public get stopLossSide(): TradeSide {
         const side = this.trade?.variant?.side
