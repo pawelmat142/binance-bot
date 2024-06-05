@@ -100,13 +100,11 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.logger.warn('SKIP TRADE')
             return
         }
-        const trade = this.tradeRepo.prepareTrade(signal)
-        if (!trade.logs) {
-            trade.logs = []
-        }
+        
         const units = this.unitService.units || []
         for (let unit of units) {
-            trade.unitIdentifier = unit.identifier
+
+            const trade = this.tradeRepo.prepareTrade(signal, unit.identifier)
             const ctx = new TradeCtx({ trade, unit })
             if (await this.findInProgressTrade(ctx)) {
                 return
