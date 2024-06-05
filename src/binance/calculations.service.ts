@@ -9,6 +9,7 @@ import { Decimal } from 'decimal.js'
 import { Http } from 'src/global/http/http.service';
 import * as fs from 'fs';
 import { TradeStatus } from './model/trade';
+import { TPUtil } from './take-profit-util';
 
 
 @Injectable()
@@ -188,7 +189,7 @@ export class CalculationsService implements OnModuleInit {
     public calculateTakeProfitQuantities(ctx: TradeCtx) {
         const length = ctx.trade.variant.takeProfits.length
         const symbol = ctx.trade.variant.symbol
-        const quantityForCalculation = new Decimal(ctx.origQuantity).minus(TradeUtil.takeProfitsFilledQuantitySum(ctx.trade))
+        const quantityForCalculation = new Decimal(ctx.origQuantity).minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
         const symbolInfo = this.getExchangeInfo(symbol)
         const minNotional = this.getMinNotional(symbolInfo)
         const { minQty, stepSize } = this.getLotSize(symbolInfo)
@@ -244,7 +245,7 @@ export class CalculationsService implements OnModuleInit {
 
             const tradeOriginQuantity = ctx.origQuantity
             let takeProfitQuantity = tradeOriginQuantity.div(3)
-            const tradeQuantityLeft = tradeOriginQuantity.minus(TradeUtil.takeProfitsFilledQuantitySum(ctx.trade))
+            const tradeQuantityLeft = tradeOriginQuantity.minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
             if (tradeQuantityLeft.lessThan(takeProfitQuantity)) {
                 takeProfitQuantity = tradeQuantityLeft
             }
@@ -254,7 +255,7 @@ export class CalculationsService implements OnModuleInit {
             quantity = findMax(quantity, minQty)
             
             const newTakeProfit: TakeProfit = {
-                order: TradeUtil.findNextTakeProfitOrder(ctx.trade),
+                order: TPUtil.findNextTakeProfitOrder(ctx.trade),
                 price: 0,
                 closePercent: 0,
                 quantity: quantity.toNumber(),

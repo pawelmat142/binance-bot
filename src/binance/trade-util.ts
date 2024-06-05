@@ -1,11 +1,12 @@
-import { queryParams, toDateString } from "src/global/util"
+import { queryParams } from "src/global/util"
 import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus } from "./model/trade"
 import { SignalMode } from "src/signal/signal-validator"
 import { TradeEventData, TradeSide, TradeType } from "./model/model"
-import { TakeProfit, TradeCtx, TradeVariant } from "./model/trade-variant"
+import { TakeProfit, TradeCtx } from "./model/trade-variant"
 import Decimal from "decimal.js"
 import { Position } from "./wizard-binance.service"
+import { TPUtil } from "./take-profit-util"
 
 
 export abstract class TradeUtil {
@@ -27,8 +28,6 @@ export abstract class TradeUtil {
     public static getSymbolByToken(token: string): string {
         return `${token.toUpperCase()}USDT`
     }
-
-
     
     public static addLog(msg: string, ctx: TradeCtx, logger: Logger, prefix?: string) {
         if (prefix) {
@@ -164,32 +163,10 @@ export abstract class TradeUtil {
         return new Decimal(trade?.variant?.leverMax ?? TradeUtil.DEFAULT_LEVER)
     }
 
-    public static positionFullyFilled(ctx: TradeCtx): boolean {
-        const positionQuantity = new Decimal(ctx.trade.futuresResult?.origQty ?? 0)
-        const takeProfitsSum = this.takeProfitsFilledQuantitySum(ctx.trade)
-        const result = positionQuantity.equals(takeProfitsSum)
-        TradeUtil.addLog(`Position quantity: ${positionQuantity}, take profits filled sum: ${takeProfitsSum}`, ctx, new Logger(this.name))
-        if (result) {
-            TradeUtil.addLog(`Position fully filled`, ctx, new Logger(this.name))
-            ctx.trade.closed = true
-        } else {
-            TradeUtil.addLog(`Position filled not fully`, ctx, new Logger(this.name))
-        }
-        return result
-    }
-
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
         let stopLossQuantity = new Decimal(ctx.trade.futuresResult.origQty ?? 0)
-            .minus(this.takeProfitsFilledQuantitySum(ctx.trade))
+            .minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
         return stopLossQuantity
-    }
-
-    public static takeProfitsFilledQuantitySum = (trade: Trade): Decimal => {
-        const takeProfits = trade.variant.takeProfits
-        return takeProfits
-            .filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
-            .map(tp => new Decimal(tp.reuslt?.origQty || 0))
-            .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
     }
 
     public static getStopLossPrice = (ctx: TradeCtx): number => {
@@ -220,7 +197,7 @@ export abstract class TradeUtil {
         if (trade.futuresResult) {
             result = result
                 .plus(new Decimal(trade.futuresResult.origQty)) // has to be orig here, not executed!
-                .minus(this.takeProfitsFilledQuantitySum(trade))
+                .minus(TPUtil.takeProfitsFilledQuantitySum(trade))
         }
         return result
     }
@@ -260,17 +237,5 @@ export abstract class TradeUtil {
         return 'BUY'
     }
 
-    public static findNextTakeProfitOrder = (trade: Trade): number => {
-        let result = 0
-        const takeProfits = trade.variant.takeProfits
-        for (let tp of takeProfits) {
-            result = tp.order+1
-        }
-        return result
-    }
-
-    public static tpNotFilled = (takeProfit: TakeProfit): boolean => {
-        return !takeProfit.reuslt || takeProfit.reuslt.status === TradeStatus.NEW
-    }
 
 }

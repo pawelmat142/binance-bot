@@ -12,9 +12,10 @@ import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
 import { SignalUtil } from 'src/signal/signal-util';
 import { TradeRepository } from './trade.repo';
-import { Signal } from 'src/signal/signal';
+import { OtherSignalAction, Signal } from 'src/signal/signal';
 import { TradeEventData, TradeType } from './model/model';
 import { Http } from 'src/global/http/http.service';
+import { TPUtil } from './take-profit-util';
 
 
 // TODO close the trade signal 
@@ -87,7 +88,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             SignalUtil.addLog(`Signal ${signal._id} ${signal.variant.side} ${signal.variant.symbol}  is valid, opening trade per unit... `, signal, this.logger)
             this.openTradesPerUnit(signal)
         } 
-        else if (SignalUtil.anyAction(signal)) {
+        else if (SignalUtil.anyOtherAction(signal)) {
             this.otherActionsPerUnit(signal)
         } else {
             SignalUtil.addError(`Signal validation error!`, signal, this.logger)
@@ -127,45 +128,66 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             }
             for (let trade of trades) {
                 const ctx = new TradeCtx({ trade, unit })
-    
-                if (signal.otherSignalAction.manualClose) {
-                    if (trade.futuresResult?.status === TradeStatus.FILLED) {
-                        await this.fullClosePositionManual(ctx)
-                    }
-                    else if (trade.futuresResult?.status === TradeStatus.NEW) {
-                        await this.closeTradeOrderManual(ctx)
-                    } else {
-                        TradeUtil.addError(`wrong trade status: ${trade.futuresResult?.status} when manual close`, ctx, this.logger)
-                    } 
-                } 
-                else if (signal.otherSignalAction.tradeDone) {
-                    this.telegramService.sendUnitMessage(ctx, [`${TradeUtil.label(ctx)}`, `Trade done, closing...`])
-                    await this.fullClosePositionManual(ctx)
-                } 
-                else {
-                    if (signal.otherSignalAction.takeSomgeProfit) {
-                        TradeUtil.addLog(`[START] take some profit for unit ${unit.identifier}`, ctx, this.logger)
-                        await this.tradeService.takeSomeProfit(ctx)
-                        TradeUtil.addLog(`[STOP] take some profit for unit ${unit.identifier}`, ctx, this.logger)
-                    }
-                    if (signal.otherSignalAction.moveSl) {
-                        if (signal.otherSignalAction.moveSlToEntryPoint) {
-                            TradeUtil.addLog(`[START] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
-                            const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
-                            if (!entryPrice) {
-                                TradeUtil.addError(`entry price to move SL not found: ${entryPrice}`, ctx, this.logger)
-                                this.tradeRepo.update(ctx)
-                            }
-                            await this.tradeService.moveStopLoss(ctx, entryPrice)
-                            TradeUtil.addLog(`[STOP] move stop loss to entry point for unit ${unit.identifier}`, ctx, this.logger)
-                        } else {
-                            TradeUtil.addError(`Move sl where??`, ctx, this.logger)
-                        }
-                    }
-                    this.tradeRepo.update(ctx)
-                }
+                await this.otherSignalAction(ctx, signal)
             }
         }
+    }
+
+    private async otherSignalAction(ctx: TradeCtx, signal: Signal) {
+        try {
+            if (signal.otherSignalAction.manualClose) {
+                if (ctx.trade.futuresResult?.status === TradeStatus.FILLED) {
+                    await this.fullClosePositionManual(ctx)
+                }
+                else if (ctx.trade.futuresResult?.status === TradeStatus.NEW) {
+                    await this.closeTradeOrderManual(ctx)
+                } else {
+                    TradeUtil.addError(`wrong trade status: ${ctx.trade.futuresResult?.status} when manual close`, ctx, this.logger)
+                } 
+            } 
+            else if (signal.otherSignalAction.tradeDone) {
+                this.telegramService.sendUnitMessage(ctx, [`${TradeUtil.label(ctx)}`, `Trade done, closing...`])
+                await this.fullClosePositionManual(ctx)
+            } 
+            else {
+                if (signal.otherSignalAction.takeSomgeProfit) {
+                    TradeUtil.addLog(`[START] take some profit`, ctx, this.logger)
+                    await this.tradeService.takeSomeProfit(ctx)
+                    TradeUtil.addLog(`[STOP] take some profit`, ctx, this.logger)
+                } 
+                else if (signal.otherSignalAction.takeProfitFound && !TPUtil.anyPendingOrFilledTakeProfit(ctx)) {
+                    TradeUtil.addLog(`[START] place take profits`, ctx, this.logger)
+                    ctx.trade.variant.takeProfits = signal.variant.takeProfits
+                    await this.openFirstTakeProfit(ctx)
+                    TradeUtil.addLog(`[STOP] place take profits`, ctx, this.logger)
+                }
+                if (signal.otherSignalAction.moveSl) {
+                    if (signal.otherSignalAction.moveSlToEntryPoint) {
+                        TradeUtil.addLog(`[START] move stop loss to entry point`, ctx, this.logger)
+                        const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
+                        if (!entryPrice) {
+                            TradeUtil.addError(`entry price to move SL not found: ${entryPrice}`, ctx, this.logger)
+                            this.tradeRepo.update(ctx)
+                        }
+                        await this.tradeService.moveStopLoss(ctx, entryPrice)
+                        TradeUtil.addLog(`[STOP] move stop loss to entry point`, ctx, this.logger)
+                    } else {
+                        TradeUtil.addError(`Move sl where??`, ctx, this.logger)
+                    }
+                }
+                else if (signal.otherSignalAction.stopLossFound && isNaN(ctx.trade.variant.stopLoss)) {
+                    TradeUtil.addLog(`[START] place stop loss`, ctx, this.logger)
+                    ctx.trade.variant.stopLoss = signal.variant.stopLoss
+                    await this.tradeService.stopLossRequest(ctx)
+                    TradeUtil.addLog(`[STOP] place stop loss`, ctx, this.logger)
+                }
+                this.tradeRepo.update(ctx)
+            }
+        } catch (error) {
+            const msg = this.http.handleErrorMessage(error)
+            TradeUtil.addError(msg, ctx, this.logger)
+        }
+
     }
 
     private async openTradeForUnit(ctx: TradeCtx) {
@@ -251,7 +273,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         try {
             this.updateFilledTakeProfit(eventTradeResult, ctx)
 
-            if (TradeUtil.positionFullyFilled(ctx)) {
+            if (TPUtil.positionFullyFilled(ctx)) {
                 ctx.trade.closed = true
                 await this.tradeService.closeStopLoss(ctx)
                 await this.tradeService.closePendingTakeProfit(ctx)
@@ -275,6 +297,11 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     public async openFirstTakeProfit(ctx: TradeCtx) {
+        if (!ctx.trade.variant.takeProfits?.length) {
+            TradeUtil.addLog(`Take Profits empty, skipped opening`, ctx, this.logger)
+            return
+        }
+        TradeUtil.addLog(`Opening first Take Profit`, ctx, this.logger)
         this.calcService.calculateTakeProfitQuantities(ctx)
         await this.tradeService.openNextTakeProfit(ctx)
     }

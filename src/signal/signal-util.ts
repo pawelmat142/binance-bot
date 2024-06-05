@@ -40,7 +40,7 @@ export abstract class SignalUtil {
         }, 0)
     }
 
-    public static anyAction(signal: Signal): boolean {
+    public static anyOtherAction(signal: Signal): boolean {
         return Object.entries(signal?.otherSignalAction || {}).some(e => !!e[1])
     }
 

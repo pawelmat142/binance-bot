@@ -5,7 +5,7 @@ import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { HttpMethod } from 'src/global/http-method';
-import { TradeSide, TradeType } from './model/model';
+import { TradeType } from './model/model';
 import { TradeRepository } from './trade.repo';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { Unit } from 'src/unit/unit';
@@ -13,7 +13,7 @@ import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
 import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
-import { error } from 'console';
+import { TPUtil } from './take-profit-util';
 
 @Injectable()
 export class TradeService {
@@ -171,7 +171,7 @@ export class TradeService {
     }
 
     private async onFilledTakeSomeProfit(ctx: TradeCtx) {
-        if (TradeUtil.positionFullyFilled(ctx)) {
+        if (TPUtil.positionFullyFilled(ctx)) {
             await this.closeStopLoss(ctx)
             await this.closePendingTakeProfit(ctx)
             TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)

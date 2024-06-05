@@ -65,13 +65,6 @@ export class TakeProfitsValidator extends BaseValidator {
         this.addLog(`[STOP] TakeProfitsValidator`)
     }
 
-    private findTakeProfitLineIndex(lineIndex: number) {
-        const line = this.lines[lineIndex]
-        const isTakeProfit = this.takeProfitRegex.test(line)
-        if (isTakeProfit) {
-            this.takeProfitLineIndex = lineIndex
-        }
-    }
 
     private findTakeProfit() {
         let textToScan = this.prepareTextToScanTakeProfit() 

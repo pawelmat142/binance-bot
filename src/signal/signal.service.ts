@@ -39,7 +39,7 @@ export class SignalService {
 
             this.telegramService.sendPublicMessage(telegramMessage?.message)
 
-            if (signal.valid || SignalUtil.anyAction(signal)) {
+            if (signal.valid || SignalUtil.anyOtherAction(signal)) {
                 this.tradeSubject$.next(signal)
             } 
             else {
