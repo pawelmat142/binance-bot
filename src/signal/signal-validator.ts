@@ -73,7 +73,9 @@ export class SignalValidator extends BaseValidator {
         if (this.leverageLineIndex !== -1) {
             this.findLeverage()
         } else {
-            this.addWarning('leverage could not be found')
+            this.addWarning('leverage not found, setting default x5')
+            this.variant.leverMax = TradeUtil.DEFAULT_LEVER
+            this.variant.leverMin = TradeUtil.DEFAULT_LEVER
         }
         if (this.percentOfBalanceLineIndex !== -1) {
             this.findPercentOfBalance()
@@ -215,6 +217,7 @@ export class SignalValidator extends BaseValidator {
                 const matches = line.match(regex)
                 if (matches?.length) {
                     const values = matches
+                        .map(val => val.trim().replace('x', ''))
                         .map(value => Number(value))
                         .filter(val => !isNaN(val))
                     values.sort((a, b) => a - b)

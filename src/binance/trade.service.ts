@@ -232,7 +232,7 @@ export class TradeService {
             if (e.code === BinanceErrors.CHANGE_MODE) {
                 TradeUtil.addWarning(e.msg, ctx, this.logger)
             } else {
-                this.logger.error(error)
+                this.logger.error(e?.msg ?? error)
             }
         }
     }
@@ -264,7 +264,7 @@ export class TradeService {
 
 
     public async setPositionLeverage(ctx: TradeCtx) {
-        const lever = TradeUtil.getLever(ctx.trade).toNumber()
+        const lever = ctx.lever
         const params = queryParams({
             symbol: ctx.symbol,
             leverage: lever,

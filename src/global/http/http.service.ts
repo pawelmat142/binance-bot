@@ -38,9 +38,11 @@ export class Http {
 
     public handleErrorMessage(error): string {
         if (error instanceof AxiosError) {
-            const errorData = error.response?.data
-            if (isBinanceError(errorData)) {
-                return errorData.msg
+            if (error.response?.data) {
+                const errorData = JSON.parse(error.response?.data)
+                if (isBinanceError(errorData)) {
+                    return errorData.msg
+                }
             }
             if (error.response?.status ?? 0 > 300) {
                 return `[${error.response?.status}] ${error.response?.statusText}`
@@ -54,9 +56,11 @@ export class Http {
 
     public handleFetchError(error): BinanceError {
         if (error instanceof AxiosError) {
-            const errorData = error.response?.data
-            if (isBinanceError(errorData)) {
-                return errorData
+            if (error.response?.data) {
+                const errorData = JSON.parse(error.response?.data)
+                if (isBinanceError(errorData)) {
+                    return errorData
+                }
             }
         }
         // TODO remove

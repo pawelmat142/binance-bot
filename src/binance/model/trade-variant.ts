@@ -75,14 +75,6 @@ export class TradeCtx implements TradeContext {
         return this.trade?.variant?.side
     }
 
-    // public get mode(): string {
-    //     return TradeUtil.mode(this.side)
-    // }
-
-    // public get label(): string {
-    //     return TradeUtil.label(this.trade.variant)
-    // }
-
     public get stopLossSide(): TradeSide {
         const side = this.trade?.variant?.side
         if (!side) {
@@ -119,7 +111,7 @@ export class TradeCtx implements TradeContext {
     }
 
     public get lever(): number {
-        return this.trade.variant.leverMin
+        return this.trade.variant.leverMax
     }
 
     public get stopLossProvided(): boolean {

@@ -174,7 +174,7 @@ export class CalculationsService implements OnModuleInit {
         const entryPrice = new Decimal(ctx.trade.entryPrice)
         if (!entryPrice) throw new Error(`entryPrice not found or 0`)
 
-        const calculatedQuantity = usdtAmount.times(TradeUtil.getLever(ctx.trade)).div(entryPrice)
+        const calculatedQuantity = usdtAmount.times(ctx.lever).div(entryPrice)
         const { minQty, stepSize } = this.getLotSize(symbolInfo)
         const quantityStep = roundWithFraction(calculatedQuantity, stepSize)
         const quantity = quantityStep

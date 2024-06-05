@@ -102,7 +102,7 @@ export abstract class BotUtil {
     }
 
     public static btnTradeLabel = (trade: Trade): string => !trade ? '' : 
-        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${TradeUtil.getLever(trade)}`
+        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${trade.variant.leverMax}`
 
     public static btnPositionLabel = (position: Position): string => 
         `${TradeUtil.token(position.symbol)} x${position.leverage}`
