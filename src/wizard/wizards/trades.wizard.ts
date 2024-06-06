@@ -13,6 +13,7 @@ import { TakeProfitsWizard } from "./take-profits.wizard"
 import { BotUtil } from "../bot.util"
 import { StartWizard } from "./start.wizard"
 import { error } from "console"
+import { Http } from "src/global/http/http.service"
 
 export class TradesWizard extends UnitWizard {
 
@@ -336,7 +337,7 @@ export class TradesWizard extends UnitWizard {
         try {
             this.trades = await this.services.binance.fetchTrades(this.unit)
         } catch (error) {
-            const msg = this.services.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             this.logger.error(msg)
             this.trades = []
         }
@@ -478,13 +479,14 @@ export class TradesWizard extends UnitWizard {
         })
         try {
             TradeUtil.addLog(`[START] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
-            await this.services.binance.closeOrder(ctx, order.orderId)
+            await this.services.binance.closeOpenOrder(ctx, order.orderId)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
             TradeUtil.addLog(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             this.unselectTrade()
             return true
-        } catch (error) {
-            this.error = this.services.http.handleErrorMessage(error)
+        } 
+        catch (error) {
+            this.error = Http.handleErrorMessage(error)
             TradeUtil.addError(error, ctx, this.logger)
             return false
         }
@@ -504,7 +506,7 @@ export class TradesWizard extends UnitWizard {
             this.unselectTrade()
             return true
         } catch (error) {
-            const msg = this.services.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             this.error = msg
             return false
         }

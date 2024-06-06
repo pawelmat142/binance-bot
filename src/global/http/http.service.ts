@@ -36,7 +36,7 @@ export class Http {
         return data as ResultType
     }
 
-    public handleErrorMessage(error): string {
+    public static handleErrorMessage(error): string {
         if (error instanceof AxiosError) {
             if (error.response?.data) {
                 const errorData = JSON.parse(error.response?.data)
@@ -54,7 +54,7 @@ export class Http {
         return error
     }
 
-    public handleFetchError(error): BinanceError {
+    public static handleFetchError(error): BinanceError {
         if (error instanceof AxiosError) {
             if (error.response?.data) {
                 const errorData = JSON.parse(error.response?.data)

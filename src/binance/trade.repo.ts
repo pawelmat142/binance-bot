@@ -126,4 +126,23 @@ export class TradeRepository {
         return this.update(ctx)
     }
 
+    public findOpenOrdersForPriceTicker() {
+        return this.model.find({
+            closed: { $ne: true },
+            "futuresResult.status": TradeStatus.NEW,
+        }, { 
+            "variant.symbol": true, 
+            "variant.side": true, 
+            "variant.takeProfits": true
+        }).exec()
+    }
+
+    public findOpenOrdersBySymbol(symbol: string) {
+        return this.model.find({
+            closed: { $ne: true },
+            "futuresResult.status": TradeStatus.NEW,
+            "futuresResult.symbol": symbol
+        }).exec()
+    }
+
 }

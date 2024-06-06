@@ -14,6 +14,7 @@ import { Http } from 'src/global/http/http.service';
 import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
 import { TPUtil } from './take-profit-util';
+import { Subject } from 'rxjs';
 
 @Injectable()
 export class TradeService {
@@ -28,6 +29,8 @@ export class TradeService {
         private readonly http: Http,
         private readonly calculationsService: CalculationsService,
     ) {}
+
+    public closeOrderEvent$ = new Subject<string>()
 
     public async openPosition(ctx: TradeCtx) {
         if (TradeUtil.priceInEntryZone(ctx)) {
@@ -212,6 +215,10 @@ export class TradeService {
         return this.placeOrder(params, ctx, 'DELETE')
     }
 
+    public closeOrderEvent(ctx: TradeCtx) {
+        this.closeOrderEvent$.next(ctx.symbol) // should stop Price Ticker if not needed anymore
+    }
+
     public async setIsolatedMode(ctx: TradeCtx) {
         try {
             const params = queryParams({
@@ -228,7 +235,7 @@ export class TradeService {
             })
             TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
         } catch (error) {
-            const e = this.http.handleFetchError(error)
+            const e = Http.handleFetchError(error)
             if (e.code === BinanceErrors.CHANGE_MODE) {
                 TradeUtil.addWarning(e.msg, ctx, this.logger)
             } else {
@@ -387,7 +394,7 @@ export class TradeService {
     }
 
     private handleError(error, msg?: string, ctx?: TradeCtx) {
-        const errorMessage = this.http.handleErrorMessage(error)
+        const errorMessage = Http.handleErrorMessage(error)
         if (ctx) {
             if (msg) {
                 TradeUtil.addError(msg, ctx, this.logger)

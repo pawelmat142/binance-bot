@@ -12,6 +12,7 @@ import { WizardBinanceService } from './wizard-binance.service';
 import { DuplicateService } from './duplicate.service';
 import { TradeRepository } from './trade.repo';
 import { AppHttpModule } from 'src/global/http/http.module';
+import { AutoCloseService } from './auto-close.service';
 
 @Module({
   imports: [
@@ -31,7 +32,19 @@ import { AppHttpModule } from 'src/global/http/http.module';
       schema: TradeSchema,
     }]),
   ],
-  providers: [BinanceService, CalculationsService, TradeService, WizardBinanceService, DuplicateService, TradeRepository],
-  exports: [BinanceService, TradeService, WizardBinanceService]
+  providers: [
+    BinanceService, 
+    CalculationsService, 
+    TradeService, 
+    WizardBinanceService, 
+    DuplicateService, 
+    TradeRepository, 
+    AutoCloseService
+  ],
+  exports: [
+    BinanceService,
+    TradeService,
+    WizardBinanceService,
+  ]
 })
 export class BinanceModule {}

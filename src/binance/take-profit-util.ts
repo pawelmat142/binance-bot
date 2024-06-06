@@ -7,11 +7,11 @@ import { Logger } from "@nestjs/common";
 export abstract class TPUtil {
 
     public static anyPendingOrFilledTakeProfit = (ctx: TradeCtx): boolean => {
-        return this.takeProfits(ctx).some(tp => [TradeStatus.FILLED, TradeStatus.NEW].includes(tp.reuslt?.status))
+        return this.takeProfits(ctx.trade).some(tp => [TradeStatus.FILLED, TradeStatus.NEW].includes(tp.reuslt?.status))
     }
 
-    private static takeProfits = (ctx: TradeCtx): TakeProfit [] => {
-        return ctx.trade.variant.takeProfits || []
+    public static takeProfits = (trade: Trade): TakeProfit [] => {
+        return trade.variant.takeProfits || []
     }
 
     public static takeProfitsFilledQuantitySum = (trade: Trade): Decimal => {

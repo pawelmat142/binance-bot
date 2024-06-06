@@ -12,7 +12,7 @@ import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
 import { SignalUtil } from 'src/signal/signal-util';
 import { TradeRepository } from './trade.repo';
-import { OtherSignalAction, Signal } from 'src/signal/signal';
+import { Signal } from 'src/signal/signal';
 import { TradeEventData, TradeType } from './model/model';
 import { Http } from 'src/global/http/http.service';
 import { TPUtil } from './take-profit-util';
@@ -140,7 +140,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                     await this.fullClosePositionManual(ctx)
                 }
                 else if (ctx.trade.futuresResult?.status === TradeStatus.NEW) {
-                    await this.closeTradeOrderManual(ctx)
+                    await this.closeOpenOrderManual(ctx)
                 } else {
                     TradeUtil.addError(`wrong trade status: ${ctx.trade.futuresResult?.status} when manual close`, ctx, this.logger)
                 } 
@@ -184,7 +184,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 this.tradeRepo.update(ctx)
             }
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(msg, ctx, this.logger)
         }
 
@@ -205,7 +205,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.calcService.calculateTradeQuantity(ctx)
             await this.tradeService.openPosition(ctx)
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             const log = TradeUtil.addError(msg, ctx, this.logger)
             this.telegramService.tradeErrorMessage(ctx, log)
         } finally {
@@ -239,7 +239,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             await this.tradeService.stopLossRequest(ctx)
             await this.openFirstTakeProfit(ctx)
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(msg, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
@@ -261,7 +261,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 }
             }
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(msg, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
@@ -289,7 +289,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 this.telegramService.onFilledTakeProfit(ctx)
             }
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(msg, ctx, this.logger)
         } finally {
             const saved = await this.tradeRepo.update(ctx)
@@ -387,14 +387,15 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         this.tradeLog(ctx, `[STOP] Closing position`)
     }
 
-    private async closeTradeOrderManual(ctx: TradeCtx) {
+    private async closeOpenOrderManual(ctx: TradeCtx) {
         try {
             const result = await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
             ctx.trade.futuresResult = result
             ctx.trade.closed = true
-            this.update(ctx)
+            await this.update(ctx)
+            this.tradeService.closeOrderEvent(ctx)
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(`Error trying to close trade order ${ctx.trade.futuresResult.orderId} manualy`, ctx, this.logger)
             TradeUtil.addError(msg, ctx, this.logger)
         }

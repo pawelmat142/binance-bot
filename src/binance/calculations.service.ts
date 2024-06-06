@@ -42,7 +42,7 @@ export class CalculationsService implements OnModuleInit {
             this.logger.log(`EXCHANGE INFO INITIALIZED from file <<`)
         } catch (error) {
             this.logger.error('Could not load exchange info from file')
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             this.logger.error(msg)
         }
     }
@@ -64,7 +64,7 @@ export class CalculationsService implements OnModuleInit {
                 throw new Error(`Exchange info empty respone`)
             }
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             this.logger.error(msg)
         }
     }

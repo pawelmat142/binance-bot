@@ -183,7 +183,7 @@ export class UnitService implements OnModuleInit {
             this.updateListenKey(unit, listenKey)
             return listenKey
         } catch (error) {
-            const message = this.http.handleErrorMessage(error)
+            const message = Http.handleErrorMessage(error)
             this.logger.error(message)
         }
     }
@@ -377,7 +377,7 @@ export class UnitService implements OnModuleInit {
                 headers: getHeaders(unit)
             })
         } catch (error) {
-            const message = this.http.handleErrorMessage(error)
+            const message = Http.handleErrorMessage(error)
             this.logger.error(message)
             return null
         }

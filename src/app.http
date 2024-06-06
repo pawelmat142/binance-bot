@@ -17,9 +17,3 @@ GET http://localhost:8009/unit/socket/keepalive/ppp
 
 ### socketClose
 GET http://localhost:8009/unit/socket/close/ppp
-
-### getLogs
-GET http://localhost:8009/unit/logs/ppp
-
-### cleanLogs
-GET http://localhost:8009/unit/clean-log/66684666

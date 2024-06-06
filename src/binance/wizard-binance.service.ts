@@ -81,9 +81,10 @@ export class WizardBinanceService {
         return this.tradeRepo.findByUnit(unit)
     }
 
-    public async closeOrder(ctx: TradeCtx, orderId: BigInt) {
+    public async closeOpenOrder(ctx: TradeCtx, orderId: BigInt) {
         await this.tradeService.closeOrder(ctx, orderId)
         await this.tradeRepo.closeTradeManual(ctx)
+        this.tradeService.closeOrderEvent(ctx)
     }
 
     public async moveStopLoss(ctx: TradeCtx, stopLossPrice: number): Promise<boolean> {
@@ -93,7 +94,7 @@ export class WizardBinanceService {
             await this.tradeRepo.update(ctx)
             return true
         } catch(error) {
-            const errorMsg = this.http.handleErrorMessage(error)
+            const errorMsg = Http.handleErrorMessage(error)
             TradeUtil.addError(errorMsg, ctx, this.logger)
             return false
         }
@@ -133,7 +134,7 @@ export class WizardBinanceService {
             await this.tradeRepo.save(ctx)
             return ''
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             this.logger.error(msg)
             return msg
         }
@@ -164,7 +165,7 @@ export class WizardBinanceService {
             await this.tradeRepo.save(ctx)
             return ''
         } catch (error) {
-            const msg = this.http.handleErrorMessage(error)
+            const msg = Http.handleErrorMessage(error)
             this.logger.error(msg)
             return msg
         }
