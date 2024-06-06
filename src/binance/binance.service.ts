@@ -16,9 +16,9 @@ import { Signal } from 'src/signal/signal';
 import { TradeEventData, TradeType } from './model/model';
 import { Http } from 'src/global/http/http.service';
 import { TPUtil } from './take-profit-util';
+import { VariantUtil } from './model/variant-util';
 
 
-// TODO close the trade signal 
 @Injectable()
 export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
@@ -32,7 +32,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         private readonly unitService: UnitService,
         private readonly duplicateService: DuplicateService,
         private readonly tradeRepo: TradeRepository,
-        private readonly http: Http,
     ) {}
 
 
@@ -147,7 +146,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 } 
             } 
             else if (signal.otherSignalAction.tradeDone) {
-                this.telegramService.sendUnitMessage(ctx, [`${TradeUtil.label(ctx)}`, `Trade done, closing...`])
+                this.telegramService.sendUnitMessage(ctx, [`${VariantUtil.label(ctx.trade.variant)}`, `Trade done, closing...`])
                 await this.manualClosePositionFull(ctx)
             } 
             else {

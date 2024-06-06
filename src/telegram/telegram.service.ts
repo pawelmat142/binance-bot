@@ -5,7 +5,8 @@ import { TradeCtx } from 'src/binance/model/trade-variant';
 import { BotUtil } from '../wizard/bot.util';
 import { Observable, Subject } from 'rxjs';
 import TelegramBot = require("node-telegram-bot-api")
-import { TradeUtil } from 'src/binance/trade-util';
+import { Messages } from './messages';
+import { VariantUtil } from 'src/binance/model/variant-util';
 
 export interface TelegramMsg {
     message: string
@@ -109,7 +110,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onClosedPosition(ctx: TradeCtx) {
         return this.sendUnitMessage(ctx, [
-            `Closed position ${TradeUtil.label(ctx)}`
+            `Closed position ${VariantUtil.label(ctx.trade.variant)}`
         ])
     }
 
@@ -122,7 +123,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledPosition(ctx: TradeCtx) {
         const lines = [
-            `${TradeUtil.label(ctx)} FILLED`,
+            `${VariantUtil.label(ctx.trade.variant)} FILLED`,
             `entryPrice: ${this.print$(ctx.trade.entryPrice)}`,
             `${ctx.trade._id}`
         ]
@@ -142,13 +143,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
 
     public onFilledStopLoss(ctx: TradeCtx) {
-        const lines = [
-            `Filled stop loss ${TradeUtil.label(ctx)}`,
-            `price: ${this.print$(ctx.trade.stopLossResult.averagePrice)}`,
-            `take profits should be closed automatically`,
-            `${ctx.trade._id}`
-        ]
-        this.sendUnitMessage(ctx, lines)
+        this.sendUnitMessage(ctx, Messages.stopLossFilled(ctx))
     }
 
     private addTakeProfitLines(ctx: TradeCtx, lines: string[]) {
@@ -170,7 +165,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledTakeProfit(ctx: TradeCtx) {
         const lines = [
-            `Filled TP ${TradeUtil.label(ctx)}`,
+            `Filled TP ${VariantUtil.label(ctx.trade.variant)}`,
         ]
         this.addTakeProfitLines(ctx, lines)
         this.addStopLossLine(ctx, lines)

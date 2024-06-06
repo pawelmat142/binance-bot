@@ -54,7 +54,7 @@ export class Trade {
     
     
     @Expose() 
-    @Prop({ required: true })
+    @Prop({ required: true, type: Object })
     variant: TradeVariant
 
     @Expose() 

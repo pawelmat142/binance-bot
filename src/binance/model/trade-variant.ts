@@ -4,27 +4,21 @@ import { TradeStatus } from "./model";
 import { Unit } from "src/unit/unit";
 import Decimal from "decimal.js";
 import { Position } from "../wizard-binance.service";
-import { TradeMode } from "src/signal/signal-validator";
-import { TradeUtil } from "../trade-util";
+import { VariantSide, VariantUtil } from "./variant-util";
 
-export type TradeSide = 'BUY' | 'SELL'
+export class TakeProfit {
+    @Prop() order: number
+    @Prop() price: number
+    @Prop() closePercent: number
 
-// export type TradeMode = 'LONG' | 'SHORT'
-
-
-export interface TakeProfit {
-    order: number
-    price: number
-    closePercent: number
-
-    quantity?: number
-    reuslt?: FuturesResult
-    resultTime?: Date
-    takeSomeProfitFlag?: boolean
+    @Prop() quantity?: number
+    @Prop() reuslt?: FuturesResult
+    @Prop() resultTime?: Date
+    @Prop() takeSomeProfitFlag?: boolean
 }
 
 export class TradeVariant {
-    @Prop() side: TradeSide
+    @Prop() side: VariantSide
     @Prop() symbol: string
     @Prop() entryZoneStart: number
     @Prop() entryZoneEnd: number
@@ -59,10 +53,6 @@ export class TradeCtx implements TradeContext {
         return this.trade?.futuresResult?.status === 'FILLED'
     }
     
-    public get placedOnly(): boolean {
-        return this.trade?.futuresResult?.status === 'NEW'
-    }
-
     public get status(): string {
         return this.trade?.futuresResult?.status
     }
@@ -71,20 +61,8 @@ export class TradeCtx implements TradeContext {
         return this.trade?.variant?.symbol
     }
 
-    public get side(): string {
+    public get side(): VariantSide {
         return this.trade?.variant?.side
-    }
-
-    public get stopLossSide(): TradeSide {
-        const side = this.trade?.variant?.side
-        if (!side) {
-            throw new Error('this.trade?.variant?.side - falsy')
-        }
-        return this.trade?.variant.side === 'BUY' ? 'SELL' : 'BUY'
-    }
-
-    public get takeProfitSide(): TradeSide {
-        return this.stopLossSide
     }
 
     public get origQuantity(): Decimal {
@@ -95,15 +73,6 @@ export class TradeCtx implements TradeContext {
         return new Decimal(origQuantity)
     }
 
-    public get takeProfitQuentitesSum(): Decimal {
-        var sum = new Decimal(0)
-        this.trade.variant.takeProfits.forEach(tp => {
-            if (tp.quantity) {
-                sum = sum.add(new Decimal(tp.quantity))
-            }
-        })
-        return sum
-    }
 
     public get takeProfitOrigQuentitesSum(): number {
         return this.trade.variant.takeProfits
@@ -111,7 +80,7 @@ export class TradeCtx implements TradeContext {
     }
 
     public get lever(): number {
-        return this.trade.variant.leverMax
+        return VariantUtil.lever(this.trade.variant)
     }
 
     public get stopLossProvided(): boolean {

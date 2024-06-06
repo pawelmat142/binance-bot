@@ -5,6 +5,7 @@ import { TradeUtil } from "src/binance/trade-util"
 import { WizBtn } from "./wizards/wizard-buttons"
 import { FuturesResult, Trade } from "src/binance/model/trade"
 import { Position } from "src/binance/wizard-binance.service"
+import { VariantUtil } from "src/binance/model/variant-util"
 
 export abstract class BotUtil {
 
@@ -102,11 +103,11 @@ export abstract class BotUtil {
     }
 
     public static btnTradeLabel = (trade: Trade): string => !trade ? '' : 
-        `${TradeUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${trade.variant.leverMax}`
+        `${VariantUtil.mode(trade.variant.side)} ${TradeUtil.token(trade.variant.symbol)} x${trade.variant.leverMax}`
 
     public static btnPositionLabel = (position: Position): string => 
         `${TradeUtil.token(position.symbol)} x${position.leverage}`
 
-    public static btnOrderMsg = (order: FuturesResult) => `${TradeUtil.mode(order.side)} ${TradeUtil.token(order.symbol)}`
+    public static btnOrderMsg = (order: FuturesResult) => `${VariantUtil.mode(order.side)} ${TradeUtil.token(order.symbol)}`
 
 }

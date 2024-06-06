@@ -14,6 +14,7 @@ import { Http } from "src/global/http/http.service";
 import { TelegramService } from "src/telegram/telegram.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { Subscription } from "rxjs";
+import { VariantUtil } from "./model/variant-util";
 
 export interface PriceTickerParams {
     symbol: string
@@ -138,7 +139,7 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
         for (let order of openOrders) {
             const symbol = order.variant.symbol
             if (!TPUtil.takeProfits(order).length) {
-                this.logger.error(`Mising take profits for order ${SignalUtil.label(order.variant)}, ${order._id}`)
+                this.logger.error(`Mising take profits for order ${VariantUtil.label(order.variant)}, ${order._id}`)
                 continue
             }
             if (this.exists(symbol)) {
@@ -245,12 +246,12 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
             const result = await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
             ctx.trade.closed = true
             ctx.trade.futuresResult = result
-            this.telegramService.sendUnitMessage(ctx, [TradeUtil.label(ctx), `Closed order bcs price limit exceeded`])
+            this.telegramService.sendUnitMessage(ctx, [VariantUtil.label(ctx.trade.variant), `Closed order bcs price limit exceeded`])
         } 
         catch (error) {
             const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(msg, ctx, this.logger)
-            this.telegramService.sendUnitMessage(ctx, [TradeUtil.label(ctx), `Error trying close order bcs price limit exceeded`])
+            this.telegramService.sendUnitMessage(ctx, [VariantUtil.label(ctx.trade.variant), `Error trying close order bcs price limit exceeded`])
         }
         finally {
             this.tradeRepo.update(ctx)

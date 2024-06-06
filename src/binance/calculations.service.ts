@@ -203,7 +203,7 @@ export class CalculationsService implements OnModuleInit {
             const minQuantityByNotional = roundWithFraction(minNotional.div(tp.price), stepSize)
             let quantity = roundWithFraction(ctx.origQuantity.times(tp.closePercent).div(100), stepSize)
             quantity = findMax(quantity, minQuantityByNotional, minQty)
-            const sum = ctx.takeProfitQuentitesSum.plus(quantity)
+            const sum = TPUtil.takeProfitsFilledQuantitySum(ctx.trade).plus(quantity)
             if (sum.equals(ctx.origQuantity)) {
                 tp.quantity = quantity.toNumber()
                 breakLoop = true
@@ -224,7 +224,7 @@ export class CalculationsService implements OnModuleInit {
             }
             if (breakLoop) break
         }
-        const sum = ctx.takeProfitQuentitesSum
+        const sum = TPUtil.takeProfitsFilledQuantitySum(ctx.trade)
         const tpQtiesString = ctx.trade.variant.takeProfits
             .map(tp => tp.quantity)
             .filter(q => !!q)

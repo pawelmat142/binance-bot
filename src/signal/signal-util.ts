@@ -1,8 +1,7 @@
 import { Logger } from "@nestjs/common"
 import { Signal } from "./signal"
 import { toDateString } from "src/global/util"
-import { TradeVariant } from "src/binance/model/trade-variant"
-import { TradeUtil } from "src/binance/trade-util"
+import { VariantUtil } from "src/binance/model/variant-util"
 
 export abstract class SignalUtil {
 
@@ -35,12 +34,9 @@ export abstract class SignalUtil {
         logger.warn(msg)
     }
 
-    public static label(variant: TradeVariant): string {
-        return `${TradeUtil.mode(variant.side)} ${variant.symbol}`
-    }
 
     private static prepareLog(msg: string, signal: Signal): string {
-        return signal.variant ? `${this.label(signal.variant)} - ${msg}` : msg
+        return signal.variant ? `${VariantUtil.label(signal.variant)} - ${msg}` : msg
     }
 
     private static addToSignalLogs(log: string, signal: Signal) {

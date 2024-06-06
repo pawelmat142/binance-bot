@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { Trade, TradeStatus } from "./model/trade";
-import { TakeProfit, TradeCtx } from "./model/trade-variant";
+import { TakeProfit, TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeUtil } from "./trade-util";
 import { Logger } from "@nestjs/common";
 
@@ -21,6 +21,15 @@ export abstract class TPUtil {
             .map(tp => new Decimal(tp.reuslt?.origQty || 0))
             .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
     }
+
+
+    
+    public static takeProfitQuentitesSum = (trade: Trade): Decimal => {
+        return this.takeProfits(trade)
+            .map(tp => new Decimal(tp.quantity || 0))
+            .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
+    }
+
 
     public static positionFullyFilled(ctx: TradeCtx): boolean {
         const logger = new Logger(this.name)

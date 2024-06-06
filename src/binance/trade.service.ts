@@ -15,6 +15,7 @@ import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
 import { TPUtil } from './take-profit-util';
 import { Subject } from 'rxjs';
+import { VariantUtil } from './model/variant-util';
 
 @Injectable()
 export class TradeService {
@@ -192,7 +193,7 @@ export class TradeService {
     private async takeSomeProfitRequest(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
         const params = queryParams({
             symbol: ctx.trade.variant.symbol,
-            side: TradeUtil.opositeSide(ctx.trade.variant.side),
+            side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.MARKET,
             quantity: Number(tp.quantity),
             timestamp: Date.now(),
@@ -263,7 +264,7 @@ export class TradeService {
     private takeProfitQuantitiesFilled(ctx: TradeCtx): boolean {
         if (ctx.origQuantity.equals(new Decimal(ctx.takeProfitOrigQuentitesSum))) {
             return true
-        } else if (new Decimal(ctx.takeProfitQuentitesSum).greaterThan(ctx.origQuantity)) {
+        } else if (new Decimal(TPUtil.takeProfitsFilledQuantitySum(ctx.trade)).greaterThan(ctx.origQuantity)) {
             throw new Error(`Take profit quantities sum > origQuantity`)
         }
         return false
@@ -309,7 +310,7 @@ export class TradeService {
             const position = ctx.position ?? await this.fetchPosition(ctx)
             const params = queryParams({
                 symbol: ctx.symbol,
-                side: TradeUtil.opositeSide(ctx.side),
+                side: VariantUtil.opositeSide(ctx.side),
                 type: TradeType.MARKET,
                 quantity: Number(position.positionAmt),
                 reduceOnly: true,
@@ -334,7 +335,7 @@ export class TradeService {
                 headers: getHeaders(ctx.unit)
             })
             if (!(response || []).length) {
-                throw new Error(`Could not fetch position ${TradeUtil.label(ctx)}`)
+                throw new Error(`Could not fetch position ${VariantUtil.label(ctx.trade.variant)}`)
             }
             return response[0] as Position
         } catch (error) {

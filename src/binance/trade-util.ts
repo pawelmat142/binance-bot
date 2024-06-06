@@ -1,13 +1,12 @@
 import { queryParams, toDateString } from "src/global/util"
 import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus } from "./model/trade"
-import { SignalMode } from "src/signal/signal-validator"
 import { TradeEventData, TradeSide, TradeType } from "./model/model"
 import { TakeProfit, TradeCtx } from "./model/trade-variant"
 import Decimal from "decimal.js"
 import { Position } from "./wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
-import { SignalUtil } from "src/signal/signal-util"
+import { VariantUtil } from "./model/variant-util"
 
 
 export abstract class TradeUtil {
@@ -17,14 +16,8 @@ export abstract class TradeUtil {
 
     public static readonly apiUri = 'https://api.binance.com/api/v3'
 
-    public static readonly DEFAULT_LEVER = 5
-
     public static readonly DEFAULT_REC_WINDOW = 50000
 
-
-    public static getTradeSide(mode: SignalMode): 'BUY' | 'SELL' {
-        return mode === 'SHORT' ? 'SELL' : 'BUY'
-    }
 
     public static getSymbolByToken(token: string): string {
         return `${token.toUpperCase()}USDT`
@@ -55,11 +48,7 @@ export abstract class TradeUtil {
     }
 
     private static prepareLog(msg: string, ctx: TradeCtx): string {
-        return `${this.label(ctx)} [${ctx.unit.identifier}] - ${msg}`
-    }
-
-    public static label(ctx: TradeCtx): string {
-        return SignalUtil.label(ctx.trade.variant)
+        return `${VariantUtil.label(ctx.trade.variant)} [${ctx.unit.identifier}] - ${msg}`
     }
 
     private static addToCtxLogs(log: string, ctx: TradeCtx) {
@@ -99,7 +88,7 @@ export abstract class TradeUtil {
         }
         return queryParams({
             symbol: ctx.symbol,
-            side: ctx.stopLossSide,
+            side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.STOP_MARKET,
             quantity: quantity.toNumber(),
             stopPrice: stopLossPrice ?? ctx.trade.variant.stopLoss,
@@ -113,7 +102,7 @@ export abstract class TradeUtil {
     public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): string => {
         return queryParams({
             symbol: ctx.symbol,
-            side: ctx.takeProfitSide,
+            side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.TAKE_PROFIT_MARKET,
             quantity: quantity,
             stopPrice: price,
@@ -162,10 +151,6 @@ export abstract class TradeUtil {
         return (variant.side === TradeSide.BUY && currentPrice < variant.entryZoneEnd) || (variant.side === TradeSide.SELL && currentPrice > variant.entryZoneEnd)
     }
 
-    public static getLever(trade: Trade): Decimal {
-        return new Decimal(trade?.variant?.leverMax ?? TradeUtil.DEFAULT_LEVER)
-    }
-
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
         let stopLossQuantity = new Decimal(ctx.trade.futuresResult.origQty ?? 0)
             .minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
@@ -205,14 +190,6 @@ export abstract class TradeUtil {
         return result
     }
 
-    public static mode = (side: string): SignalMode => {
-        if (side === TradeSide.BUY) {
-            return 'LONG'
-        }
-        return 'SHORT'
-    }
-
-
     public static token = (symbol: string): string => symbol.replace('USDT', '')
     
     public static profitPercent = (position: Position): string => {
@@ -232,13 +209,5 @@ export abstract class TradeUtil {
         }
         return 'waiting'
     }
-
-    public static opositeSide = (side: TradeSide): TradeSide => {
-        if (side === 'BUY') {
-            return 'SELL'
-        }
-        return 'BUY'
-    }
-
 
 }

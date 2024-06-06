@@ -5,10 +5,7 @@ import { SignalUtil } from "./signal-util"
 import { BaseValidator } from "./base-validator"
 import { TakeProfitsValidator } from "./take-profits.validator"
 import { StopLossValidator } from "./stop-loss-validator"
-
-export type SignalMode = 'SHORT' | 'LONG'
-
-export type TradeMode = SignalMode
+import { VariantUtil } from "src/binance/model/variant-util"
 
 export class SignalValidator extends BaseValidator {
 
@@ -74,8 +71,8 @@ export class SignalValidator extends BaseValidator {
             this.findLeverage()
         } else {
             this.addWarning('leverage not found, setting default x5')
-            this.variant.leverMax = TradeUtil.DEFAULT_LEVER
-            this.variant.leverMin = TradeUtil.DEFAULT_LEVER
+            this.variant.leverMax = VariantUtil.DEFAULT_LEVER
+            this.variant.leverMin = VariantUtil.DEFAULT_LEVER
         }
         if (this.percentOfBalanceLineIndex !== -1) {
             this.findPercentOfBalance()
