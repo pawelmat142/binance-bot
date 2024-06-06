@@ -252,8 +252,8 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
     }
 
     private wizardLog(wizard: Wizard, log: string) {
-        const unitIdentifierLog = wizard instanceof UnitWizard ? `, unit: ${wizard.getUnit().identifier}` : ''
-        this.logger.log(`[${wizard.constructor.name}] step ${wizard.order}, chatId: ${wizard.chatId}${unitIdentifierLog} - ${log}`)
+        const unitIdentifierLog = wizard instanceof UnitWizard ? ` [${wizard.getUnit().identifier}]` : ''
+        this.logger.log(`[${wizard.constructor.name}]${unitIdentifierLog} step ${wizard.order}, chatId: ${wizard.chatId} - ${log}`)
     }
 
 }

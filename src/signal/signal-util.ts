@@ -1,7 +1,8 @@
 import { Logger } from "@nestjs/common"
 import { Signal } from "./signal"
 import { toDateString } from "src/global/util"
-import { TakeProfit } from "src/binance/model/trade-variant"
+import { TakeProfit, TradeVariant } from "src/binance/model/trade-variant"
+import { TradeUtil } from "src/binance/trade-util"
 
 export abstract class SignalUtil {
 
@@ -17,27 +18,35 @@ export abstract class SignalUtil {
 
 
     public static addLog(msg: string, signal: Signal, logger: Logger) {
-        const log = `[${toDateString(new Date())}] ${msg}`
-        signal.logs.push(log)
+        const log = this.prepareLog(msg, signal)
+        this.addToSignalLogs(log, signal)
         logger.log(msg)
-    } 
-
+    }
+    
     public static addError(msg: string, signal: Signal, logger: Logger) {
-        const log = `[${toDateString(new Date())}] [ERROR] ${msg}`
-        signal.logs.push(log)
+        const log = `[ERROR] ${this.prepareLog(msg, signal)}`
+        this.addToSignalLogs(log, signal)
         logger.error(msg)
     }
 
     public static addWarning(msg: string, signal: Signal, logger: Logger) {
-        const log = `[${toDateString(new Date())}] [WARN] ${msg}`
-        signal.logs.push(log)
+        const log = `[WARN] ${this.prepareLog(msg, signal)}`
+        this.addToSignalLogs(log, signal)
         logger.warn(msg)
     }
 
-    public static takeProfitsPercentageSum(takeProfits: TakeProfit[]) {
-        return takeProfits.reduce((sum, tp) => {
-            return sum + tp.closePercent
-        }, 0)
+    public static label(variant: TradeVariant): string {
+        return `${TradeUtil.mode(variant.side)} ${variant.symbol}`
+    }
+
+    private static prepareLog(msg: string, signal: Signal): string {
+        return `${this.label(signal.variant)} - ${msg}`
+    }
+
+    private static addToSignalLogs(log: string, signal: Signal) {
+        log = `[${toDateString(new Date())}] ${log}`
+        signal.logs = signal.logs || []
+        signal.logs.push(log)
     }
 
     public static anyOtherAction(signal: Signal): boolean {

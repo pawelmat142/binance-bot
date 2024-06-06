@@ -51,4 +51,10 @@ export abstract class TPUtil {
         return !takeProfit.reuslt || takeProfit.reuslt.status === TradeStatus.NEW
     }
 
+    public static takeProfitsPercentageSum(takeProfits: TakeProfit[]) {
+        return takeProfits.reduce((sum, tp) => {
+            return sum + tp.closePercent
+        }, 0)
+    }
+
 }

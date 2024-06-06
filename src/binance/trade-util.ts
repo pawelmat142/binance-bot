@@ -1,4 +1,4 @@
-import { queryParams } from "src/global/util"
+import { queryParams, toDateString } from "src/global/util"
 import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus } from "./model/trade"
 import { SignalMode } from "src/signal/signal-validator"
@@ -7,6 +7,7 @@ import { TakeProfit, TradeCtx } from "./model/trade-variant"
 import Decimal from "decimal.js"
 import { Position } from "./wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
+import { SignalUtil } from "src/signal/signal-util"
 
 
 export abstract class TradeUtil {
@@ -55,12 +56,11 @@ export abstract class TradeUtil {
     }
 
     public static label(ctx: TradeCtx): string {
-        return `${this.mode(ctx.side)} ${ctx.symbol}`
+        return SignalUtil.label(ctx.trade.variant)
     }
 
     private static addToCtxLogs(log: string, ctx: TradeCtx) {
-        const date = new Date()
-        log = `[${date.toLocaleString()}] - ${log}`
+        log = `[${toDateString(new Date())}] ${log}`
         ctx.trade.logs = ctx.trade.logs || []
         ctx.trade.logs.push(log)
     }
