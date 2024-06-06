@@ -30,25 +30,28 @@ export abstract class TradeUtil {
         return `${token.toUpperCase()}USDT`
     }
     
-    public static addLog(msg: string, ctx: TradeCtx, logger: Logger, prefix?: string) {
+    public static addLog(msg: string, ctx: TradeCtx, logger: Logger, prefix?: string): string {
         if (prefix) {
             msg = `${prefix} ${msg}`
         }
         const log = this.prepareLog(msg, ctx)
         TradeUtil.addToCtxLogs(log, ctx)
         logger.log(log)
+        return log
     } 
 
-    public static addError(msg: string, ctx: TradeCtx, logger: Logger) {
+    public static addError(msg: string, ctx: TradeCtx, logger: Logger): string {
         ctx.error = true
         const log = this.prepareLog(msg, ctx)
         logger.error(log)
+        return log
     }
     
-    public static addWarning(msg: string, ctx: TradeCtx, logger: Logger) {
+    public static addWarning(msg: string, ctx: TradeCtx, logger: Logger): string {
         const log = this.prepareLog(msg, ctx)
         TradeUtil.addToCtxLogs(`[WARNING] ${log}`, ctx)
         logger.warn(log)
+        return log
     }
 
     private static prepareLog(msg: string, ctx: TradeCtx): string {

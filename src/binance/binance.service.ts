@@ -205,9 +205,9 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.calcService.calculateTradeQuantity(ctx)
             await this.tradeService.openPosition(ctx)
         } catch (error) {
-            const errorMessage = this.http.handleErrorMessage(error)
-            TradeUtil.addError(errorMessage, ctx, this.logger)
-            this.telegramService.tradeErrorMessage(ctx)
+            const msg = this.http.handleErrorMessage(error)
+            const log = TradeUtil.addError(msg, ctx, this.logger)
+            this.telegramService.tradeErrorMessage(ctx, log)
         } finally {
             const saved = await this.tradeRepo.save(ctx)
         }

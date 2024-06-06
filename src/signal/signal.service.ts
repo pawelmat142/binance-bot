@@ -47,7 +47,7 @@ export class SignalService {
             }
         } catch (error) {
             SignalUtil.addError(error, signal, this.logger)
-            telegramMessage.error = error
+            telegramMessage.error = error?.message ?? error
         }
         this.updateLogs(signal)
         return telegramMessage

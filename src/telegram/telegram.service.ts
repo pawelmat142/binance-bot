@@ -181,15 +181,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-    public tradeErrorMessage(ctx: TradeCtx) {
-        const logsLength = ctx.trade.logs.length
-        const lines = [
-            `!!! ERROR WHILE PROCESSING TRADE !!!`,
-            `symbol: ${ctx.trade.variant.symbol}`,
-            ctx.trade.logs[logsLength-1],
-            ctx.trade.logs[logsLength-2],
-            ctx.trade.logs[logsLength-3],
-        ]
+    public tradeErrorMessage(ctx: TradeCtx, errorLog: string) {
+        const lines = [errorLog]
         return this.sendUnitMessage(ctx, lines)
     }
 

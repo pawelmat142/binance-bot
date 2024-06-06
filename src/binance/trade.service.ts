@@ -94,7 +94,7 @@ export class TradeService {
             ctx.trade.stopLossResult = result
             TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
         } else {
-            TradeUtil.addError(`Error while placing stop loss order`, ctx, this.logger)
+            TradeUtil.addError(`Error placing stop loss order`, ctx, this.logger)
         }
     }
 
