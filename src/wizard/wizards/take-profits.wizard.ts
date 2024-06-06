@@ -8,6 +8,7 @@ import Decimal from "decimal.js"
 import { BotUtil } from "../bot.util"
 import { TradesWizard } from "./trades.wizard"
 import { TradeUtil } from "src/binance/trade-util"
+import { TPUtil } from "src/binance/take-profit-util"
 
 export class TakeProfitsWizard extends UnitWizard {
 
@@ -123,7 +124,7 @@ export class TakeProfitsWizard extends UnitWizard {
                 nextOrder: 0
             }, {
                 order: 6,
-                message: [`Take profits ${this.takeProfitsAggregator?.filter(tp => TradeUtil.tpNotFilled(tp)).map(tp => tp.order+1).join(', ')} will be removed`],
+                message: [`Take profits ${this.takeProfitsAggregator?.filter(tp => TPUtil.tpNotFilled(tp)).map(tp => tp.order+1).join(', ')} will be removed`],
                 buttons: [[{
                     text: `No`,
                     callback_data: `no`,
@@ -157,7 +158,7 @@ export class TakeProfitsWizard extends UnitWizard {
     }
 
     private get anyTpToRemove(): boolean {
-        return this.takeProfits.some(tp => TradeUtil.tpNotFilled(tp))
+        return this.takeProfits.some(tp => TPUtil.tpNotFilled(tp))
     }
 
     private get hasOnlyFilledTps(): boolean {
