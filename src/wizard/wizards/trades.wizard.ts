@@ -501,7 +501,7 @@ export class TradesWizard extends UnitWizard {
         })
         ctx.position = this.findPosition(ctx.symbol)
         try {
-            await this.services.binanceServie.fullClosePositionManual(ctx)
+            await this.services.binanceServie.manualClosePositionFull(ctx)
             this.openPositions = this.openPositions.filter(p => p.symbol === this.selectedTrade.variant.symbol)
             this.unselectTrade()
             return true

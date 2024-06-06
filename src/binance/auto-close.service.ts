@@ -100,7 +100,6 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
     }
 
 
-
     public openPriceTicker(params: PriceTickerParams) {
         if (this.exists(params.symbol)) {
             this.logger.warn(`${this.tickerLabel(params.symbol)} already opened`)

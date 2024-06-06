@@ -137,17 +137,18 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         try {
             if (signal.otherSignalAction.manualClose) {
                 if (ctx.trade.futuresResult?.status === TradeStatus.FILLED) {
-                    await this.fullClosePositionManual(ctx)
+                    await this.manualClosePositionFull(ctx)
                 }
                 else if (ctx.trade.futuresResult?.status === TradeStatus.NEW) {
-                    await this.closeOpenOrderManual(ctx)
+                    await this.manualCloseOpenOrder(ctx)
+                    this.tradeService.closeOrderEvent(ctx)
                 } else {
                     TradeUtil.addError(`wrong trade status: ${ctx.trade.futuresResult?.status} when manual close`, ctx, this.logger)
                 } 
             } 
             else if (signal.otherSignalAction.tradeDone) {
                 this.telegramService.sendUnitMessage(ctx, [`${TradeUtil.label(ctx)}`, `Trade done, closing...`])
-                await this.fullClosePositionManual(ctx)
+                await this.manualClosePositionFull(ctx)
             } 
             else {
                 if (signal.otherSignalAction.takeSomgeProfit) {
@@ -235,6 +236,11 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     private async onFilledPosition(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         TradeUtil.addLog(`Found trade with result id ${ctx.trade.futuresResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
         try {
+            const wasOpenOrder = ctx.trade.futuresResult?.status === TradeStatus.NEW
+            if (wasOpenOrder) {
+                TradeUtil.addLog(`Was open order`, ctx, this.logger)
+                this.tradeService.closeOrderEvent(ctx)
+            }
             ctx.trade.futuresResult = eventTradeResult
             await this.tradeService.stopLossRequest(ctx)
             await this.openFirstTakeProfit(ctx)
@@ -277,7 +283,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 ctx.trade.closed = true
                 await this.tradeService.closeStopLoss(ctx)
                 await this.tradeService.closePendingTakeProfit(ctx)
-                this.fullClosePositionManual(ctx)
+                this.manualClosePositionFull(ctx)
                 this.tradeLog(ctx, `Every take profit filled, stop loss closed ${ctx.trade._id}`)
                 this.telegramService.onClosedPosition(ctx)
             }
@@ -342,7 +348,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         return new Promise(resolve => setTimeout(resolve, 1000))
     }
 
-    public async fullClosePositionManual(ctx: TradeCtx) {
+    public async manualClosePositionFull(ctx: TradeCtx) {
         const symbol = ctx.trade.variant.symbol
         const unit = ctx.unit
         this.tradeLog(ctx, `[START] Closing position`)
@@ -387,17 +393,18 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         this.tradeLog(ctx, `[STOP] Closing position`)
     }
 
-    private async closeOpenOrderManual(ctx: TradeCtx) {
+    private async manualCloseOpenOrder(ctx: TradeCtx) {
         try {
             const result = await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
             ctx.trade.futuresResult = result
             ctx.trade.closed = true
-            await this.update(ctx)
-            this.tradeService.closeOrderEvent(ctx)
         } catch (error) {
             const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(`Error trying to close trade order ${ctx.trade.futuresResult.orderId} manualy`, ctx, this.logger)
             TradeUtil.addError(msg, ctx, this.logger)
+        }
+        finally {
+            await this.update(ctx)
         }
     }
 
