@@ -10,7 +10,6 @@ export abstract class VariantUtil {
 
     public static readonly DEFAULT_LEVER = 5
 
-
     public static label(variant: TradeVariant): string {
         return `${this.mode(variant.side)} ${variant.symbol} ${this.lever(variant)}x`
     }

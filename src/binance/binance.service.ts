@@ -18,6 +18,8 @@ import { Http } from 'src/global/http/http.service';
 import { TPUtil } from './take-profit-util';
 import { VariantUtil } from './model/variant-util';
 import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
+import { MultiOrderService } from './multi-order.service';
+import { LimitOrderUtil } from './model/limit-order-util';
 
 
 @Injectable()
@@ -26,13 +28,14 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(BinanceService.name)
 
     constructor(
-        private readonly calcService: CalculationsService,
+        private readonly calculationsService: CalculationsService,
         private readonly signalService: SignalService,
         private readonly tradeService: TradeService,
         private readonly telegramService: TelegramService,
         private readonly unitService: UnitService,
         private readonly duplicateService: DuplicateService,
         private readonly tradeRepo: TradeRepository,
+        private readonly multiOrderService: MultiOrderService,
     ) {}
 
 
@@ -86,7 +89,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     private onSignalEvent = async (signal: Signal) => {
         if (signal.valid) {
 
-            await EntryPriceCalculator.start(signal, this.calcService)
+            await EntryPriceCalculator.start(signal, this.calculationsService)
 
             if (SignalUtil.entryCalculated(signal)) {
                 this.openTradesPerUnit(signal)
@@ -129,13 +132,15 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         try {
             await this.tradeService.setIsolatedMode(ctx)
             await this.tradeService.setPositionLeverage(ctx)
-            // TODO
-            // await this.calcService.calculateEntryPrice(ctx)
 
-            // ??todo
-            this.calcService.calculateTradeQuantity(ctx)
-
-            await this.tradeService.openPosition(ctx)
+            if (ctx.trade.variant.entryByMarket) {
+                await this.tradeService.tradeRequestMarket(ctx)
+            } 
+            else if (LimitOrderUtil.limitOrdersCalculated(ctx.trade.variant)) {
+                this.multiOrderService.openLimitOrders(ctx)
+            } else {
+                throw new Error(`Not by market and limits not calculated`)
+            }
         } catch (error) {
             const msg = Http.handleErrorMessage(error)
             const log = TradeUtil.addError(msg, ctx, this.logger)
@@ -231,7 +236,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.onFilledTakeProfit(ctx, eventTradeResult)
 
         } else {
-            TradeUtil.addLog( `Found trade but matching error! ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`, ctx, this.logger)
+            TradeUtil.addLog(`Found trade but matching error! ${eventTradeResult.orderId}`, ctx, this.logger)
         }
     }
 
@@ -314,7 +319,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             return
         }
         TradeUtil.addLog(`Opening first Take Profit`, ctx, this.logger)
-        this.calcService.calculateTakeProfitQuantities(ctx)
+        this.calculationsService.calculateTakeProfitQuantities(ctx)
         await this.tradeService.openNextTakeProfit(ctx)
     }
 

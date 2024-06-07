@@ -57,19 +57,6 @@ export abstract class TradeUtil {
         ctx.trade.logs.push(log)
     }
 
-    public static tradeRequestLimitParams = (trade: Trade): string => {
-        return queryParams({
-            symbol: trade.variant.symbol,
-            side: trade.variant.side,
-            type: TradeType.LIMIT,
-            quantity: trade.quantity,
-            price: trade.entryPrice,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
-    }
-
     public static tradeRequestMarketParams = (trade: Trade): string => {
         return queryParams({
             symbol: trade.variant.symbol,
@@ -143,12 +130,6 @@ export abstract class TradeUtil {
         const isLimitType = tradeResult.origType === TradeType.LIMIT || tradeResult.type === TradeType.MARKET
         const isFilled = tradeResult.status === TradeStatus.FILLED
         return isLimitType && isFilled
-    }
-
-    public static priceInEntryZone(ctx: TradeCtx): boolean {
-        const variant = ctx.trade.variant
-        const currentPrice = ctx.trade.currentPrice
-        return (variant.side === 'BUY' && currentPrice < variant.entryZoneEnd) || (variant.side === 'SELL' && currentPrice > variant.entryZoneEnd)
     }
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {

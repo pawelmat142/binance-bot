@@ -1,18 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
-import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, MarketPriceResponse, Ticker24hResponse } from './model/model';
+import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, MarketPriceResponse } from './model/model';
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { findMax, getHeaders, queryParams, roundWithFraction, sign } from 'src/global/util';
+import { findMax, roundWithFraction } from 'src/global/util';
 import { TakeProfit, TradeCtx } from './model/trade-variant';
 import { Decimal } from 'decimal.js'
 import { Http } from 'src/global/http/http.service';
 import * as fs from 'fs';
 import { TradeStatus } from './model/trade';
 import { TPUtil } from './take-profit-util';
-import { Signal } from 'src/signal/signal';
-import { SignalUtil } from 'src/signal/signal-util';
-import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 
 
 @Injectable()
@@ -100,59 +97,6 @@ export class CalculationsService implements OnModuleInit {
         if (!this.initialized) {
             throw new Error(`exchange info not initialized!`)
         }
-    }
-
-    // deprecated
-    public async calculateEntryPrice(ctx: TradeCtx): Promise<void> {
-        const currentPrice = await this.getCurrentPrice(ctx)
-        const entryPrice = this.findEntryPrice(ctx, currentPrice)
-        ctx.trade.entryPrice = entryPrice
-        ctx.trade.currentPrice = currentPrice
-        TradeUtil.addLog(`calculated entry price: ${entryPrice}`, ctx, this.logger)
-    }
-
-    // deprecated
-    public async getCurrentPrice(ctx: TradeCtx): Promise<number> {
-        const params = queryParams({
-            symbol: ctx.symbol,
-            timestamp: Date.now()
-        })
-        const response = await this.http.fetch<Ticker24hResponse>({
-            url: sign(`${TradeUtil.futuresUri}/ticker/24hr`, params, ctx.unit),
-            method: 'GET',  
-            headers: getHeaders(ctx.unit)
-        })
-        const result = Number(response?.lastPrice)
-        if (isNaN(result)) {
-            throw new Error(`Current price error: ${result}`)
-        }
-        TradeUtil.addLog(`Found current price: ${result}`, ctx, this.logger)
-        return result
-    }
-
-    // deprecated
-    private findEntryPrice(ctx: TradeCtx, currentPrice: number): number {
-        const variant = ctx.trade.variant
-        if (variant.side === 'BUY') {
-            if (currentPrice < variant.entryZoneStart) {
-                return variant.entryZoneStart
-            } else if (currentPrice > variant.entryZoneEnd) {
-                TradeUtil.addWarning(`currentPrice ${currentPrice} > signal.entryZoneEnd`, ctx, this.logger)
-                return variant.entryZoneEnd
-            } else {
-                return currentPrice
-            }
-        } else if (variant.side === 'SELL') {
-            if (currentPrice > variant.entryZoneStart) {
-                return variant.entryZoneStart
-            } else if (currentPrice < variant.entryZoneEnd) {
-                TradeUtil.addError(`currentPrice < trade.entryZoneEnd`, ctx, this.logger)
-                return variant.entryZoneEnd
-            } else {
-                return currentPrice
-            }
-        }
-        throw new Error('mode error?')
     }
 
 

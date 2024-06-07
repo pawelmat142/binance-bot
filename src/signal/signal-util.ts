@@ -3,6 +3,7 @@ import { Signal } from "./signal"
 import { toDateString } from "src/global/util"
 import { VariantUtil } from "src/binance/model/variant-util"
 import { TradeVariant } from "src/binance/model/trade-variant"
+import { LimitOrderUtil } from "src/binance/model/limit-order-util"
 
 export abstract class SignalUtil {
 
@@ -22,20 +23,16 @@ export abstract class SignalUtil {
     }
 
     public static entryCalculated(signal: Signal): boolean {
-        return signal.variant.entryByMarket || this.limitOrdersCalculated(signal)
+        return signal.variant.entryByMarket || LimitOrderUtil.limitOrdersCalculated(signal.variant)
     }
 
     public static entryByLimitOrders(signal: Signal): boolean {
-        if (this.limitOrdersCalculated(signal)) {
+        if (LimitOrderUtil.limitOrdersCalculated(signal.variant)) {
             if (!signal.variant.entryByMarket) {
                 return true
             }
             throw new Error(`Cannot entry by market and limit orders once`)
         }
-    }
-
-    public static limitOrdersCalculated(signal: Signal): boolean {
-        return !!signal.variant.limitOrders?.length && signal.variant.limitOrders?.every(lo => !!lo.price)
     }
 
     public static addLog(msg: string, signal: Signal, logger: Logger) {

@@ -33,21 +33,9 @@ export class TradeService {
 
     public closeOrderEvent$ = new Subject<string>()
 
-    public async openPosition(ctx: TradeCtx) {
-        if (TradeUtil.priceInEntryZone(ctx)) {
-            await this.tradeRequestMarket(ctx)
-        } else {
-            await this.tradeRequestLimit(ctx)
-        }
-        const status = ctx.trade.futuresResult?.status
-        if ([TradeStatus.NEW, TradeStatus.FILLED].includes(status)) {
-            TradeUtil.addLog(`Opened position for unit: ${ctx.unit.identifier} with status: ${status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
-        } else {
-            TradeUtil.addError(`Wrong trade status! ${status}`, ctx, this.logger)
-        }
-    }
 
-    private async tradeRequestMarket(ctx: TradeCtx): Promise<void> {
+    public async tradeRequestMarket(ctx: TradeCtx): Promise<void> {
+        this.calculationsService.calculateTradeQuantity(ctx)
         const params = TradeUtil.tradeRequestMarketParams(ctx.trade)
         const result = await this.placeOrder(params, ctx)
         ctx.trade.timestamp = new Date()
@@ -57,6 +45,7 @@ export class TradeService {
             ctx.trade.futuresResult.status = 'FILLED'
         }
         this.verifyOrigQuantity(ctx)
+        TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
     }
 
     private async tradeRequestLimit(ctx: TradeCtx): Promise<void> {

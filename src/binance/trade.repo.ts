@@ -100,11 +100,10 @@ export class TradeRepository {
     }
 
     public prepareTrade(signal: Signal, unitIdentifier: string): Trade {
-        const variant = signal.variant
         const trade = new this.model({
             signalObjectId: signal._id,
             logs: signal.logs || [],
-            variant: variant,
+            variant: signal.variant,
             unitIdentifier: unitIdentifier
         })
         return trade
