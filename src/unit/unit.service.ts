@@ -141,7 +141,7 @@ export class UnitService implements OnModuleInit {
         ws.onmessage = (event: MessageEvent) => {
             this.removeListenKeyIfMessageIsAboutClose(event, unit)
             const tradeEvent: TradeEventData = JSONbig.parse(event.data as string)
-            this.logger.log(`[${unit.identifier}] Event ${tradeEvent.e} received`)
+            this.logger.log(`[${unit.identifier}] Biannce Event ${tradeEvent.e} received`)
             if (TradeUtil.isTradeEvent(tradeEvent)) {
                 tradeEvent.unitIdentifier = unit.identifier
                 this.tradeEventSubject$.next(tradeEvent)
