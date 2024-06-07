@@ -57,12 +57,12 @@ export abstract class TradeUtil {
         ctx.trade.logs.push(log)
     }
 
-    public static tradeRequestMarketParams = (trade: Trade): string => {
+    public static marketOrderParams (trade: Trade, quantity: number): string  {
         return queryParams({
             symbol: trade.variant.symbol,
             side: trade.variant.side,
             type: TradeType.MARKET,
-            quantity: trade.quantity,
+            quantity: quantity,
             timestamp: Date.now(),
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         })

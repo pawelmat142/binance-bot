@@ -1,4 +1,3 @@
-import { Logger } from "@nestjs/common";
 import { Signal } from "src/signal/signal";
 import { SignalUtil } from "src/signal/signal-util";
 import { LimitOrder, TradeVariant } from "../../binance/model/trade-variant";
@@ -6,19 +5,18 @@ import { CalculationsService } from "src/binance/calculations.service";
 import { Calculator } from "./calculator";
 import { Http } from "../http/http.service";
 
-export class EntryPriceCalculator extends Calculator {
+export class EntryPriceCalculator extends Calculator<void> {
 
-    public static async start(signal: Signal, service: CalculationsService) {
+    public static start(signal: Signal, service: CalculationsService): Promise<void> {
         const calculator = new EntryPriceCalculator(service)
         calculator.initSignal(signal)
-        await calculator.calculate()
+        return calculator.calculate()
     }
 
-    private readonly logger = new Logger(this.constructor.name)
 
     private readonly DEFAULT_ORDERS_NUMBER = 2
 
-    public initSignal(signal: Signal) {
+    private initSignal(signal: Signal) {
         if (this.signal) throw new Error(`Signal already set`)
         this.signal = signal
     }
@@ -40,10 +38,13 @@ export class EntryPriceCalculator extends Calculator {
 
     private limitOrders: LimitOrder[] = []
 
-    public async calculate() {
+    protected async calculate(): Promise<void> {
         this.log('START')
+
         await this.fetchMarketPrice()
+
         this.resolveEntryByMarket()
+
         if (this.variant.entryByMarket) {
             this.log(`Enter by MARKET`)
             return
@@ -63,17 +64,15 @@ export class EntryPriceCalculator extends Calculator {
         })
 
         this.variant.limitOrders = this.limitOrders
-
         this.log(`Enter by LIMIT orders with calculated prices: ${SignalUtil.limitOrderPricesString(this.variant)}`)
-
         this.log('STOP')
     }
 
 
     private calculateOrdersPrices() {
 
-        this.entryPriceDifference = Math.abs(this.variant.entryZoneStart - this.variant.entryZoneEnd) 
-            / (this.DEFAULT_ORDERS_NUMBER + 1)
+        const diff = Math.abs(this.variant.entryZoneStart - this.variant.entryZoneEnd)
+        this.entryPriceDifference = diff / (this.DEFAULT_ORDERS_NUMBER + 1)
 
         this.log(`Limit Orders price difference: ${this.entryPriceDifference.toFixed(2)}`)
         let entryPrice = Math.min(this.variant.entryZoneStart, this.variant.entryZoneEnd)

@@ -67,10 +67,6 @@ export class Trade {
 
     @Expose() 
     @Prop()
-    quantity?: number
-
-    @Expose() 
-    @Prop()
     unitIdentifier: string
 
     @Expose() 

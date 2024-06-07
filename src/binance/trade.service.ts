@@ -16,6 +16,7 @@ import { BinanceErrors } from './model/binance.error';
 import { TPUtil } from './take-profit-util';
 import { Subject } from 'rxjs';
 import { VariantUtil } from './model/variant-util';
+import { TradeQuantityCalculator } from 'src/global/calculators/trade-quantity.calculator';
 
 @Injectable()
 export class TradeService {
@@ -34,40 +35,18 @@ export class TradeService {
     public closeOrderEvent$ = new Subject<string>()
 
 
-    public async tradeRequestMarket(ctx: TradeCtx): Promise<void> {
-        this.calculationsService.calculateTradeQuantity(ctx)
-        const params = TradeUtil.tradeRequestMarketParams(ctx.trade)
+    public async openPositionByMarket(ctx: TradeCtx): Promise<void> {
+        const quantity = await TradeQuantityCalculator.start<number>(ctx, this.calculationsService)
+        const params = TradeUtil.marketOrderParams(ctx.trade, quantity)
         const result = await this.placeOrder(params, ctx)
         ctx.trade.timestamp = new Date()
         ctx.trade.futuresResult = result
-        if (this.testNetwork) {
-            ctx.trade.futuresResult.origQty = ctx.trade.quantity.toString()
-            ctx.trade.futuresResult.status = 'FILLED'
-        }
-        this.verifyOrigQuantity(ctx)
         TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
+        if (!ctx.origQuantity.equals(new Decimal(quantity))) {
+            TradeUtil.addWarning(`origQuantity ${ctx.origQuantity} != quantity ${quantity}`, ctx, this.logger)
+        }
     }
 
-    private async tradeRequestLimit(ctx: TradeCtx): Promise<void> {
-        const params = TradeUtil.tradeRequestLimitParams(ctx.trade)
-        const result = await this.placeOrder(params, ctx)
-        ctx.trade.timestamp = new Date()
-        ctx.trade.futuresResult = result
-        if (this.testNetwork) {
-            ctx.trade.futuresResult.origQty = ctx.trade.quantity.toString()
-            ctx.trade.futuresResult.status = 'NEW'
-        }
-        this.verifyOrigQuantity(ctx)
-    }
-
-    private verifyOrigQuantity(ctx: TradeCtx) {
-        if (ctx.trade.futuresResult.status !== 'FILLED') {
-            return
-        }
-        if (!ctx.origQuantity.equals(new Decimal(ctx.trade.quantity))) {
-            TradeUtil.addWarning(`origQuantity ${ctx.origQuantity} != quantity ${ctx.trade.quantity}`, ctx, this.logger)
-        }
-    }
 
     public async stopLossRequest(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         if (!ctx.trade.variant.stopLoss && !forcedPrice) {
@@ -244,10 +223,6 @@ export class TradeService {
         const result = await this.placeOrder(params, ctx)
         takeProfit.reuslt = result
         takeProfit.resultTime = new Date()
-        if (this.testNetwork) {
-            takeProfit.reuslt.executedQty = ctx.trade.quantity.toString()
-            takeProfit.reuslt.status = 'NEW'
-        }
     }
 
     private takeProfitQuantitiesFilled(ctx: TradeCtx): boolean {

@@ -122,7 +122,6 @@ export class WizardBinanceService {
             const trade = {
                 futuresResult: result,
                 unitIdentifier: unit.identifier,
-                quantity: quantity,
                 closed: true,
                 variant: { 
                     symbol: position.symbol,

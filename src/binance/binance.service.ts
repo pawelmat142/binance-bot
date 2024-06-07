@@ -20,6 +20,7 @@ import { VariantUtil } from './model/variant-util';
 import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 import { MultiOrderService } from './multi-order.service';
 import { LimitOrderUtil } from './model/limit-order-util';
+import { TradeQuantityCalculator } from 'src/global/calculators/trade-quantity.calculator';
 
 
 @Injectable()
@@ -134,7 +135,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             await this.tradeService.setPositionLeverage(ctx)
 
             if (ctx.trade.variant.entryByMarket) {
-                await this.tradeService.tradeRequestMarket(ctx)
+                await this.tradeService.openPositionByMarket(ctx)
             } 
             else if (LimitOrderUtil.limitOrdersCalculated(ctx.trade.variant)) {
                 this.multiOrderService.openLimitOrders(ctx)
