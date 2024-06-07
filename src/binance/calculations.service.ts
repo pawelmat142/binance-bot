@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { TradeUtil } from './trade-util';
-import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, Ticker24hResponse } from './model/model';
+import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, MarketPriceResponse, Ticker24hResponse } from './model/model';
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { findMax, getHeaders, queryParams, roundWithFraction, sign } from 'src/global/util';
@@ -10,6 +10,9 @@ import { Http } from 'src/global/http/http.service';
 import * as fs from 'fs';
 import { TradeStatus } from './model/trade';
 import { TPUtil } from './take-profit-util';
+import { Signal } from 'src/signal/signal';
+import { SignalUtil } from 'src/signal/signal-util';
+import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 
 
 @Injectable()
@@ -305,5 +308,17 @@ export class CalculationsService implements OnModuleInit {
         }
         return tickSize
     }
+
+    public async fetchMarketPrice(symbol: string): Promise<number> {
+        const response = await this.http.fetch<MarketPriceResponse>({
+            url: `${TradeUtil.futuresUri}/premiumIndex?symbol=${symbol}`
+        })
+        const result = Number(response?.markPrice)
+        if (isNaN(result)) {
+            throw new Error(`Market price ${result} is not a number`)
+        }
+        return result
+    }
+
 
 }

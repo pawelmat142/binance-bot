@@ -38,6 +38,7 @@ export class TradeVariant {
 
 export interface LimitOrder {
     price: number
+    order: number
     result?: FuturesResult
 }
 

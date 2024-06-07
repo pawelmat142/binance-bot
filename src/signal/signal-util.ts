@@ -2,6 +2,7 @@ import { Logger } from "@nestjs/common"
 import { Signal } from "./signal"
 import { toDateString } from "src/global/util"
 import { VariantUtil } from "src/binance/model/variant-util"
+import { TradeVariant } from "src/binance/model/trade-variant"
 
 export abstract class SignalUtil {
 
@@ -15,6 +16,10 @@ export abstract class SignalUtil {
 
     public static readonly dolarValueSpaceRegex = /\$ ?\d+[.,]?\d*|\d+[.,]?\d* ?\$/g //  [ 0,014033$ 0.014033$ 0,014033 $  0.014033 $  $0.014033  $ 0,014033 ] 
 
+
+    public static mayBeOpened(signal: Signal): boolean {
+        return signal.valid && this.entryCalculated(signal)
+    }
 
     public static entryCalculated(signal: Signal): boolean {
         return signal.variant.entryByMarket || this.limitOrdersCalculated(signal)
@@ -68,6 +73,10 @@ export abstract class SignalUtil {
 
     public static withoutDollar(input: string): number {
         return Number(input?.trim().replace(',', '.').replace(' ', '').replace(/\$/g, ''))
+    }
+
+    public static limitOrderPricesString(variant: TradeVariant): string {
+        return `[ ${variant.limitOrders.map(lo => lo.price).map(p => `${p}`).join(', ')} ]`
     }
 
 }

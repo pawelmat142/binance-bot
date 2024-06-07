@@ -8,10 +8,6 @@ import { SignalUtil } from './signal-util';
 import { Observable, Subject } from 'rxjs';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { SignalOtherActionValidator } from './additional-validator';
-import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
-import { Http } from 'src/global/http/http.service';
-import { MarketPriceResponse } from 'src/binance/model/model';
-import { TradeUtil } from 'src/binance/trade-util';
 
 @Injectable()
 export class SignalService {
@@ -21,7 +17,6 @@ export class SignalService {
     constructor(
         @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
-        private readonly http: Http,
     ) {}
 
     private tradeSubject$ = new Subject<Signal>()
@@ -38,17 +33,13 @@ export class SignalService {
 
             await this.verifyIfDuplicate(signal)
 
-            if (signal.valid) {
-                await this.calcEntryPrice(signal)
-            } else {
-                this.additionalValidationIfNotValid(signal)
-            }
+            this.additionalValidationIfNotValid(signal)
 
             await this.save(signal)
 
             this.telegramService.sendPublicMessage(telegramMessage?.message)
 
-            if ((signal.valid && SignalUtil.entryCalculated(signal)) || SignalUtil.anyOtherAction(signal)) {
+            if (signal.valid || SignalUtil.anyOtherAction(signal)) {
                 this.tradeSubject$.next(signal)
             } 
             else {
@@ -80,35 +71,9 @@ export class SignalService {
         })
     }
 
-    public async calcEntryPrice(signal: Signal) {
-        const symbol = signal.variant.symbol
-        try {
-            const marketPrice = await this.fetchMarketPrice(symbol)
-            signal.variant.marketPriceOnCalculate = marketPrice
-            signal.variant.calculationTimestamp = new Date()
-            SignalUtil.addLog(`Found Market Price: ${marketPrice.toFixed(2)} USDT`, signal, this.logger)
-        
-            EntryPriceCalculator.start(signal)
-
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            throw new Error(msg)
-        }
-    }
-
-    private async fetchMarketPrice(symbol: string): Promise<number> {
-        const response = await this.http.fetch<MarketPriceResponse>({
-            url: `${TradeUtil.futuresUri}/premiumIndex?symbol=${symbol}`
-        })
-        const result = Number(response?.markPrice)
-        if (isNaN(result)) {
-            throw new Error(`Market price ${result} is not a number`)
-        }
-        return result
-    }
-
 
     
+
     // REPOSITORY
 
     public list(): Promise<Signal[]> {

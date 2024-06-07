@@ -17,6 +17,7 @@ import { TradeEventData, TradeType } from './model/model';
 import { Http } from 'src/global/http/http.service';
 import { TPUtil } from './take-profit-util';
 import { VariantUtil } from './model/variant-util';
+import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 
 
 @Injectable()
@@ -83,9 +84,13 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private onSignalEvent = async (signal: Signal) => {
-        if (signal.valid && SignalUtil.entryCalculated(signal)) {
-            SignalUtil.addLog(`Signal VALID, opening trade per unit... `, signal, this.logger)
-            this.openTradesPerUnit(signal)
+        if (signal.valid) {
+
+            await EntryPriceCalculator.start(signal, this.calcService)
+
+            if (SignalUtil.entryCalculated(signal)) {
+                this.openTradesPerUnit(signal)
+            }
         } 
         else if (SignalUtil.anyOtherAction(signal)) {
             this.otherSignalActionsPerUnit(signal)
