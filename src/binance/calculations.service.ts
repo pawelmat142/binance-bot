@@ -99,6 +99,7 @@ export class CalculationsService implements OnModuleInit {
         }
     }
 
+    // deprecated
     public async calculateEntryPrice(ctx: TradeCtx): Promise<void> {
         const currentPrice = await this.getCurrentPrice(ctx)
         const entryPrice = this.findEntryPrice(ctx, currentPrice)
@@ -107,7 +108,7 @@ export class CalculationsService implements OnModuleInit {
         TradeUtil.addLog(`calculated entry price: ${entryPrice}`, ctx, this.logger)
     }
 
-
+    // deprecated
     public async getCurrentPrice(ctx: TradeCtx): Promise<number> {
         const params = queryParams({
             symbol: ctx.symbol,
@@ -126,6 +127,7 @@ export class CalculationsService implements OnModuleInit {
         return result
     }
 
+    // deprecated
     private findEntryPrice(ctx: TradeCtx, currentPrice: number): number {
         const variant = ctx.trade.variant
         if (variant.side === 'BUY') {

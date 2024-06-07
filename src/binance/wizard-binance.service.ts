@@ -7,7 +7,8 @@ import { TradeUtil } from "./trade-util";
 import { TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { Http } from "src/global/http/http.service";
-import { TradeSide, TradeType } from "./model/model";
+import { TradeType } from "./model/model";
+import { VariantSide } from "./model/variant-util";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -106,7 +107,7 @@ export class WizardBinanceService {
             if (isNaN(amount)) {
                 throw new Error(`Position amount is not a number`)
             }
-            const side = amount > 0 ? TradeSide.SELL : TradeSide.BUY;
+            const side: VariantSide = amount > 0 ? 'SELL' : 'BUY';
             const quantity = Math.abs(amount)
             const params = queryParams({
                 symbol: position.symbol,

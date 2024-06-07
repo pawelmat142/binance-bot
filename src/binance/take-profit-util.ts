@@ -66,4 +66,9 @@ export abstract class TPUtil {
         }, 0)
     }
 
+
+    public static percentagesString(variant: TradeVariant): string {
+        return `[${variant.takeProfits.map(tp => tp.closePercent).map(value => `${value}%`).join(', ')}]`
+    }
+
 }

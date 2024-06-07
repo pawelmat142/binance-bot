@@ -4,8 +4,6 @@ import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent } from 'ws';
 import { UnitUtil } from "src/unit/unit.util";
 import { Trade } from "./model/trade";
 import { TPUtil } from "./take-profit-util";
-import { SignalUtil } from "src/signal/signal-util";
-import { TradeSide } from "./model/model";
 import { TradeService } from "./trade.service";
 import { UnitService } from "src/unit/unit.service";
 import { TradeCtx } from "./model/trade-variant";
@@ -14,11 +12,11 @@ import { Http } from "src/global/http/http.service";
 import { TelegramService } from "src/telegram/telegram.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { Subscription } from "rxjs";
-import { VariantUtil } from "./model/variant-util";
+import { VariantSide, VariantUtil } from "./model/variant-util";
 
 export interface PriceTickerParams {
     symbol: string
-    side: TradeSide
+    side: VariantSide
     closeOrderLimit: number
 }
 

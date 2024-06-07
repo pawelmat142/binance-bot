@@ -29,6 +29,16 @@ export class TradeVariant {
     @Prop() risk: boolean
     @Prop() highRisk: boolean
     @Prop() percentOfBalance?: number
+
+    @Prop() marketPriceOnCalculate: number
+    @Prop() calculationTimestamp: Date
+    @Prop() entryByMarket: boolean
+    @Prop() limitOrders?: LimitOrder[]
+}
+
+export interface LimitOrder {
+    price: number
+    result?: FuturesResult
 }
 
 export interface TradeContext {

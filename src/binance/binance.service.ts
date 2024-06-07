@@ -83,12 +83,12 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private onSignalEvent = async (signal: Signal) => {
-        if (signal.valid) {
-            SignalUtil.addLog(`Signal ${signal._id} ${signal.variant.side} ${signal.variant.symbol}  is valid, opening trade per unit... `, signal, this.logger)
+        if (signal.valid && SignalUtil.entryCalculated(signal)) {
+            SignalUtil.addLog(`Signal VALID, opening trade per unit... `, signal, this.logger)
             this.openTradesPerUnit(signal)
         } 
         else if (SignalUtil.anyOtherAction(signal)) {
-            this.otherActionsPerUnit(signal)
+            this.otherSignalActionsPerUnit(signal)
         } else {
             SignalUtil.addError(`Signal validation error!`, signal, this.logger)
         }
@@ -115,7 +115,32 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private async otherActionsPerUnit(signal: Signal) {
+    private async openTradeForUnit(ctx: TradeCtx) {
+        const tradeOnlyFor = process.env.TRADE_ONLY_FOR
+        if (tradeOnlyFor && ctx.unit.identifier !== tradeOnlyFor) {
+            this.tradeLog(ctx, `[SKIP TRADE]`)
+            return
+        }
+        try {
+            await this.tradeService.setIsolatedMode(ctx)
+            await this.tradeService.setPositionLeverage(ctx)
+            // TODO
+            // await this.calcService.calculateEntryPrice(ctx)
+
+            // ??todo
+            this.calcService.calculateTradeQuantity(ctx)
+
+            await this.tradeService.openPosition(ctx)
+        } catch (error) {
+            const msg = Http.handleErrorMessage(error)
+            const log = TradeUtil.addError(msg, ctx, this.logger)
+            this.telegramService.tradeErrorMessage(ctx, log)
+        } finally {
+            const saved = await this.tradeRepo.save(ctx)
+        }
+    }
+
+    private async otherSignalActionsPerUnit(signal: Signal) {
         const units = this.unitService.units || []
 
         for (let unit of units) {
@@ -127,12 +152,12 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             }
             for (let trade of trades) {
                 const ctx = new TradeCtx({ trade, unit })
-                await this.otherSignalAction(ctx, signal)
+                await this.otherSignalActionForUnit(ctx, signal)
             }
         }
     }
 
-    private async otherSignalAction(ctx: TradeCtx, signal: Signal) {
+    private async otherSignalActionForUnit(ctx: TradeCtx, signal: Signal) {
         try {
             if (signal.otherSignalAction.manualClose) {
                 if (ctx.trade.futuresResult?.status === TradeStatus.FILLED) {
@@ -188,29 +213,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             TradeUtil.addError(msg, ctx, this.logger)
         }
 
-    }
-
-    private async openTradeForUnit(ctx: TradeCtx) {
-        const tradeOnlyFor = process.env.TRADE_ONLY_FOR
-        if (tradeOnlyFor) {
-            if (ctx.unit.identifier !== tradeOnlyFor) {
-                this.tradeLog(ctx, `[SKIP TRADE]`)
-                return
-            }
-        }
-        try {
-            await this.tradeService.setIsolatedMode(ctx)
-            await this.tradeService.setPositionLeverage(ctx)
-            await this.calcService.calculateEntryPrice(ctx)
-            this.calcService.calculateTradeQuantity(ctx)
-            await this.tradeService.openPosition(ctx)
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            const log = TradeUtil.addError(msg, ctx, this.logger)
-            this.telegramService.tradeErrorMessage(ctx, log)
-        } finally {
-            const saved = await this.tradeRepo.save(ctx)
-        }
     }
 
     private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {

@@ -1,7 +1,7 @@
 import { queryParams, toDateString } from "src/global/util"
 import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus } from "./model/trade"
-import { TradeEventData, TradeSide, TradeType } from "./model/model"
+import { TradeEventData, TradeType } from "./model/model"
 import { TakeProfit, TradeCtx } from "./model/trade-variant"
 import Decimal from "decimal.js"
 import { Position } from "./wizard-binance.service"
@@ -148,7 +148,7 @@ export abstract class TradeUtil {
     public static priceInEntryZone(ctx: TradeCtx): boolean {
         const variant = ctx.trade.variant
         const currentPrice = ctx.trade.currentPrice
-        return (variant.side === TradeSide.BUY && currentPrice < variant.entryZoneEnd) || (variant.side === TradeSide.SELL && currentPrice > variant.entryZoneEnd)
+        return (variant.side === 'BUY' && currentPrice < variant.entryZoneEnd) || (variant.side === 'SELL' && currentPrice > variant.entryZoneEnd)
     }
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {

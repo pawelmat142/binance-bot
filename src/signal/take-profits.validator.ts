@@ -143,10 +143,10 @@ export class TakeProfitsValidator extends BaseValidator {
         const takeProfitPercentagesSum = TPUtil.takeProfitsPercentageSum(this.signal.variant.takeProfits)
 
         if (takeProfitPercentagesSum === 100) {
-            SignalUtil.addLog(`takeProfitPercentagesSum valid ${takeProfitPercentagesSum}`, this.signal, this.logger)
+            SignalUtil.addLog(`Take Profit percentages valid ${TPUtil.percentagesString(this.signal.variant)}`, this.signal, this.logger)
             return
         }
-        SignalUtil.addLog(`takeProfitPercentagesSum: ${takeProfitPercentagesSum} not valid, calculate!`, this.signal, this.logger)
+        SignalUtil.addLog(`Take Profit percentages sum: ${takeProfitPercentagesSum} not valid, calculate!`, this.signal, this.logger)
         const takeProfitsLength = this.signal.variant.takeProfits.length
         const singleTakeProfitPercentage = new Decimal(100).div(takeProfitsLength).floor()
         this.signal.variant.takeProfits.forEach(tp => {
@@ -158,6 +158,7 @@ export class TakeProfitsValidator extends BaseValidator {
         if (diffrence) {
             this.signal.variant.takeProfits[0].closePercent += diffrence
         }
+        SignalUtil.addLog(`Take Profit percentages calculated ${TPUtil.percentagesString(this.signal.variant)}`, this.signal, this.logger)
     }
 
     private withoutPercent(input: string): number {

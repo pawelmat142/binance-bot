@@ -61,7 +61,7 @@ export class StopLossValidator extends BaseValidator {
                     const stopLossValue = SignalUtil.withoutDollar(stopLossStringValue)
                     if (!isNaN(stopLossValue)) {
                         this.signal.variant.stopLoss = stopLossValue
-                        this.addLog(`Found stop loss ${this.signal.variant.stopLoss}`)
+                        this.addLog(`Found Stop Loss price ${this.signal.variant.stopLoss} USDT`)
                     }
                 }
             }

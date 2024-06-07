@@ -13,6 +13,7 @@ import { DuplicateService } from './duplicate.service';
 import { TradeRepository } from './trade.repo';
 import { AppHttpModule } from 'src/global/http/http.module';
 import { AutoCloseService } from './auto-close.service';
+import { MultiOrderService } from './multi-order.service';
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { AutoCloseService } from './auto-close.service';
     WizardBinanceService, 
     DuplicateService, 
     TradeRepository, 
-    AutoCloseService
+    AutoCloseService,
+    MultiOrderService,
   ],
   exports: [
     BinanceService,

@@ -13,8 +13,6 @@ export class AppController {
     private readonly signalService: SignalService,
   ) {}
 
-
-
   @Get()
   getHello(): string {
     return this.appService.getHello();

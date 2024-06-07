@@ -67,6 +67,10 @@ export class UnitService implements OnModuleInit {
 
     @Cron(CronExpression.EVERY_30_MINUTES)
     private async keepAliveListenKeyForEveryUnit() {
+        if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
+            this.logger.warn(`[SKIP] keep alive listen keys`)
+            return
+        }
         this.logger.warn('Refreshing listen keys')
         const units = await this.unitModel.find(
             { active: true, listenKey: { $exists: true } },

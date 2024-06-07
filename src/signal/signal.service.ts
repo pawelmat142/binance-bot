@@ -8,6 +8,10 @@ import { SignalUtil } from './signal-util';
 import { Observable, Subject } from 'rxjs';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { SignalOtherActionValidator } from './additional-validator';
+import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
+import { Http } from 'src/global/http/http.service';
+import { MarketPriceResponse } from 'src/binance/model/model';
+import { TradeUtil } from 'src/binance/trade-util';
 
 @Injectable()
 export class SignalService {
@@ -17,6 +21,7 @@ export class SignalService {
     constructor(
         @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
+        private readonly http: Http,
     ) {}
 
     private tradeSubject$ = new Subject<Signal>()
@@ -33,13 +38,17 @@ export class SignalService {
 
             await this.verifyIfDuplicate(signal)
 
-            this.additionalValidationIfNotValid(signal)
+            if (signal.valid) {
+                await this.calcEntryPrice(signal)
+            } else {
+                this.additionalValidationIfNotValid(signal)
+            }
 
             await this.save(signal)
 
             this.telegramService.sendPublicMessage(telegramMessage?.message)
 
-            if (signal.valid || SignalUtil.anyOtherAction(signal)) {
+            if ((signal.valid && SignalUtil.entryCalculated(signal)) || SignalUtil.anyOtherAction(signal)) {
                 this.tradeSubject$.next(signal)
             } 
             else {
@@ -70,6 +79,34 @@ export class SignalService {
             telegramMessageId: telegramMessage?.id ?? 'missing'
         })
     }
+
+    public async calcEntryPrice(signal: Signal) {
+        const symbol = signal.variant.symbol
+        try {
+            const marketPrice = await this.fetchMarketPrice(symbol)
+            signal.variant.marketPriceOnCalculate = marketPrice
+            signal.variant.calculationTimestamp = new Date()
+            SignalUtil.addLog(`Found Market Price: ${marketPrice.toFixed(2)} USDT`, signal, this.logger)
+        
+            EntryPriceCalculator.start(signal)
+
+        } catch (error) {
+            const msg = Http.handleErrorMessage(error)
+            throw new Error(msg)
+        }
+    }
+
+    private async fetchMarketPrice(symbol: string): Promise<number> {
+        const response = await this.http.fetch<MarketPriceResponse>({
+            url: `${TradeUtil.futuresUri}/premiumIndex?symbol=${symbol}`
+        })
+        const result = Number(response?.markPrice)
+        if (isNaN(result)) {
+            throw new Error(`Market price ${result} is not a number`)
+        }
+        return result
+    }
+
 
     
     // REPOSITORY
@@ -107,8 +144,6 @@ export class SignalService {
         ).exec()
         if (found) {
             throw new Error(`Already found signal ${found._id}`)   
-        } else {
-            SignalUtil.addLog('Signal is new, will be processed if valid', signal, this.logger)
         }
     }
 

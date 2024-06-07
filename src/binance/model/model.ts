@@ -13,11 +13,6 @@ export abstract class TradeType {
     public static readonly TAKE_PROFIT_MARKET = 'TAKE_PROFIT_MARKET' //A take profit market order will become a market order to buy or sell once the take profit price is reached
 }
 
-export abstract class TradeSide {
-    public static readonly BUY = 'BUY'
-    public static readonly SELL = 'SELL'
-}
-
 export abstract class TradeStatus {
     public static readonly FILLED = 'FILLED'
     public static readonly NEW = 'NEW'
@@ -134,3 +129,15 @@ export interface TradeEventData {
 export interface ListeKeyResponse {
     listenKey: string
 }
+
+export interface MarketPriceResponse {
+    symbol: string;
+    markPrice: string;
+    indexPrice: string;
+    estimatedSettlePrice: string;
+    lastFundingRate: string;
+    interestRate: string;
+    nextFundingTime: number;
+    time: number;
+}
+  
