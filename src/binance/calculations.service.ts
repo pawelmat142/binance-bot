@@ -236,8 +236,6 @@ export class CalculationsService implements OnModuleInit {
         }
     }
 
-    private correctio
-
     public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) => {
         const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status !== TradeStatus.FILLED)
         if (!notFilledTakeProfits.length) {
