@@ -4,6 +4,7 @@ import { LimitOrder, TradeVariant } from "../../binance/model/trade-variant";
 import { CalculationsService } from "src/binance/calculations.service";
 import { Calculator } from "./calculator";
 import { Http } from "../http/http.service";
+import { LimitOrderUtil } from "src/binance/model/limit-order-util";
 
 export class EntryPriceCalculator extends Calculator<void> {
 
@@ -14,7 +15,6 @@ export class EntryPriceCalculator extends Calculator<void> {
     }
 
 
-    private readonly DEFAULT_ORDERS_NUMBER = 2
 
     private initSignal(signal: Signal) {
         if (this.signal) throw new Error(`Signal already set`)
@@ -50,7 +50,7 @@ export class EntryPriceCalculator extends Calculator<void> {
             return
         }
 
-        this.log(`Enter by ${this.DEFAULT_ORDERS_NUMBER} LIMIT orders`)
+        this.log(`Enter by ${LimitOrderUtil.DEFAULT_ORDERS_NUMBER} LIMIT orders`)
 
         this.calculateOrdersPrices()
 
@@ -72,12 +72,12 @@ export class EntryPriceCalculator extends Calculator<void> {
     private calculateOrdersPrices() {
 
         const diff = Math.abs(this.variant.entryZoneStart - this.variant.entryZoneEnd)
-        this.entryPriceDifference = diff / (this.DEFAULT_ORDERS_NUMBER + 1)
+        this.entryPriceDifference = diff / (LimitOrderUtil.DEFAULT_ORDERS_NUMBER + 1)
 
         this.log(`Limit Orders price difference: ${this.entryPriceDifference.toFixed(2)}`)
         let entryPrice = Math.min(this.variant.entryZoneStart, this.variant.entryZoneEnd)
 
-        for (let i = 0; i < this.DEFAULT_ORDERS_NUMBER; i++) {
+        for (let i = 0; i < LimitOrderUtil.DEFAULT_ORDERS_NUMBER; i++) {
             entryPrice += this.entryPriceDifference
             const orderPrice = this.service.fixPricePrecision(entryPrice, this.symbol)
             

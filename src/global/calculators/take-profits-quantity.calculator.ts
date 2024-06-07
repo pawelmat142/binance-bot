@@ -68,7 +68,6 @@ export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]>
             throw new Error(`calculated TP quantities: ${tpQtiesString}, sum: ${sum}, origin: ${this.origQuantity}`)
         }
 
-
         this.log('STOP')
         return this.takeProfits
     }

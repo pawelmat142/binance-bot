@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { CalculationsService } from "./calculations.service";
 import { TradeCtx } from "./model/trade-variant";
+import { LimitOrdersQuantityCalculator } from "src/global/calculators/limit-orders-quantity.calculator";
 
 @Injectable()
 export class MultiOrderService {
@@ -12,6 +13,9 @@ export class MultiOrderService {
     ) {}
 
     public async openLimitOrders(ctx: TradeCtx) {
+
+        await LimitOrdersQuantityCalculator.start(ctx, this.calculationsService)
+
         this.logger.warn(`TODO open limit orders!!`)
     }
 

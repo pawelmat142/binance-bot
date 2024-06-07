@@ -92,4 +92,22 @@ export class TradeCalculator<T> extends Calculator<T> {
         TradeUtil.addWarning(log, this.ctx, this.logger)
     }
 
+
+    protected findUsdtAmount(): Decimal {
+        let usdtAmount = new Decimal(this.usdtPerTransaction)
+
+        if (usdtAmount.times(this.lever).lessThan(this.minNotional)) {
+            if (this.ctx.unit.allowMinNotional) {
+                usdtAmount = this.minNotional.div(this.lever) 
+            } else {
+                throw new Error(`USDT per transaction is not enough for this position`)
+            }
+        }
+
+        if (!usdtAmount || usdtAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)
+        if (!this.variant.marketPriceOnCalculate) throw new Error(`Missing market price`)
+
+        return usdtAmount
+    }
+
 }
