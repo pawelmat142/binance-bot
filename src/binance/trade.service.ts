@@ -118,7 +118,7 @@ export class TradeService {
             this.calculationsService.calculateSingleTakeProfitQuantityIfEmpty(ctx)
             const takeProfits = ctx.trade.variant.takeProfits
             takeProfits.sort((a, b) => a.order - b.order)
-            for (let i = takeProfits.length-1; i>=0; i--) {
+            for (let i = takeProfits.length-1; i >= 0; i--) {
                 const tp = takeProfits[i]
                 const quantity = Number(tp.quantity)
                 if ((!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) && quantity) {

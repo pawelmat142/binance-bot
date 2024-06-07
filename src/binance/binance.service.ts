@@ -20,7 +20,7 @@ import { VariantUtil } from './model/variant-util';
 import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 import { MultiOrderService } from './multi-order.service';
 import { LimitOrderUtil } from './model/limit-order-util';
-import { TradeQuantityCalculator } from 'src/global/calculators/trade-quantity.calculator';
+import { TakeProfitsQuantityCalculator } from 'src/global/calculators/take-profits-quantity.calculator';
 
 
 @Injectable()
@@ -320,7 +320,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             return
         }
         TradeUtil.addLog(`Opening first Take Profit`, ctx, this.logger)
-        this.calculationsService.calculateTakeProfitQuantities(ctx)
+        await TakeProfitsQuantityCalculator.start(ctx, this.calculationsService)
         await this.tradeService.openNextTakeProfit(ctx)
     }
 

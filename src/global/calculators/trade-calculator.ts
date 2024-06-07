@@ -58,13 +58,21 @@ export class TradeCalculator<T> extends Calculator<T> {
         this.minNotional = this.service.getMinNotional(this.symbolInfo)
         const { minQty, stepSize } = this.service.getLotSize(this.symbolInfo)
         this.minQty = minQty 
-        this.stepSize = stepSize 
+        this.stepSize = stepSize
+        this.init()
     }
 
+    protected init() {
+        // may be overrided
+    }
 
 
     protected roundWithFraction (input: Decimal, fraction: Decimal) {
         return new Decimal(Math.ceil(input.div(fraction).toNumber())).times(fraction)
+    }
+
+    protected findMax (...values: Decimal[])  {
+        return new Decimal(Math.max(...values.map(v => v.toNumber())))
     }
 
 

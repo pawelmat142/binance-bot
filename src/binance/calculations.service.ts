@@ -100,57 +100,6 @@ export class CalculationsService implements OnModuleInit {
     }
 
 
-       
-    public calculateTakeProfitQuantities(ctx: TradeCtx) {
-        const length = ctx.trade.variant.takeProfits.length
-        const symbol = ctx.trade.variant.symbol
-        const quantityForCalculation = new Decimal(ctx.origQuantity).minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
-        const symbolInfo = this.getExchangeInfo(symbol)
-        const minNotional = this.getMinNotional(symbolInfo)
-        const { minQty, stepSize } = this.getLotSize(symbolInfo)
-        for (let i = 0; i < length; i++) {
-            let breakLoop = false
-            const tp = ctx.trade.variant.takeProfits[i]
-            if (tp.reuslt?.status === TradeStatus.FILLED) {
-                TradeUtil.addLog(`Skipped calculation for TP with order: ${tp.order}`, ctx, this.logger)
-                continue
-            }
-            const minQuantityByNotional = roundWithFraction(minNotional.div(tp.price), stepSize)
-            let quantity = roundWithFraction(ctx.origQuantity.times(tp.closePercent).div(100), stepSize)
-            quantity = findMax(quantity, minQuantityByNotional, minQty)
-            const sum = TPUtil.takeProfitQuentitesSum(ctx.trade).plus(quantity)
-            if (sum.equals(ctx.origQuantity)) {
-                tp.quantity = quantity.toNumber()
-                breakLoop = true
-            } else if (sum.greaterThan(ctx.origQuantity)) {
-                const correctedQuantity = quantity.minus(sum.minus(ctx.origQuantity)) 
-                if (correctedQuantity.lessThan(minQuantityByNotional)) {
-                    if (i > 0) {
-                        const prevTp = ctx.trade.variant.takeProfits[i-1]
-                        prevTp.quantity = new Decimal(prevTp.quantity).plus(correctedQuantity).toNumber()
-                        tp.quantity = 0
-                    } else throw new Error('quantity calculation error')
-                } else {
-                    tp.quantity = correctedQuantity.toNumber()
-                }
-                breakLoop = true
-            } else {
-                tp.quantity = quantity.toNumber()
-            }
-            if (breakLoop) break
-        }
-        const sum = TPUtil.takeProfitQuentitesSum(ctx.trade)
-        const tpQtiesString = ctx.trade.variant.takeProfits
-            .map(tp => tp.quantity)
-            .filter(q => !!q)
-            .join(', ')
-        if (sum.equals(ctx.origQuantity)) {
-            TradeUtil.addLog(`Successfully calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`, ctx, this.logger)
-        } else {
-            throw new Error(`calculated TP quantities: [${tpQtiesString}], sum: ${sum}, origin: ${ctx.origQuantity}`)
-        }
-    }
-
     public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) => {
         const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status !== TradeStatus.FILLED)
         if (!notFilledTakeProfits.length) {
