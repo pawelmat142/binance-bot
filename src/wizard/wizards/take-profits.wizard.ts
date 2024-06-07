@@ -170,7 +170,7 @@ export class TakeProfitsWizard extends UnitWizard {
         const side = this.selectedTrade.variant.side
         if (this.takeProfitsIterator === 0) {
             if (side === "BUY") {
-                if (price > this.selectedTrade.entryPrice) {
+                if (price > Number(this.selectedTrade.futuresResult.averagePrice)) {
                     return true
                 } else {
                     this.error = `It should be more than entry price`
@@ -178,7 +178,7 @@ export class TakeProfitsWizard extends UnitWizard {
                 }
             }
             else {
-                if (price < this.selectedTrade.entryPrice) {
+                if (price < Number(this.selectedTrade.futuresResult.averagePrice)) {
                     return true
                 } else {
                     this.error = `It should be less than entry price`

@@ -145,7 +145,7 @@ export abstract class TradeUtil {
         for (let tp of takeProfits) {
             if (tp.reuslt?.status === TradeStatus.FILLED) {
                 if (tp.order === 0) {
-                    const entryPrice = Number(ctx.trade.entryPrice)
+                    const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
                     if (!isNaN(entryPrice)) {
                         result = entryPrice
                     }

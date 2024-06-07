@@ -453,7 +453,7 @@ export class TradesWizard extends UnitWizard {
             const position = this.openOrdersPositions.find(o => o.symbol === this.selectedTrade.variant.symbol)
             if (position) {
                 const message = [
-                    `Entry price: ${this.selectedTrade.entryPrice.toFixed(2)} USDT`,
+                    `Entry price: ${Number(this.selectedTrade.futuresResult.averagePrice).toFixed(2)} USDT`,
                     `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
                 ]
                 if (this.selectedTrade.variant.stopLoss) {

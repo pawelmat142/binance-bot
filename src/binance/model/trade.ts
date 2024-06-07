@@ -59,14 +59,6 @@ export class Trade {
 
     @Expose() 
     @Prop()
-    entryPrice: number
-
-    @Expose() 
-    @Prop()
-    currentPrice: number
-
-    @Expose() 
-    @Prop()
     unitIdentifier: string
 
     @Expose() 
@@ -85,10 +77,6 @@ export class Trade {
     @Expose()
     @Prop()
     stopLossTime: Date
-
-    @Expose()
-    @Prop()
-    testMode: boolean
 
     @Expose()
     @Prop()

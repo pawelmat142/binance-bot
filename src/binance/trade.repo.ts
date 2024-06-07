@@ -80,7 +80,6 @@ export class TradeRepository {
         ctx.trade._id = newObjectId()
         ctx.trade.timestamp = new Date()
         const newTrade = new this.model(ctx.trade)
-        newTrade.testMode = process.env.TEST_MODE === 'true'
 
         TradeUtil.addLog(`Saving trade ${newTrade._id}`, ctx, this.logger)
         const saved = await newTrade.save()

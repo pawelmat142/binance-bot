@@ -11,7 +11,7 @@ export class TradeCalculator<T> extends Calculator<T> {
     // T === Type !!
 
     public static start<Type>(ctx: TradeCtx, service: CalculationsService): Promise<Type> {
-        const calculator = new TradeCalculator(service)
+        const calculator = new this(service)
         calculator.initTradeCtx(ctx)
         return calculator.calculate() as Promise<Type>
     }
