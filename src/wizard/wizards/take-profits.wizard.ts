@@ -92,7 +92,7 @@ export class TakeProfitsWizard extends UnitWizard {
                     text: `CONFIRM`,
                     callback_data: 'confirm',
                     process: async () => {
-                        this.calculatePercentages()
+                        TPUtil.calculatePercentages(this.takeProfits)
                         this.selectedTrade.variant.takeProfits = this.takeProfits
                         const anyPendingTakeProfit = this.takeProfits.some(tp => tp.reuslt?.status === TradeStatus.NEW)
                         if (anyPendingTakeProfit) {
@@ -207,13 +207,6 @@ export class TakeProfitsWizard extends UnitWizard {
         }
     }
 
-    private calculatePercentages() {
-        const singleTakeProfitPercentage = new Decimal(100).div(this.takeProfits.length).floor()
-        this.takeProfits.forEach(tp => {
-            tp.closePercent = singleTakeProfitPercentage.toNumber()
-        })
-        const remainder = 100 % this.takeProfits.length
-        this.takeProfits[0].closePercent += remainder
-    }
+
 
 }

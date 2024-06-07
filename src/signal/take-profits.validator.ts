@@ -2,7 +2,6 @@ import { Signal } from "./signal";
 import { BaseValidator } from "./base-validator";
 import { TakeProfit } from "src/binance/model/trade-variant";
 import { SignalUtil } from "./signal-util";
-import Decimal from "decimal.js";
 import { TPUtil } from "src/binance/take-profit-util";
 
 export class TakeProfitsValidator extends BaseValidator {
@@ -146,18 +145,7 @@ export class TakeProfitsValidator extends BaseValidator {
             SignalUtil.addLog(`Take Profit percentages valid ${TPUtil.percentagesString(this.signal.variant)}`, this.signal, this.logger)
             return
         }
-        SignalUtil.addLog(`Take Profit percentages sum: ${takeProfitPercentagesSum} not valid, calculate!`, this.signal, this.logger)
-        const takeProfitsLength = this.signal.variant.takeProfits.length
-        const singleTakeProfitPercentage = new Decimal(100).div(takeProfitsLength).floor()
-        this.signal.variant.takeProfits.forEach(tp => {
-            tp.closePercent = singleTakeProfitPercentage.toNumber()
-        })
-
-        const calculatedPercentageSum = TPUtil.takeProfitsPercentageSum(this.signal.variant.takeProfits)
-        const diffrence = 100 - calculatedPercentageSum
-        if (diffrence) {
-            this.signal.variant.takeProfits[0].closePercent += diffrence
-        }
+        TPUtil.calculatePercentages(this.signal.variant.takeProfits)
         SignalUtil.addLog(`Take Profit percentages calculated ${TPUtil.percentagesString(this.signal.variant)}`, this.signal, this.logger)
     }
 

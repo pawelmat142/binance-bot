@@ -46,6 +46,15 @@ export abstract class TPUtil {
         return result
     }
 
+
+    public static calculatePercentages(takeProfits: TakeProfit[]) {
+        const singleTakeProfitPercentage = new Decimal(100).div(takeProfits.length).floor()
+        takeProfits.forEach(tp => {
+            tp.closePercent = singleTakeProfitPercentage.toNumber()
+        })
+        const remainder = 100 % takeProfits.length
+        takeProfits[0].closePercent += remainder
+    }
     
     public static findNextTakeProfitOrder = (trade: Trade): number => {
         let result = 0
