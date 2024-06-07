@@ -1,7 +1,6 @@
 import Decimal from "decimal.js";
 import { TradeCtx } from "src/binance/model/trade-variant";
 import { VariantUtil } from "src/binance/model/variant-util";
-import { TradeUtil } from "src/binance/trade-util";
 
 export abstract class Messages {
 
