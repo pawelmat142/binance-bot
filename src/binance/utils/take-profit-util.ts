@@ -33,7 +33,7 @@ export abstract class TPUtil {
 
     public static positionFullyFilled(ctx: TradeCtx): boolean {
         const logger = new Logger(this.name)
-        const positionQuantity = new Decimal(ctx.trade.futuresResult?.origQty ?? 0)
+        const positionQuantity = new Decimal(ctx.trade.marketResult?.origQty ?? 0)
         const takeProfitsSum = TPUtil.takeProfitsFilledQuantitySum(ctx.trade)
         const result = positionQuantity.equals(takeProfitsSum)
         TradeUtil.addLog(`Position quantity: ${positionQuantity}, take profits filled sum: ${takeProfitsSum}`, ctx, logger)

@@ -69,7 +69,7 @@ export abstract class TradeUtil {
     }
 
     public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): Object => {
-        const tradeorigQty = ctx.trade.futuresResult.origQty
+        const tradeorigQty = ctx.trade.marketResult.origQty
         if (!tradeorigQty) {
             throw new Error(`origQuantity could not be found`)
         }
@@ -133,7 +133,7 @@ export abstract class TradeUtil {
     }
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-        let stopLossQuantity = new Decimal(ctx.trade.futuresResult.origQty ?? 0)
+        let stopLossQuantity = new Decimal(ctx.trade.marketResult.origQty ?? 0)
             .minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
         return stopLossQuantity
     }
@@ -145,7 +145,7 @@ export abstract class TradeUtil {
         for (let tp of takeProfits) {
             if (tp.reuslt?.status === TradeStatus.FILLED) {
                 if (tp.order === 0) {
-                    const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
+                    const entryPrice = Number(ctx.trade.marketResult.averagePrice)
                     if (!isNaN(entryPrice)) {
                         result = entryPrice
                     }
@@ -163,9 +163,9 @@ export abstract class TradeUtil {
 
     public static tradeAmount = (trade: Trade): Decimal => {
         let result = new Decimal(0)
-        if (trade.futuresResult) {
+        if (trade.marketResult) {
             result = result
-                .plus(new Decimal(trade.futuresResult.origQty)) // has to be orig here, not executed!
+                .plus(new Decimal(trade.marketResult.origQty)) // has to be orig here, not executed!
                 .minus(TPUtil.takeProfitsFilledQuantitySum(trade))
         }
         return result

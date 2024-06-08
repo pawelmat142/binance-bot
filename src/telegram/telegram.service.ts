@@ -124,7 +124,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     public onFilledPosition(ctx: TradeCtx) {
         const lines = [
             `${VariantUtil.label(ctx.trade.variant)} FILLED`,
-            `averagePrice: ${this.print$(ctx.trade.futuresResult.averagePrice)}`,
+            `averagePrice: ${this.print$(ctx.trade.marketResult.averagePrice)}`,
             `${ctx.trade._id}`
         ]
         this.addStopLossLine(ctx, lines)

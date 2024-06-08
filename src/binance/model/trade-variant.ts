@@ -64,11 +64,11 @@ export class TradeCtx implements TradeContext {
     public error = false
 
     public get filled(): boolean {
-        return this.trade?.futuresResult?.status === 'FILLED'
+        return this.trade?.marketResult?.status === 'FILLED'
     }
     
     public get status(): string {
-        return this.trade?.futuresResult?.status
+        return this.trade?.marketResult?.status
     }
 
     public get symbol(): string {
@@ -80,7 +80,7 @@ export class TradeCtx implements TradeContext {
     }
 
     public get origQuantity(): Decimal {
-        const origQuantity = this.trade.futuresResult.origQty
+        const origQuantity = this.trade.marketResult.origQty
         if (!origQuantity) {
             throw new Error(`origQuantity could not be found`)
         }

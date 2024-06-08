@@ -84,8 +84,8 @@ export class WizardBinanceService {
 
     public async closeOpenOrder(ctx: TradeCtx, orderId: BigInt) {
         const result = await this.tradeService.closeOrder(ctx, orderId)
-        if (ctx.trade.futuresResult?.orderId === result.orderId) {
-            ctx.trade.futuresResult = result
+        if (ctx.trade.marketResult?.orderId === result.orderId) {
+            ctx.trade.marketResult = result
             await this.tradeRepo.closeTradeManual(ctx)
         } else {
             (ctx.trade.variant.limitOrders || []).forEach(order => {
@@ -134,7 +134,7 @@ export class WizardBinanceService {
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'POST')
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {
-                futuresResult: result,
+                marketResult: result,
                 unitIdentifier: unit.identifier,
                 closed: true,
                 variant: { 
@@ -166,7 +166,7 @@ export class WizardBinanceService {
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'DELETE')
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {
-                futuresResult: result,
+                marketResult: result,
                 unitIdentifier: unit.identifier,
                 closed: true,
                 variant: { 

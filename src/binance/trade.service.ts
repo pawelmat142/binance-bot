@@ -40,8 +40,8 @@ export class TradeService {
         const params = TradeUtil.marketOrderParams(ctx.trade, quantity)
         const result = await this.placeOrder(params, ctx)
         ctx.trade.timestamp = new Date()
-        ctx.trade.futuresResult = result
-        TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
+        ctx.trade.marketResult = result
+        TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.marketResult.origQty}`, ctx, this.logger)
         if (!ctx.origQuantity.equals(new Decimal(quantity))) {
             TradeUtil.addWarning(`origQuantity ${ctx.origQuantity} != quantity ${quantity}`, ctx, this.logger)
         }

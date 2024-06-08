@@ -226,7 +226,7 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
         for (let order of openOrders) {
             const unit = this.unitService.units.find(u => u.identifier === order.unitIdentifier)
             if (!unit) {
-                this.logger.warn(`${this.tickerLabel(symbol)} - Not found unit ${order.unitIdentifier} to close order ${order.futuresResult.orderId}`)
+                this.logger.warn(`${this.tickerLabel(symbol)} - Not found unit ${order.unitIdentifier} to close order ${order.marketResult.orderId}`)
                 continue
             }
             const ctx = new TradeCtx({
@@ -241,9 +241,9 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
         try {
             TradeUtil.addLog(`Closing order by Price Ticker`, ctx, this.logger)
             
-            const result = await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
+            const result = await this.tradeService.closeOrder(ctx, ctx.trade.marketResult.orderId)
             ctx.trade.closed = true
-            ctx.trade.futuresResult = result
+            ctx.trade.marketResult = result
             this.telegramService.sendUnitMessage(ctx, [VariantUtil.label(ctx.trade.variant), `Closed order bcs price limit exceeded`])
         } 
         catch (error) {

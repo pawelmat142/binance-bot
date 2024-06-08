@@ -389,7 +389,7 @@ export class TradesWizard extends UnitWizard {
 
     private findMatchingTrade(position: Position) {
         const matchingTrades = this.trades.filter(t => t.variant.symbol === position.symbol)
-            .filter(t => t.futuresResult?.status === TradeStatus.FILLED)
+            .filter(t => t.marketResult?.status === TradeStatus.FILLED)
             .filter(t => {
                 const tradeAmount = TradeUtil.tradeAmount(t)
                 const positionAmount = new Decimal(position.positionAmt)
@@ -407,7 +407,7 @@ export class TradesWizard extends UnitWizard {
 
     private findMatchingOrderTrade(order: FuturesResult): Trade {
         const matchingTrades = this.trades.filter(t => t.variant.symbol === order.symbol)
-            .filter(t => t.futuresResult?.status === TradeStatus.NEW || t.variant.limitOrders?.some(lo => lo.result?.status === TradeStatus.NEW))
+            .filter(t => t.marketResult?.status === TradeStatus.NEW || t.variant.limitOrders?.some(lo => lo.result?.status === TradeStatus.NEW))
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]
         if (!result) {
@@ -449,9 +449,9 @@ export class TradesWizard extends UnitWizard {
             const position = this.openOrdersPositions.find(o => o.symbol === this.selectedTrade.variant.symbol)
             if (position) {
                 const message: string[] = [] 
-                if (this.selectedTrade.futuresResult) {
-                    message.push(`Entry price: ${Number(this.selectedTrade.futuresResult.averagePrice).toFixed(2)} USDT`)
-                    message.push(`Entry price: ${Number(this.selectedTrade.futuresResult.averagePrice).toFixed(2)} USDT`)
+                if (this.selectedTrade.marketResult) {
+                    message.push(`Entry price: ${Number(this.selectedTrade.marketResult.averagePrice).toFixed(2)} USDT`)
+                    message.push(`Entry price: ${Number(this.selectedTrade.marketResult.averagePrice).toFixed(2)} USDT`)
                 } else if (this.selectedTrade.variant.limitOrders) {
                     this.selectedTrade.variant.limitOrders.forEach(lo => {
                         message.push(`Entry price ${lo.order+1}: ${Number(lo.result.price).toFixed(2)} USDT`)

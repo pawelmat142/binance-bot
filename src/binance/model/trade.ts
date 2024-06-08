@@ -74,7 +74,7 @@ export class Trade {
 
     @Expose() 
     @Prop()
-    futuresResult: FuturesResult
+    marketResult: FuturesResult
 
     
     @Expose()

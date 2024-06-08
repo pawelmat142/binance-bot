@@ -172,14 +172,14 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     private async otherSignalActionForUnit(ctx: TradeCtx, signal: Signal) {
         try {
             if (signal.otherSignalAction.manualClose) {
-                if (ctx.trade.futuresResult?.status === TradeStatus.FILLED) {
+                if (ctx.trade.marketResult?.status === TradeStatus.FILLED) {
                     await this.manualClosePositionFull(ctx)
                 }
-                else if (ctx.trade.futuresResult?.status === TradeStatus.NEW) {
+                else if (ctx.trade.marketResult?.status === TradeStatus.NEW) {
                     await this.manualCloseOpenOrder(ctx)
                     this.tradeService.closeOrderEvent(ctx)
                 } else {
-                    TradeUtil.addError(`wrong trade status: ${ctx.trade.futuresResult?.status} when manual close`, ctx, this.logger)
+                    TradeUtil.addError(`wrong trade status: ${ctx.trade.marketResult?.status} when manual close`, ctx, this.logger)
                 } 
             } 
             else if (signal.otherSignalAction.tradeDone) {
@@ -201,7 +201,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 if (signal.otherSignalAction.moveSl) {
                     if (signal.otherSignalAction.moveSlToEntryPoint) {
                         TradeUtil.addLog(`[START] move stop loss to entry point`, ctx, this.logger)
-                        const entryPrice = Number(ctx.trade.futuresResult.averagePrice)
+                        const entryPrice = Number(ctx.trade.marketResult.averagePrice)
                         if (!entryPrice) {
                             TradeUtil.addError(`entry price to move SL not found: ${entryPrice}`, ctx, this.logger)
                             this.tradeRepo.update(ctx)
@@ -228,7 +228,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        if (ctx.trade.futuresResult.orderId === eventTradeResult.orderId) {
+        if (ctx.trade.marketResult.orderId === eventTradeResult.orderId) {
             this.onFilledPosition(ctx, eventTradeResult)
 
         } else if (ctx.trade.stopLossResult.orderId === eventTradeResult.orderId) {
@@ -247,14 +247,14 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async onFilledPosition(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Found trade with result id ${ctx.trade.futuresResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
+        TradeUtil.addLog(`Found trade with result id ${ctx.trade.marketResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
         try {
-            const wasOpenOrder = ctx.trade.futuresResult?.status === TradeStatus.NEW
+            const wasOpenOrder = ctx.trade.marketResult?.status === TradeStatus.NEW
             if (wasOpenOrder) {
                 TradeUtil.addLog(`Was open order`, ctx, this.logger)
                 this.tradeService.closeOrderEvent(ctx)
             }
-            ctx.trade.futuresResult = eventTradeResult
+            ctx.trade.marketResult = eventTradeResult
             await this.tradeService.stopLossRequest(ctx)
             await this.openFirstTakeProfit(ctx)
         } catch (error) {
@@ -379,6 +379,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                         .forEach(tp => tp.reuslt = result)
                     this.tradeLog(ctx, `Closed TAKE PROFIT ${order.orderId}`)
                 } else {
+                    (ctx.trade.variant.limitOrders || [])
+                        .filter(lo => lo.result?.orderId === result.orderId)
+                        .forEach(lo => lo.result = result)
+
                     TradeUtil.addError(`Closed order: ${order.orderId}, type: ${result.type}`, ctx, this.logger)
                 }
             }
@@ -394,7 +398,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
         for (let trade of trades) {
             if (trade._id === ctx.trade._id) {
-                trade.futuresResult = result
+                trade.marketResult = result
                 await this.tradeRepo.closeTradeManual(ctx)
                 this.tradeLog(ctx, `Closed trade: ${trade._id}`)
             } else {
@@ -408,12 +412,12 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private async manualCloseOpenOrder(ctx: TradeCtx) {
         try {
-            const result = await this.tradeService.closeOrder(ctx, ctx.trade.futuresResult.orderId)
-            ctx.trade.futuresResult = result
+            const result = await this.tradeService.closeOrder(ctx, ctx.trade.marketResult.orderId)
+            ctx.trade.marketResult = result
             ctx.trade.closed = true
         } catch (error) {
             const msg = Http.handleErrorMessage(error)
-            TradeUtil.addError(`Error trying to close trade order ${ctx.trade.futuresResult.orderId} manualy`, ctx, this.logger)
+            TradeUtil.addError(`Error trying to close trade order ${ctx.trade.marketResult.orderId} manualy`, ctx, this.logger)
             TradeUtil.addError(msg, ctx, this.logger)
         }
         finally {
