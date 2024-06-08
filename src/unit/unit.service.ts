@@ -9,11 +9,11 @@ import { TradeEventData, ListeKeyResponse } from '../binance/model/model';
 import { TradeUtil } from '../binance/utils/trade-util';
 import { Http } from '../global/http/http.service';
 import { HttpMethod } from '../global/type';
-import { getHeaders, sign, newObjectId, queryParams } from '../global/util';
 import { BotUtil } from '../wizard/bot.util';
 import { UnitUtil } from './unit.util';
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
 import * as JSONbig from 'json-bigint';
+import { Util } from '../binance/utils/util';
 
 
 @Injectable()
@@ -194,7 +194,7 @@ export class UnitService implements OnModuleInit {
         const response = await this.http.fetch<ListeKeyResponse>({
             url: this.signUrlWithParams(`/listenKey`, unit, ''),
             method: method,
-            headers: getHeaders(unit)
+            headers: Util.getHeaders(unit)
         })
         return response.listenKey
     }
@@ -202,7 +202,7 @@ export class UnitService implements OnModuleInit {
 
     private signUrlWithParams(path: string, unit: Unit, queryString: string) {
         const url = `${TradeUtil.futuresUri}${path}`
-        return sign(url, queryString, unit)
+        return Util.sign(url, queryString, unit)
     }
 
     private async fetchUnit(identifier: string): Promise<Unit> {
@@ -264,7 +264,7 @@ export class UnitService implements OnModuleInit {
             throw new BadRequestException(`Unit ${body.identifier} already exists`)
         }
         const entity = new this.unitModel({
-            _id: newObjectId(),
+            _id: Util.newObjectId(),
             identifier: body.identifier,
             active: body.active,
             listenJsons: [],
@@ -369,14 +369,14 @@ export class UnitService implements OnModuleInit {
     }
 
     public async apiKeyError(unit: Unit): Promise<BinanceError> {
-        const params = queryParams({
+        const params = {
             timestamp: Date.now(),
-        })
+        }
         try {
             return this.http.fetch<BinanceError>({
-                url: sign(`${TradeUtil.futuresUriV2}/account`, params, unit),
+                url: Util.sign(`${TradeUtil.futuresUriV2}/account`, params, unit),
                 method: 'GET',
-                headers: getHeaders(unit)
+                headers: Util.getHeaders(unit)
             })
         } catch (error) {
             const message = Http.handleErrorMessage(error)

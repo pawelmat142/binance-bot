@@ -6,7 +6,7 @@ import Decimal from "decimal.js"
 import { Position } from "../wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
 import { VariantUtil } from "./variant-util"
-import { queryParams, toDateString } from "../../global/util"
+import { toDateString } from "../../global/util"
 
 
 export abstract class TradeUtil {
@@ -57,23 +57,23 @@ export abstract class TradeUtil {
         ctx.trade.logs.push(log)
     }
 
-    public static marketOrderParams (trade: Trade, quantity: number): string  {
-        return queryParams({
+    public static marketOrderParams (trade: Trade, quantity: number): Object  {
+        return {
             symbol: trade.variant.symbol,
             side: trade.variant.side,
             type: TradeType.MARKET,
             quantity: quantity,
             timestamp: Date.now(),
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
+        }
     }
 
-    public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): string => {
+    public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): Object => {
         const tradeorigQty = ctx.trade.futuresResult.origQty
         if (!tradeorigQty) {
             throw new Error(`origQuantity could not be found`)
         }
-        return queryParams({
+        return {
             symbol: ctx.symbol,
             side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.STOP_MARKET,
@@ -83,11 +83,11 @@ export abstract class TradeUtil {
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
             reduceOnly: true
-        })
+        }
     }
 
-    public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): string => {
-        return queryParams({
+    public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): Object => {
+        return {
             symbol: ctx.symbol,
             side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.TAKE_PROFIT_MARKET,
@@ -97,7 +97,7 @@ export abstract class TradeUtil {
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
             reduceOnly: true,
-        })
+        }
     }
 
     public static isTradeEvent(tradeEvent: TradeEventData): boolean {

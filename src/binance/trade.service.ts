@@ -13,10 +13,10 @@ import { TPUtil } from './utils/take-profit-util';
 import { TradeQuantityCalculator } from '../global/calculators/trade-quantity.calculator';
 import { Http } from '../global/http/http.service';
 import { HttpMethod } from '../global/type';
-import { queryParams, getHeaders, sign } from '../global/util';
 import { TelegramService } from '../telegram/telegram.service';
 import { Unit } from '../unit/unit';
 import { CalcUtil } from './utils/calc-util';
+import { Util } from './utils/util';
 
 @Injectable()
 export class TradeService {
@@ -159,7 +159,7 @@ export class TradeService {
 
 
     private async takeSomeProfitRequest(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
-        const params = queryParams({
+        const params = {
             symbol: ctx.trade.variant.symbol,
             side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.MARKET,
@@ -167,20 +167,20 @@ export class TradeService {
             timestamp: Date.now(),
             reduceOnly: true,
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
+        }
         const result = await this.placeOrder(params, ctx)
         TradeUtil.addLog(`Took profit with order ${tp.order}, price: ${result.price}, unit: ${ctx.unit.identifier}, symbol: ${result.symbol}`, ctx, this.logger)
         return result
     }
 
     public closeOrder(ctx: TradeCtx, orderId: BigInt): Promise<FuturesResult> {
-        const params = queryParams({
+        const params = {
             symbol: ctx.symbol,
             orderId: orderId,
             timestamp: Date.now(),
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-        })
+        }
         return this.placeOrder(params, ctx, 'DELETE')
     }
 
@@ -190,17 +190,17 @@ export class TradeService {
 
     public async setIsolatedMode(ctx: TradeCtx) {
         try {
-            const params = queryParams({
+            const params = {
                 symbol: ctx.symbol,
                 marginType: 'ISOLATED',
                 timestamp: Date.now(),
                 timeInForce: 'GTC',
                 recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-            })
+            }
             await this.http.fetch<FuturesResult>({
                 url: this.signUrlWithParams(`/marginType`, ctx, params),
                 method: 'POST',
-                headers: getHeaders(ctx.unit)
+                headers: Util.getHeaders(ctx.unit)
             })
             TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
         } catch (error) {
@@ -237,49 +237,49 @@ export class TradeService {
 
     public async setPositionLeverage(ctx: TradeCtx) {
         const lever = ctx.lever
-        const params = queryParams({
+        const params = {
             symbol: ctx.symbol,
             leverage: lever,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-        })
+        }
         const response = await this.http.fetch({
             url: this.signUrlWithParams(`/leverage`, ctx, params),
             method: 'POST',
-            headers: getHeaders(ctx.unit)
+            headers: Util.getHeaders(ctx.unit)
         })
         TradeUtil.addLog(`Leverage is set to ${lever}x for symbol: ${ctx.trade.variant.symbol}`, ctx, this.logger)
     } 
 
-    public placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
+    public placeOrder(params: Object, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
         return this.http.fetch<FuturesResult>({
             url: this.signUrlWithParams(path, ctx, params),
             method: method ?? 'POST',
-            headers: getHeaders(ctx.unit)
+            headers: Util.getHeaders(ctx.unit)
         })
     }
 
-    public placeOrderByUnit(params: string, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
+    public placeOrderByUnit(params: Object, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
         return this.http.fetch<FuturesResult>({
             url: this.signUrlWithParamsAndUnit(path, unit, params),
             method: method ?? 'POST',
-            headers: getHeaders(unit)
+            headers: Util.getHeaders(unit)
         })
     }
 
     public async closePosition(ctx: TradeCtx): Promise<FuturesResult> {
         try {
             const position = ctx.position ?? await this.fetchPosition(ctx)
-            const params = queryParams({
+            const params = {
                 symbol: ctx.symbol,
                 side: VariantUtil.opositeSide(ctx.side),
                 type: TradeType.MARKET,
                 quantity: Number(position.positionAmt),
                 reduceOnly: true,
                 timestamp: Date.now()
-            })
+            }
             return this.placeOrder(params, ctx, 'POST')
         } catch (error) {
             this.handleError(error, `CLOSE POSITION ERROR`, ctx)
@@ -289,14 +289,14 @@ export class TradeService {
 
     private async fetchPosition(ctx: TradeCtx): Promise<Position> {
         try {
-            const params = queryParams({
+            const params = {
                 timestamp: Date.now(),
                 symbol: ctx.trade.variant.symbol
-            })
+            }
             const response = await this.http.fetch<Position[]>({
-                url: sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit),
+                url: Util.sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit),
                 method: `GET`,
-                headers: getHeaders(ctx.unit)
+                headers: Util.getHeaders(ctx.unit)
             })
             if (!(response || []).length) {
                 throw new Error(`Could not fetch position ${VariantUtil.label(ctx.trade.variant)}`)
@@ -310,13 +310,10 @@ export class TradeService {
 
     public async fetchPositions(unit: Unit): Promise<Position[]> {
         try {
-            const params = queryParams({
-                timestamp: Date.now()
-            })
             const trades = await this.http.fetch<Position[]>({
-                url: sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit),
+                url: Util.sign(`${TradeUtil.futuresUriV2}/positionRisk`, { timestamp: Date.now() }, unit),
                 method: 'GET',
-                headers: getHeaders(unit)
+                headers: Util.getHeaders(unit)
             })
             this.logger.log(`fetched ${trades.length} positions`)
             if (trades.length >= 500) {
@@ -338,9 +335,9 @@ export class TradeService {
                 params['symbol'] = symbol
             }
             const result = await this.http.fetch<FuturesResult[]>({
-                url: sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit),
+                url: Util.sign(`${TradeUtil.futuresUri}/openOrders`, params, unit),
                 method: 'GET',
-                headers: getHeaders(unit)
+                headers: Util.getHeaders(unit)
             })
             return result
         } catch (error) {
@@ -349,13 +346,13 @@ export class TradeService {
         }
     }
 
-    private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: string): string {
+    private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: Object): string {
         return this.signUrlWithParamsAndUnit(urlPath, tradeContext.unit, params)
     }
     
-    private signUrlWithParamsAndUnit(urlPath: string, unit: Unit, params: string): string {
+    private signUrlWithParamsAndUnit(urlPath: string, unit: Unit, params: Object): string {
         const url = `${TradeUtil.futuresUri}${urlPath}`
-        return sign(url, params, unit)
+        return Util.sign(url, params, unit)
     }
 
     private handleError(error, msg?: string, ctx?: TradeCtx) {

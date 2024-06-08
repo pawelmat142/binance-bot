@@ -3,11 +3,11 @@ import { FuturesResult, Trade, TradeStatus, TradeType } from "./model/trade";
 import { TradeService } from "./trade.service";
 import { VariantSide } from "./utils/variant-util";
 import { Http } from "../global/http/http.service";
-import { queryParams, sign, getHeaders } from "../global/util";
 import { Unit } from "../unit/unit";
 import { TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { TradeUtil } from "./utils/trade-util";
+import { Util } from "./utils/util";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -55,24 +55,24 @@ export class WizardBinanceService {
 
 
     public async fetchAllOrders(unit: Unit): Promise<FuturesResult[]> {
-        const params = queryParams({
+        const params = {
             timestamp: Date.now()
-        })
+        }
         return this.http.fetch<FuturesResult[]>({
-            url: sign(`${TradeUtil.futuresUri}/allOrders`, params, unit),
+            url: Util.sign(`${TradeUtil.futuresUri}/allOrders`, params, unit),
             method: 'GET',
-            headers: getHeaders(unit)
+            headers: Util.getHeaders(unit)
         })
     }
 
     public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
-        const params = queryParams({
+        const params = {
             timestamp: Date.now()
-        })
+        }
         const accountInfos = await this.http.fetch<BinanceFuturesAccountInfo[]>({
-            url: sign(`${TradeUtil.futuresUriV2}/balance`, params, unit),
+            url: Util.sign(`${TradeUtil.futuresUriV2}/balance`, params, unit),
             method: 'GET',
-            headers: getHeaders(unit)
+            headers: Util.getHeaders(unit)
         })
         return (accountInfos || []).find(info => info.asset === 'USDT')
     }
@@ -108,14 +108,14 @@ export class WizardBinanceService {
             }
             const side: VariantSide = amount > 0 ? 'SELL' : 'BUY';
             const quantity = Math.abs(amount)
-            const params = queryParams({
+            const params = {
                 symbol: position.symbol,
                 side: side,
                 type: TradeType.MARKET,
                 quantity: quantity,
                 reduceOnly: true,
                 timestamp: Date.now()
-            })
+            }
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'POST')
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {
@@ -141,13 +141,13 @@ export class WizardBinanceService {
 
     public async closeOrderWithoutTrade(order: FuturesResult, unit: Unit): Promise<string> {
         try {
-            const params = queryParams({
+            const params = {
                 symbol: order.symbol,
                 orderId: order.orderId,
                 timestamp: Date.now(),
                 timeInForce: 'GTC',
                 recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-            })
+            }
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'DELETE')
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {

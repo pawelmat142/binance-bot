@@ -2,11 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { FuturesResult, Trade, TradeStatus } from "./model/trade";
 import { Model } from "mongoose";
-import { newObjectId } from "../global/util";
 import { Signal } from "../signal/signal";
 import { Unit } from "../unit/unit";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeUtil } from "./utils/trade-util";
+import { Util } from "./utils/util";
 
 @Injectable()
 export class TradeRepository {
@@ -77,7 +77,7 @@ export class TradeRepository {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
             this.logger.warn('[SKIP] Saved trade')
         }
-        ctx.trade._id = newObjectId()
+        ctx.trade._id = Util.newObjectId()
         ctx.trade.timestamp = new Date()
         const newTrade = new this.model(ctx.trade)
 
