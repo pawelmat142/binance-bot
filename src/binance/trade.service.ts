@@ -4,7 +4,6 @@ import { getHeaders, queryParams, sign } from 'src/global/util';
 import { FuturesResult, TradeStatus } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
-import { HttpMethod } from 'src/global/http-method';
 import { TradeType } from './model/model';
 import { TradeRepository } from './trade.repo';
 import { TelegramService } from 'src/telegram/telegram.service';
@@ -17,6 +16,7 @@ import { TPUtil } from './take-profit-util';
 import { Subject } from 'rxjs';
 import { VariantUtil } from './model/variant-util';
 import { TradeQuantityCalculator } from 'src/global/calculators/trade-quantity.calculator';
+import { HttpMethod } from 'src/global/type';
 
 @Injectable()
 export class TradeService {

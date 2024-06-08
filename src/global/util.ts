@@ -9,7 +9,7 @@ export const toDateString = (date: Date): string => {
     return moment(date).format('YY-MM-DD hh:mm:ss')
 }
 
-const getSignature = (queryString: string, unit: Unit): string => {
+export const getSignature = (queryString: string, unit: Unit): string => {
     return crypto.createHmac('sha256', unit.binanceApiSecret).update(queryString).digest('hex')
 }
 

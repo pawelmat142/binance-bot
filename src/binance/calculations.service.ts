@@ -56,7 +56,8 @@ export class CalculationsService implements OnModuleInit {
         }
         try {
             const info = await this.http.fetch<FuturesExchangeInfo>({ url: `${TradeUtil.futuresUri}/exchangeInfo` })
-            // this.saveExchangeInfoInFile(info) <- do it once in test env
+            this.saveExchangeInfoInFile(info) 
+            // <- do it once in test env
             if (info) {
                 this._exchangeInfo$.next(info)
                 this.logger.log(`EXCHANGE INFO INITIALIZED`)

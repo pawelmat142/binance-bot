@@ -1,10 +1,10 @@
 import Decimal from "decimal.js"
+import { VariantSide } from "./variant-util"
 
 export interface BinancePrice {
     symbol: string
     price: number
 }
-
 
 export abstract class TradeType {
     public static readonly MARKET = 'MARKET' // market order is an order to buy or sell at the best available price
@@ -16,6 +16,16 @@ export abstract class TradeType {
 export abstract class TradeStatus {
     public static readonly FILLED = 'FILLED'
     public static readonly NEW = 'NEW'
+}
+
+
+export interface PlaceOrderParams {
+    type: TradeType
+    timeInForce: string
+    symbol: string
+    side: VariantSide
+    price: string
+    quantity: string
 }
 
 

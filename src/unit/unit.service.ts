@@ -9,11 +9,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { UnitUtil } from './unit.util';
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
 import { BinanceError } from 'src/binance/model/binance.error';
-import { HttpMethod } from 'src/global/http-method';
 import { BotUtil } from 'src/wizard/bot.util';
 import { Http } from 'src/global/http/http.service';
 import { ListeKeyResponse, TradeEventData } from 'src/binance/model/model';
 import * as JSONbig from 'json-bigint';
+import { HttpMethod } from 'src/global/type';
 
 
 @Injectable()
