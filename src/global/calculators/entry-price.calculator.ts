@@ -4,7 +4,7 @@ import { LimitOrder, TradeVariant } from "../../binance/model/trade-variant";
 import { CalculationsService } from "src/binance/calculations.service";
 import { Calculator } from "./calculator";
 import { Http } from "../http/http.service";
-import { LimitOrderUtil } from "src/binance/model/limit-order-util";
+import { LimitOrderUtil } from "src/binance/utils/limit-order-util";
 
 export class EntryPriceCalculator extends Calculator<void> {
 

@@ -1,8 +1,8 @@
 import { TakeProfit } from "src/binance/model/trade-variant";
 import { TradeCalculator } from "./trade-calculator";
 import { TradeStatus } from "src/binance/model/trade";
-import { TPUtil } from "src/binance/take-profit-util";
 import Decimal from "decimal.js";
+import { TPUtil } from "src/binance/utils/take-profit-util";
 
 export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]> {
 

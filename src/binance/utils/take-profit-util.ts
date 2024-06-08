@@ -1,8 +1,8 @@
 import Decimal from "decimal.js";
-import { Trade, TradeStatus } from "./model/trade";
-import { TakeProfit, TradeCtx, TradeVariant } from "./model/trade-variant";
-import { TradeUtil } from "./trade-util";
 import { Logger } from "@nestjs/common";
+import { TakeProfit, TradeCtx, TradeVariant } from "../model/trade-variant";
+import { Trade, TradeStatus } from "../model/trade";
+import { TradeUtil } from "./trade-util";
 
 export abstract class TPUtil {
 

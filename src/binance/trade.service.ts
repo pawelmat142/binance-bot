@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TradeUtil } from './trade-util';
+import { TradeUtil } from './utils/trade-util';
 import { getHeaders, queryParams, sign } from 'src/global/util';
-import { FuturesResult, TradeStatus } from './model/trade';
+import { FuturesResult, TradeStatus, TradeType } from './model/trade';
 import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
-import { TradeType } from './model/model';
 import { TradeRepository } from './trade.repo';
 import { TelegramService } from 'src/telegram/telegram.service';
 import { Unit } from 'src/unit/unit';
@@ -12,11 +11,11 @@ import { Position } from './wizard-binance.service';
 import { Http } from 'src/global/http/http.service';
 import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
-import { TPUtil } from './take-profit-util';
 import { Subject } from 'rxjs';
-import { VariantUtil } from './model/variant-util';
+import { VariantUtil } from './utils/variant-util';
 import { TradeQuantityCalculator } from 'src/global/calculators/trade-quantity.calculator';
 import { HttpMethod } from 'src/global/type';
+import { TPUtil } from './utils/take-profit-util';
 
 @Injectable()
 export class TradeService {

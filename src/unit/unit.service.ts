@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Unit } from './unit';
 import { Model } from 'mongoose';
 import { getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
-import { TradeUtil } from 'src/binance/trade-util';
+import { TradeUtil } from 'src/binance/utils/trade-util';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UnitUtil } from './unit.util';
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';

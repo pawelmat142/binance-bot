@@ -1,9 +1,9 @@
 import { Logger } from "@nestjs/common"
 import { Signal } from "./signal"
 import { toDateString } from "src/global/util"
-import { VariantUtil } from "src/binance/model/variant-util"
+import { VariantUtil } from "src/binance/utils/variant-util"
 import { TradeVariant } from "src/binance/model/trade-variant"
-import { LimitOrderUtil } from "src/binance/model/limit-order-util"
+import { LimitOrderUtil } from "src/binance/utils/limit-order-util"
 
 export abstract class SignalUtil {
 

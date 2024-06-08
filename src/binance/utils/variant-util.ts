@@ -1,6 +1,5 @@
 import Decimal from "decimal.js"
-import { TradeUtil } from "../trade-util"
-import { TradeVariant } from "./trade-variant"
+import { TradeVariant } from "../model/trade-variant"
 
 export type VariantMode = 'SHORT' | 'LONG'
 

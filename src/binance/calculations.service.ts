@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { TradeUtil } from './trade-util';
+import { TradeUtil } from './utils/trade-util';
 import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, MarketPriceResponse } from './model/model';
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -9,7 +9,7 @@ import { Decimal } from 'decimal.js'
 import { Http } from 'src/global/http/http.service';
 import * as fs from 'fs';
 import { TradeStatus } from './model/trade';
-import { TPUtil } from './take-profit-util';
+import { TPUtil } from './utils/take-profit-util';
 
 
 @Injectable()

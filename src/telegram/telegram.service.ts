@@ -6,7 +6,7 @@ import { BotUtil } from '../wizard/bot.util';
 import { Observable, Subject } from 'rxjs';
 import TelegramBot = require("node-telegram-bot-api")
 import { Messages } from './messages';
-import { VariantUtil } from 'src/binance/model/variant-util';
+import { VariantUtil } from 'src/binance/utils/variant-util';
 
 export interface TelegramMsg {
     message: string

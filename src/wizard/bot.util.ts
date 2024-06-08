@@ -1,11 +1,11 @@
 import TelegramBot from "node-telegram-bot-api"
 import { Wizard, WizardButton, WizardStep } from "./wizards/wizard"
 import { TakeProfit } from "src/binance/model/trade-variant"
-import { TradeUtil } from "src/binance/trade-util"
+import { TradeUtil } from "src/binance/utils/trade-util"
 import { WizBtn } from "./wizards/wizard-buttons"
 import { FuturesResult, Trade } from "src/binance/model/trade"
 import { Position } from "src/binance/wizard-binance.service"
-import { VariantUtil } from "src/binance/model/variant-util"
+import { VariantUtil } from "src/binance/utils/variant-util"
 
 export abstract class BotUtil {
 

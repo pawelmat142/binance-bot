@@ -11,6 +11,13 @@ export abstract class TradeStatus {
     public static readonly CLOSED_MANUALLY = 'CLOSED_MANUALLY'
 }
 
+export abstract class TradeType {
+    public static readonly MARKET = 'MARKET' // market order is an order to buy or sell at the best available price
+    public static readonly LIMIT = 'LIMIT' //A limit order is an order to buy or sell at a specific price or better
+    public static readonly STOP_MARKET = 'STOP_MARKET' //A stop market order will become a market order to buy or sell once the stop price is reached.
+    public static readonly TAKE_PROFIT_MARKET = 'TAKE_PROFIT_MARKET' //A take profit market order will become a market order to buy or sell once the take profit price is reached
+}
+
 export type TradeDocument = HydratedDocument<Trade>
 
 export class FuturesResult {

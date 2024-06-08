@@ -1,23 +1,11 @@
 import Decimal from "decimal.js"
-import { VariantSide } from "./variant-util"
+import { VariantSide } from "../utils/variant-util"
+import { TradeType } from "./trade"
 
 export interface BinancePrice {
     symbol: string
     price: number
 }
-
-export abstract class TradeType {
-    public static readonly MARKET = 'MARKET' // market order is an order to buy or sell at the best available price
-    public static readonly LIMIT = 'LIMIT' //A limit order is an order to buy or sell at a specific price or better
-    public static readonly STOP_MARKET = 'STOP_MARKET' //A stop market order will become a market order to buy or sell once the stop price is reached.
-    public static readonly TAKE_PROFIT_MARKET = 'TAKE_PROFIT_MARKET' //A take profit market order will become a market order to buy or sell once the take profit price is reached
-}
-
-export abstract class TradeStatus {
-    public static readonly FILLED = 'FILLED'
-    public static readonly NEW = 'NEW'
-}
-
 
 export interface PlaceOrderParams {
     type: TradeType
@@ -71,25 +59,6 @@ export interface BinanceExchangeInfoFilter {
 export interface LotSize {
     minQty: Decimal
     stepSize: Decimal
-}
-
-export interface Ticker24hResponse {
-    symbol: string;
-    priceChange: string;
-    priceChangePercent: string;
-    weightedAvgPrice: string;
-    lastPrice: string;
-    lastQty: string;
-    openPrice: string;
-    highPrice: string;
-    lowPrice: string;
-    volume: string;
-    quoteVolume: string;
-    openTime: number;
-    closeTime: number;
-    firstId: number;
-    lastId: number;
-    count: number;
 }
 
 export interface TradeEventData {
@@ -150,4 +119,3 @@ export interface MarketPriceResponse {
     nextFundingTime: number;
     time: number;
 }
-  

@@ -1,14 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { FuturesResult, Trade, TradeStatus } from "./model/trade";
+import { FuturesResult, Trade, TradeStatus, TradeType } from "./model/trade";
 import { TradeService } from "./trade.service";
 import { Unit } from "src/unit/unit";
 import { getHeaders, queryParams, sign } from "src/global/util";
-import { TradeUtil } from "./trade-util";
+import { TradeUtil } from "./utils/trade-util";
 import { TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { Http } from "src/global/http/http.service";
-import { TradeType } from "./model/model";
-import { VariantSide } from "./model/variant-util";
+import { VariantSide } from "./utils/variant-util";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;

@@ -2,7 +2,7 @@ import { Signal } from "./signal";
 import { BaseValidator } from "./base-validator";
 import { TakeProfit } from "src/binance/model/trade-variant";
 import { SignalUtil } from "./signal-util";
-import { TPUtil } from "src/binance/take-profit-util";
+import { TPUtil } from "src/binance/utils/take-profit-util";
 
 export class TakeProfitsValidator extends BaseValidator {
 

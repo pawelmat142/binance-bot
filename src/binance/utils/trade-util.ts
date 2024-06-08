@@ -1,12 +1,12 @@
 import { queryParams, toDateString } from "src/global/util"
 import { Logger } from "@nestjs/common"
-import { FuturesResult, Trade, TradeStatus } from "./model/trade"
-import { TradeEventData, TradeType } from "./model/model"
-import { TakeProfit, TradeCtx } from "./model/trade-variant"
+import { FuturesResult, Trade, TradeStatus, TradeType } from "../model/trade"
+import { TradeEventData } from "../model/model"
+import { TakeProfit, TradeCtx } from "../model/trade-variant"
 import Decimal from "decimal.js"
-import { Position } from "./wizard-binance.service"
+import { Position } from "../wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
-import { VariantUtil } from "./model/variant-util"
+import { VariantUtil } from "./variant-util"
 
 
 export abstract class TradeUtil {

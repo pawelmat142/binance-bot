@@ -1,7 +1,7 @@
 import { Unit } from "src/unit/unit"
 import { ServiceProvider } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
-import { TradeUtil } from "src/binance/trade-util"
+import { TradeUtil } from "src/binance/utils/trade-util"
 import { FuturesResult } from "src/binance/model/trade"
 import { WizardStep } from "./wizard"
 

@@ -1,11 +1,11 @@
 import { Signal } from "./signal"
-import { TradeUtil } from "src/binance/trade-util"
+import { TradeUtil } from "src/binance/utils/trade-util"
 import { TradeVariant } from "src/binance/model/trade-variant"
 import { SignalUtil } from "./signal-util"
 import { BaseValidator } from "./base-validator"
 import { TakeProfitsValidator } from "./take-profits.validator"
 import { StopLossValidator } from "./stop-loss-validator"
-import { VariantUtil } from "src/binance/model/variant-util"
+import { VariantUtil } from "src/binance/utils/variant-util"
 
 export class SignalValidator extends BaseValidator {
 

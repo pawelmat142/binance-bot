@@ -4,11 +4,10 @@ import { UnitWizard } from "./unit-wizard"
 import { WizardStep } from "./wizard"
 import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
 import { TradeStatus } from "src/binance/model/trade"
-import Decimal from "decimal.js"
 import { BotUtil } from "../bot.util"
 import { TradesWizard } from "./trades.wizard"
-import { TradeUtil } from "src/binance/trade-util"
-import { TPUtil } from "src/binance/take-profit-util"
+import { TradeUtil } from "src/binance/utils/trade-util"
+import { TPUtil } from "src/binance/utils/take-profit-util"
 
 export class TakeProfitsWizard extends UnitWizard {
 

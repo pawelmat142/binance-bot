@@ -1,10 +1,9 @@
 import { Prop } from "@nestjs/mongoose";
-import { FuturesResult, Trade } from "./trade";
-import { TradeStatus } from "./model";
+import { FuturesResult, Trade, TradeStatus } from "./trade";
 import { Unit } from "src/unit/unit";
 import Decimal from "decimal.js";
 import { Position } from "../wizard-binance.service";
-import { VariantSide, VariantUtil } from "./variant-util";
+import { VariantSide, VariantUtil } from "../utils/variant-util";
 
 export class TakeProfit {
     @Prop() order: number

@@ -2,7 +2,7 @@ import { CalculationsService } from "src/binance/calculations.service"
 import { Calculator } from "./calculator"
 import { Trade } from "src/binance/model/trade"
 import { TradeCtx, TradeVariant } from "src/binance/model/trade-variant"
-import { TradeUtil } from "src/binance/trade-util"
+import { TradeUtil } from "src/binance/utils/trade-util"
 import { FuturesExchangeInfoSymbol } from "src/binance/model/model"
 import Decimal from "decimal.js"
 

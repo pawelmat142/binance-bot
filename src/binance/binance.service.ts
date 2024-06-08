@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { TradeUtil } from './trade-util';
-import { FuturesResult, Trade, TradeStatus } from './model/trade';
+import { TradeUtil } from './utils/trade-util';
+import { FuturesResult, Trade, TradeStatus, TradeType } from './model/trade';
 import { CalculationsService } from './calculations.service';
 import { SignalService } from 'src/signal/signal.service';
 import { TradeService } from './trade.service';
@@ -13,14 +13,14 @@ import { DuplicateService } from './duplicate.service';
 import { SignalUtil } from 'src/signal/signal-util';
 import { TradeRepository } from './trade.repo';
 import { Signal } from 'src/signal/signal';
-import { TradeEventData, TradeType } from './model/model';
+import { TradeEventData } from './model/model';
 import { Http } from 'src/global/http/http.service';
-import { TPUtil } from './take-profit-util';
-import { VariantUtil } from './model/variant-util';
+import { VariantUtil } from './utils/variant-util';
 import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 import { MultiOrderService } from './multi-order.service';
-import { LimitOrderUtil } from './model/limit-order-util';
 import { TakeProfitsQuantityCalculator } from 'src/global/calculators/take-profits-quantity.calculator';
+import { LimitOrderUtil } from './utils/limit-order-util';
+import { TPUtil } from './utils/take-profit-util';
 
 
 @Injectable()

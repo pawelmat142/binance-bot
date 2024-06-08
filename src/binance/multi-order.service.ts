@@ -2,11 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CalculationsService } from "./calculations.service";
 import { TradeCtx } from "./model/trade-variant";
 import { LimitOrdersQuantityCalculator } from "src/global/calculators/limit-orders-quantity.calculator";
-import { PlaceOrderParams, TradeType } from "./model/model";
+import { PlaceOrderParams } from "./model/model";
 import { getHeaders, getSignature } from "src/global/util";
-import { TradeUtil } from "./trade-util";
+import { TradeUtil } from "./utils/trade-util";
 import { Http } from "src/global/http/http.service";
-import { FuturesResult } from "./model/trade";
+import { FuturesResult, TradeType } from "./model/trade";
 
 @Injectable()
 export class MultiOrderService {

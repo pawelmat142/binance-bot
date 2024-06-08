@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
-import { TradeVariant } from "./trade-variant";
-import { TradeStatus } from "./trade";
+import { TradeVariant } from "../model/trade-variant";
+import { TradeStatus } from "../model/trade";
 
 export abstract class LimitOrderUtil {
 
