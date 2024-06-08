@@ -17,6 +17,8 @@ export class AdminWizard extends UnitWizard {
 
     protected _init = async () => {}
 
+    private error: string
+
     public getSteps(): WizardStep[] {
         return [{
             order: 0,
@@ -39,7 +41,10 @@ export class AdminWizard extends UnitWizard {
                     message: input,
                     id: BotUtil.getRandomInt(1, 5000)
                 } as TelegramMessage)
-                if (result.error) return 3
+                if (result.error) {
+                    this.error = result.error
+                    return 3
+                }
                 return 2
             },
         }, {            
@@ -48,9 +53,18 @@ export class AdminWizard extends UnitWizard {
             close: true
         }, {
             order: 3,
-            message: ['Error'],
+            message: [this.getErrorMessage()],
             close: true
         }]
+    }
+
+    private getErrorMessage() {
+        if (this.error) {
+            const msg = this.error
+            delete this.error
+            return msg
+        }
+        return 'Error'
     }
 
 }
