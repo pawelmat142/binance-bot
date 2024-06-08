@@ -29,7 +29,7 @@ export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]>
         
         for (let i = 0; i < this.ordersNumber; i++) {
             const limitOrder = this.limitOrders[i]
-            
+
             const calculatedQuantity = this.calculatedUsdtAmountPerOrder.times(this.lever).div(limitOrder.price)
 
             let quantity = this.roundWithFraction(calculatedQuantity, this.stepSize)
@@ -51,8 +51,6 @@ export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]>
             this.log(`Calculated Limit Order quantities ${loQtiesString} succesfully, sum ${sum}`)
         }
 
-        console.log(this.limitOrders)
-        console.log(this.variant.limitOrders)
         this.log('STOP')
         return this.limitOrders
     }

@@ -2,11 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CalculationsService } from "./calculations.service";
 import { TradeCtx } from "./model/trade-variant";
 import { PlaceOrderParams } from "./model/model";
-import { TradeUtil } from "./utils/trade-util";
 import { FuturesResult, TradeType } from "./model/trade";
 import { LimitOrdersQuantityCalculator } from "../global/calculators/limit-orders-quantity.calculator";
 import { Http } from "../global/http/http.service";
-import { getSignature, getHeaders } from "../global/util";
+import { getSignature, getHeaders, sign } from "../global/util";
+import * as crypto from 'crypto'
 
 @Injectable()
 export class MultiOrderService {
@@ -22,44 +22,46 @@ export class MultiOrderService {
 
         await LimitOrdersQuantityCalculator.start(ctx, this.calculationsService)
 
-        const params: PlaceOrderParams[] = ctx.trade.variant.limitOrders.map(lo => {
+        return
+
+        const orders: PlaceOrderParams[] = ctx.trade.variant.limitOrders.map(lo => {
             return {
-                type: TradeType.LIMIT,
-                timeInForce: "GTC",
-                price: lo.price.toString(),
-                quantity: lo.quantity.toString(),
-                side: ctx.trade.variant.side,
                 symbol: ctx.trade.variant.symbol,
+                side: ctx.trade.variant.side,
+                type: TradeType.LIMIT,
+                quantity: lo.quantity.toString(),
+                price: lo.price.toString(),
+                timeInForce: "GTC",
             }
         })
+                
+        const body = {
+            batchOrders: JSON.stringify(orders),
+            timestamp: Date.now(),
+        }
 
-        const json = JSON.stringify(params)
-        console.log('json')
-        console.log(json)
+        const queryString = Object.entries(body).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join('&');
         
-        const queryString = `batchOrders=${json}$timestamp=${Date.now()}`
-        console.log('queryString')
-        console.log(queryString)
+        body['signature'] = crypto.createHmac('sha256', ctx.unit.binanceApiSecret).update(queryString).digest('hex')
+        
+        const signedQueryString = Object.entries(body).map(([key, val]) => `${key}=${val}`).join('&')
 
-        const url = `${TradeUtil.futuresUri}/batchOrders?${queryString}`
-        console.log('url')
-        console.log(url)
-        
-        const signature = getSignature(queryString, ctx.unit)
-        console.log('signature')
-        console.log(signature)
-        
-        const full = `${url}$signature=${signature}`
-        console.log('full')
-        console.log(full)
-        
-        const results = await this.http.fetch<FuturesResult[]>({
-            url: full,
-            method: 'GET',
-            headers: getHeaders(ctx.unit)
-        })
+        const uri = `https://fapi.binance.com/fapi/v1/batchOrders?${signedQueryString}`
+        console.log('uri')
+        console.log(uri)
 
-        console.log(results)
+        try {
+            const results = await this.http.fetch<FuturesResult[]>({
+                url: sign(`https://fapi.binance.com/fapi/v1/batchOrders`, queryString, ctx.unit),
+                method: 'POST',
+                headers: getHeaders(ctx.unit),
+            })
+            console.log(results)
+        } catch (error) {
+            const msg = Http.handleErrorMessage(error)
+            console.log(msg)
+        }
+
         this.logger.warn(`TODO open limit orders!!`)
     }
 

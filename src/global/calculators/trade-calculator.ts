@@ -1,6 +1,5 @@
 import Decimal from "decimal.js"
 import { CalculationsService } from "../../binance/calculations.service"
-import { FuturesExchangeInfoSymbol } from "../../binance/model/model"
 import { Trade } from "../../binance/model/trade"
 import { TradeCtx, TradeVariant } from "../../binance/model/trade-variant"
 import { TradeUtil } from "../../binance/utils/trade-util"
@@ -11,7 +10,7 @@ export class TradeCalculator<T> extends Calculator<T> {
     // T === Type !!
 
     public static start<Type>(ctx: TradeCtx, service: CalculationsService): Promise<Type> {
-        const calculator = new this(service)
+        const calculator = new this(service, ctx.symbol)
         calculator.initTradeCtx(ctx)
         return calculator.calculate() as Promise<Type>
     }
@@ -38,27 +37,13 @@ export class TradeCalculator<T> extends Calculator<T> {
         return this.ctx.trade.variant
     }
     
-    protected get symbol(): string {
-        return this.variant.symbol
-    }
-
     protected get lever(): number {
         return this.ctx.lever
     }
 
 
-    protected symbolInfo: FuturesExchangeInfoSymbol
-    protected minNotional: Decimal
-    protected minQty: Decimal
-    protected stepSize: Decimal
-
     private initTradeCtx(ctx: TradeCtx) {
         this.ctx = ctx
-        this.symbolInfo = this.service.getExchangeInfo(this.symbol)
-        this.minNotional = this.service.getMinNotional(this.symbolInfo)
-        const { minQty, stepSize } = this.service.getLotSize(this.symbolInfo)
-        this.minQty = minQty 
-        this.stepSize = stepSize
         this.init()
     }
 

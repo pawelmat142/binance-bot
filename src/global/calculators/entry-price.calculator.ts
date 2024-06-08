@@ -9,7 +9,7 @@ import { SignalUtil } from "../../signal/signal-util";
 export class EntryPriceCalculator extends Calculator<void> {
 
     public static start(signal: Signal, service: CalculationsService): Promise<void> {
-        const calculator = new EntryPriceCalculator(service)
+        const calculator = new EntryPriceCalculator(service, signal.variant.symbol)
         calculator.initSignal(signal)
         return calculator.calculate()
     }
@@ -27,9 +27,6 @@ export class EntryPriceCalculator extends Calculator<void> {
         return this.signal.variant
     }
 
-    private get symbol(): string {
-        return this.variant.symbol
-    }
 
     private entryPriceDifference: number
 
@@ -68,6 +65,8 @@ export class EntryPriceCalculator extends Calculator<void> {
     }
 
 
+
+
     private calculateOrdersPrices() {
 
         const diff = Math.abs(this.variant.entryZoneStart - this.variant.entryZoneEnd)
@@ -78,13 +77,14 @@ export class EntryPriceCalculator extends Calculator<void> {
 
         for (let i = 0; i < LimitOrderUtil.DEFAULT_ORDERS_NUMBER; i++) {
             entryPrice += this.entryPriceDifference
-            const orderPrice = this.service.fixPricePrecision(entryPrice, this.symbol)
+            let orderPrice = this.fixPricePrecision(entryPrice)
+            orderPrice = this.roundToTickSize(orderPrice)
             
             if (!orderPrice) {
                 throw new Error(`Limit Orders price error ${orderPrice}`)
             }
             
-            this.limitPrices.push(orderPrice)
+            this.limitPrices.push(orderPrice.toNumber())
         }
     }
 

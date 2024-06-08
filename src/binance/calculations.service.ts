@@ -84,14 +84,18 @@ export class CalculationsService implements OnModuleInit {
         return symbolInfo
     }
 
-    public fixPricePrecision(price: number, symbol: string): number {
-        const info = this.getExchangeInfo(symbol)
+    public fixPricePrecision(price: number, info: FuturesExchangeInfoSymbol): Decimal {
         const precision = info.pricePrecision
         if (!precision) {
-            this.logger.warn(`Could not find precission for symbol: ${symbol}`)
-            return price
+            this.logger.warn(`Could not find precission for symbol: ${info.symbol}`)
+            return new Decimal(price)
         }
-        return Number(price.toFixed(precision))
+        return new Decimal(price.toFixed(precision))
+    }
+
+    public roundToTickSize(price: Decimal, info: FuturesExchangeInfoSymbol): Decimal {
+        const tickSize = this.getTickSize(info)
+        return price.div(tickSize).ceil().times(tickSize)
     }
 
     private checkInitialized() {
@@ -157,10 +161,10 @@ export class CalculationsService implements OnModuleInit {
         return { minQty: new Decimal(minQty), stepSize: new Decimal(stepSize) }
     }
 
-    private getTickSize(symbol: string): number {
-        const value = this.getExchangeInfo(symbol).filters.find(filter => filter.filterType === 'PRICE_FILTER')?.tickSize
+    public getTickSize(symbolInfo: FuturesExchangeInfoSymbol): number {
+        const value = symbolInfo.filters.find(filter => filter.filterType === 'PRICE_FILTER')?.tickSize
         if (!value) {
-            throw new Error(`Could not find tick size for symbol ${symbol}`)
+            throw new Error(`Could not find tick size for symbol ${symbolInfo.symbol}`)
         }
         const tickSize = Number(value)
         if (isNaN(tickSize)) {

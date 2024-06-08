@@ -54,7 +54,7 @@ export class TradeService {
         }
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
         let stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : forcedPrice
-        stopLossPrice = this.calculationsService.fixPricePrecision(stopLossPrice, ctx.symbol)
+        stopLossPrice = this.calculationsService.fixPricePrecision(stopLossPrice, this.calculationsService.getExchangeInfo(ctx.symbol)).toNumber()
 
         TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
 

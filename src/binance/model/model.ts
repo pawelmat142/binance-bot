@@ -9,7 +9,7 @@ export interface BinancePrice {
 
 export interface PlaceOrderParams {
     type: TradeType
-    timeInForce: string
+    timeInForce?: string
     symbol: string
     side: VariantSide
     price: string

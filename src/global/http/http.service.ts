@@ -39,6 +39,9 @@ export class Http {
     public static handleErrorMessage(error): string {
         if (error instanceof AxiosError) {
             if (error.response?.data) {
+                if (error.response.status === 404) {
+                    return 'Not found 404'
+                }
                 const errorData = JSON.parse(error.response?.data)
                 if (isBinanceError(errorData)) {
                     return errorData.msg
