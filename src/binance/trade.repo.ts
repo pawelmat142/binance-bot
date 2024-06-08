@@ -2,11 +2,11 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { FuturesResult, Trade, TradeStatus } from "./model/trade";
 import { Model } from "mongoose";
-import { Unit } from "src/unit/unit";
+import { newObjectId } from "../global/util";
+import { Signal } from "../signal/signal";
+import { Unit } from "../unit/unit";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeUtil } from "./utils/trade-util";
-import { newObjectId } from "src/global/util";
-import { Signal } from "src/signal/signal";
 
 @Injectable()
 export class TradeRepository {

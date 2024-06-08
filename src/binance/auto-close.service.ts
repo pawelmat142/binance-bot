@@ -1,18 +1,18 @@
 import { TradeRepository } from "./trade.repo";
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent } from 'ws';
-import { UnitUtil } from "src/unit/unit.util";
 import { Trade } from "./model/trade";
 import { TradeService } from "./trade.service";
-import { UnitService } from "src/unit/unit.service";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeUtil } from "./utils/trade-util";
-import { Http } from "src/global/http/http.service";
-import { TelegramService } from "src/telegram/telegram.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { Subscription } from "rxjs";
 import { VariantSide, VariantUtil } from "./utils/variant-util";
 import { TPUtil } from "./utils/take-profit-util";
+import { Http } from "../global/http/http.service";
+import { TelegramService } from "../telegram/telegram.service";
+import { UnitService } from "../unit/unit.service";
+import { UnitUtil } from "../unit/unit.util";
 
 export interface PriceTickerParams {
     symbol: string

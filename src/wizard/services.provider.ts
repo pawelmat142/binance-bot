@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { BinanceService } from "src/binance/binance.service";
-import { TradeService } from "src/binance/trade.service";
-import { WizardBinanceService } from "src/binance/wizard-binance.service";
-import { SignalService } from "src/signal/signal.service";
-import { UnitService } from "src/unit/unit.service";
+import { BinanceService } from "../binance/binance.service";
+import { TradeService } from "../binance/trade.service";
+import { WizardBinanceService } from "../binance/wizard-binance.service";
+import { Http } from "../global/http/http.service";
+import { SignalService } from "../signal/signal.service";
+import { UnitService } from "../unit/unit.service";
 import { SelectedTradeProvider } from "./selected-trade.service";
-import { Http } from "src/global/http/http.service";
 
 @Injectable()
 export class ServiceProvider {

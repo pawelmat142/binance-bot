@@ -1,4 +1,3 @@
-import { Unit } from "src/unit/unit";
 import { ServiceProvider } from "../services.provider";
 import { UnitWizard } from "./unit-wizard";
 import { WizardStep } from "./wizard";
@@ -6,6 +5,7 @@ import { WizBtn } from "./wizard-buttons";
 import { AccountWizard } from "./account.wizard";
 import { TradesWizard } from "./trades.wizard";
 import { AdminWizard } from "./admin.wizard";
+import { Unit } from "../../unit/unit";
 
 export class StartWizard extends UnitWizard {
 

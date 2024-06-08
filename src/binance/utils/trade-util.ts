@@ -1,4 +1,3 @@
-import { queryParams, toDateString } from "src/global/util"
 import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus, TradeType } from "../model/trade"
 import { TradeEventData } from "../model/model"
@@ -7,6 +6,7 @@ import Decimal from "decimal.js"
 import { Position } from "../wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
 import { VariantUtil } from "./variant-util"
+import { queryParams, toDateString } from "../../global/util"
 
 
 export abstract class TradeUtil {

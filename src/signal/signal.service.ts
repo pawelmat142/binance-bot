@@ -2,12 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Signal } from './signal';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { TelegramMessage } from 'src/telegram/message';
 import { SignalValidator } from './signal-validator';
 import { SignalUtil } from './signal-util';
 import { Observable, Subject } from 'rxjs';
-import { TelegramService } from 'src/telegram/telegram.service';
 import { SignalOtherActionValidator } from './additional-validator';
+import { TelegramService } from '../telegram/telegram.service';
+import { TelegramMessage } from '../telegram/message';
 
 @Injectable()
 export class SignalService {

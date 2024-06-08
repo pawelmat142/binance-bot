@@ -1,10 +1,10 @@
-import { CalculationsService } from "src/binance/calculations.service"
-import { Calculator } from "./calculator"
-import { Trade } from "src/binance/model/trade"
-import { TradeCtx, TradeVariant } from "src/binance/model/trade-variant"
-import { TradeUtil } from "src/binance/utils/trade-util"
-import { FuturesExchangeInfoSymbol } from "src/binance/model/model"
 import Decimal from "decimal.js"
+import { CalculationsService } from "../../binance/calculations.service"
+import { FuturesExchangeInfoSymbol } from "../../binance/model/model"
+import { Trade } from "../../binance/model/trade"
+import { TradeCtx, TradeVariant } from "../../binance/model/trade-variant"
+import { TradeUtil } from "../../binance/utils/trade-util"
+import { Calculator } from "./calculator"
 
 export class TradeCalculator<T> extends Calculator<T> {
 

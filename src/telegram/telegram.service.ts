@@ -1,12 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Decimal from 'decimal.js';
-import { TradeStatus } from 'src/binance/model/trade';
-import { TradeCtx } from 'src/binance/model/trade-variant';
-import { BotUtil } from '../wizard/bot.util';
-import { Observable, Subject } from 'rxjs';
 import TelegramBot = require("node-telegram-bot-api")
 import { Messages } from './messages';
-import { VariantUtil } from 'src/binance/utils/variant-util';
+import { Subject, Observable } from 'rxjs';
+import { TradeStatus } from '../binance/model/trade';
+import { TradeCtx } from '../binance/model/trade-variant';
+import { VariantUtil } from '../binance/utils/variant-util';
+import { BotUtil } from '../wizard/bot.util';
 
 export interface TelegramMsg {
     message: string

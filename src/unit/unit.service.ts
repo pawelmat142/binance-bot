@@ -3,17 +3,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Unit } from './unit';
 import { Model } from 'mongoose';
-import { getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
-import { TradeUtil } from 'src/binance/utils/trade-util';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { BinanceError } from '../binance/model/binance.error';
+import { TradeEventData, ListeKeyResponse } from '../binance/model/model';
+import { TradeUtil } from '../binance/utils/trade-util';
+import { Http } from '../global/http/http.service';
+import { HttpMethod } from '../global/type';
+import { getHeaders, sign, newObjectId, queryParams } from '../global/util';
+import { BotUtil } from '../wizard/bot.util';
 import { UnitUtil } from './unit.util';
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
-import { BinanceError } from 'src/binance/model/binance.error';
-import { BotUtil } from 'src/wizard/bot.util';
-import { Http } from 'src/global/http/http.service';
-import { ListeKeyResponse, TradeEventData } from 'src/binance/model/model';
 import * as JSONbig from 'json-bigint';
-import { HttpMethod } from 'src/global/type';
 
 
 @Injectable()
@@ -151,7 +151,7 @@ export class UnitService implements OnModuleInit {
                 this.tradeEventSubject$.next(tradeEvent)
             }
         }
-        unit.socket = ws
+        unit.socket = ws as WebSocket
     }
 
 

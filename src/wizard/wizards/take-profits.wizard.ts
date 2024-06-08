@@ -1,13 +1,13 @@
-import { Unit } from "src/unit/unit"
+import { TradeStatus } from "../../binance/model/trade"
+import { TakeProfit, TradeCtx } from "../../binance/model/trade-variant"
+import { TPUtil } from "../../binance/utils/take-profit-util"
+import { TradeUtil } from "../../binance/utils/trade-util"
+import { Unit } from "../../unit/unit"
+import { BotUtil } from "../bot.util"
 import { ServiceProvider } from "../services.provider"
+import { TradesWizard } from "./trades.wizard"
 import { UnitWizard } from "./unit-wizard"
 import { WizardStep } from "./wizard"
-import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
-import { TradeStatus } from "src/binance/model/trade"
-import { BotUtil } from "../bot.util"
-import { TradesWizard } from "./trades.wizard"
-import { TradeUtil } from "src/binance/utils/trade-util"
-import { TPUtil } from "src/binance/utils/take-profit-util"
 
 export class TakeProfitsWizard extends UnitWizard {
 

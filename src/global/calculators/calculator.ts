@@ -1,5 +1,5 @@
 import { Logger } from "@nestjs/common";
-import { CalculationsService } from "src/binance/calculations.service";
+import { CalculationsService } from "../../binance/calculations.service";
 
 export class Calculator<T> {
 

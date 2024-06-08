@@ -1,7 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import TelegramBot from "node-telegram-bot-api";
 import { BehaviorSubject, Subscription } from "rxjs";
-import { TelegramService } from "src/telegram/telegram.service";
 import { BotUtil } from "./bot.util";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ServiceProvider } from "./services.provider";
@@ -15,6 +14,7 @@ import { AdminWizard } from "./wizards/admin.wizard";
 import { LogsWizard } from "./wizards/logs.wizard";
 import { NewUnitWizard } from "./wizards/new-unit.wizard";
 import { TakeProfitsWizard } from "./wizards/take-profits.wizard";
+import { TelegramService } from "../telegram/telegram.service";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {

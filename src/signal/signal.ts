@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
 import { Expose } from "class-transformer";
-import { TradeVariant } from "src/binance/model/trade-variant";
+import { TradeVariant } from "../binance/model/trade-variant";
 
 export type SignalDocument = HydratedDocument<Signal>
 

@@ -1,7 +1,7 @@
-import { Unit } from "src/unit/unit";
 import { Wizard, WizardStep } from "./wizard";
 import { ServiceProvider } from "../services.provider";
 import { WizBtn } from "./wizard-buttons";
+import { Unit } from "../../unit/unit";
 
 export class NewUnitWizard extends Wizard {
 

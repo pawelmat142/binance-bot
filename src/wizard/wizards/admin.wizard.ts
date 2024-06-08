@@ -1,12 +1,12 @@
-import { Unit } from "src/unit/unit"
-import { ServiceProvider } from "../services.provider"
-import { UnitWizard } from "./unit-wizard"
-import { WizBtn } from "./wizard-buttons"
-import { WizardStep } from "./wizard"
-import { TelegramMessage } from "src/telegram/message"
+import { TelegramMessage } from "../../telegram/message"
+import { Unit } from "../../unit/unit"
 import { BotUtil } from "../bot.util"
+import { ServiceProvider } from "../services.provider"
 import { LogsWizard } from "./logs.wizard"
 import { StartWizard } from "./start.wizard"
+import { UnitWizard } from "./unit-wizard"
+import { WizardStep } from "./wizard"
+import { WizBtn } from "./wizard-buttons"
 
 export class AdminWizard extends UnitWizard {
 

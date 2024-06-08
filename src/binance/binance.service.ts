@@ -2,25 +2,25 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { TradeUtil } from './utils/trade-util';
 import { FuturesResult, Trade, TradeStatus, TradeType } from './model/trade';
 import { CalculationsService } from './calculations.service';
-import { SignalService } from 'src/signal/signal.service';
 import { TradeService } from './trade.service';
 import { TradeCtx } from './model/trade-variant';
-import { TelegramService } from 'src/telegram/telegram.service';
-import { UnitService } from 'src/unit/unit.service';
-import { Unit } from 'src/unit/unit';
 import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
-import { SignalUtil } from 'src/signal/signal-util';
 import { TradeRepository } from './trade.repo';
-import { Signal } from 'src/signal/signal';
+import { EntryPriceCalculator } from '../global/calculators/entry-price.calculator';
+import { TakeProfitsQuantityCalculator } from '../global/calculators/take-profits-quantity.calculator';
+import { Http } from '../global/http/http.service';
+import { Signal } from '../signal/signal';
+import { SignalUtil } from '../signal/signal-util';
+import { SignalService } from '../signal/signal.service';
+import { TelegramService } from '../telegram/telegram.service';
+import { Unit } from '../unit/unit';
+import { UnitService } from '../unit/unit.service';
 import { TradeEventData } from './model/model';
-import { Http } from 'src/global/http/http.service';
-import { VariantUtil } from './utils/variant-util';
-import { EntryPriceCalculator } from 'src/global/calculators/entry-price.calculator';
 import { MultiOrderService } from './multi-order.service';
-import { TakeProfitsQuantityCalculator } from 'src/global/calculators/take-profits-quantity.calculator';
 import { LimitOrderUtil } from './utils/limit-order-util';
 import { TPUtil } from './utils/take-profit-util';
+import { VariantUtil } from './utils/variant-util';
 
 
 @Injectable()

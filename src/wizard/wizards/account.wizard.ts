@@ -1,11 +1,11 @@
-import { Unit } from "src/unit/unit"
 import { ServiceProvider } from "../services.provider"
 import { UnitWizard } from "./unit-wizard"
 import { WizBtn } from "./wizard-buttons"
-import { BinanceFuturesAccountInfo } from "src/binance/wizard-binance.service"
 import { WizardStep } from "./wizard"
 import { BotUtil } from "../bot.util"
 import { StartWizard } from "./start.wizard"
+import { BinanceFuturesAccountInfo } from "../../binance/wizard-binance.service"
+import { Unit } from "../../unit/unit"
 
 export class AccountWizard extends UnitWizard {
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { FuturesResult } from "./model/trade";
-import { Unit } from "src/unit/unit";
+import { Unit } from "../unit/unit";
 
 @Injectable()
 export class DuplicateService {

@@ -1,8 +1,8 @@
-import { Unit } from "src/unit/unit";
-import { ServiceProvider } from "../services.provider";
-import { Wizard, WizardStep } from "./wizard";
-import { Trade } from "src/binance/model/trade";
-import { TradeCtx } from "src/binance/model/trade-variant";
+import { Trade } from "../../binance/model/trade"
+import { TradeCtx } from "../../binance/model/trade-variant"
+import { Unit } from "../../unit/unit"
+import { ServiceProvider } from "../services.provider"
+import { Wizard, WizardStep } from "./wizard"
 
 export class UnitWizard extends Wizard {
 

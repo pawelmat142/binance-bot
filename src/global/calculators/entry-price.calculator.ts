@@ -1,10 +1,10 @@
-import { Signal } from "src/signal/signal";
-import { SignalUtil } from "src/signal/signal-util";
 import { LimitOrder, TradeVariant } from "../../binance/model/trade-variant";
-import { CalculationsService } from "src/binance/calculations.service";
 import { Calculator } from "./calculator";
 import { Http } from "../http/http.service";
-import { LimitOrderUtil } from "src/binance/utils/limit-order-util";
+import { Signal } from "../../signal/signal";
+import { CalculationsService } from "../../binance/calculations.service";
+import { LimitOrderUtil } from "../../binance/utils/limit-order-util";
+import { SignalUtil } from "../../signal/signal-util";
 
 export class EntryPriceCalculator extends Calculator<void> {
 
@@ -13,7 +13,6 @@ export class EntryPriceCalculator extends Calculator<void> {
         calculator.initSignal(signal)
         return calculator.calculate()
     }
-
 
 
     private initSignal(signal: Signal) {
@@ -86,7 +85,6 @@ export class EntryPriceCalculator extends Calculator<void> {
             }
             
             this.limitPrices.push(orderPrice)
-
         }
     }
 

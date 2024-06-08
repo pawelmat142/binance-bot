@@ -3,13 +3,13 @@ import { TradeUtil } from './utils/trade-util';
 import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, MarketPriceResponse } from './model/model';
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { findMax, roundWithFraction } from 'src/global/util';
-import { TakeProfit, TradeCtx } from './model/trade-variant';
-import { Decimal } from 'decimal.js'
-import { Http } from 'src/global/http/http.service';
 import * as fs from 'fs';
 import { TradeStatus } from './model/trade';
 import { TPUtil } from './utils/take-profit-util';
+import Decimal from 'decimal.js';
+import { Http } from '../global/http/http.service';
+import { roundWithFraction, findMax } from '../global/util';
+import { TradeCtx, TakeProfit } from './model/trade-variant';
 
 
 @Injectable()

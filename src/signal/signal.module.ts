@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { SignalService } from './signal.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AppTelegramModule } from 'src/telegram/telegram.module';
+import { AppHttpModule } from '../global/http/http.module';
+import { AppTelegramModule } from '../telegram/telegram.module';
 import { Signal, SignalSchema } from './signal';
-import { AppHttpModule } from 'src/global/http/http.module';
 
 @Module({
   imports: [

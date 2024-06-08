@@ -1,7 +1,7 @@
-import { LimitOrder } from "src/binance/model/trade-variant"
+import { LimitOrder } from "../../binance/model/trade-variant"
+import { LimitOrderUtil } from "../../binance/utils/limit-order-util"
 import { TradeCalculator } from "./trade-calculator"
 import Decimal from "decimal.js"
-import { LimitOrderUtil } from "src/binance/utils/limit-order-util"
 
 export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]> {
 
