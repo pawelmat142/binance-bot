@@ -4,6 +4,7 @@ import Decimal from "decimal.js";
 import { Position } from "../wizard-binance.service";
 import { VariantSide, VariantUtil } from "../utils/variant-util";
 import { Unit } from "../../unit/unit";
+import { BinanceError } from "./binance.error";
 
 export class TakeProfit {
     @Prop() order: number
@@ -41,6 +42,7 @@ export interface LimitOrder {
     
     quantity?: number
     result?: FuturesResult
+    error?: BinanceError
 }
 
 export interface TradeContext {

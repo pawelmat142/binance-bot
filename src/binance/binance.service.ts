@@ -138,8 +138,9 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 await this.tradeService.openPositionByMarket(ctx)
             } 
             else if (LimitOrderUtil.limitOrdersCalculated(ctx.trade.variant)) {
-                this.multiOrderService.openLimitOrders(ctx)
-            } else {
+                await this.multiOrderService.openLimitOrders(ctx)
+            } 
+            else {
                 throw new Error(`Not by market and limits not calculated`)
             }
         } catch (error) {

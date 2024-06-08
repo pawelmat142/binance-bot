@@ -37,9 +37,6 @@ export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]>
             quantity = this.findMax(quantity, this.minQty)
 
             limitOrder.quantity = quantity.toNumber()
-
-            this.log(`Limit Order ${i+1} calculated quantity ${limitOrder.quantity}`)
-
         }
             
         const sum = this.sum
