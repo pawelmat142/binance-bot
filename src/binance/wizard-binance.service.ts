@@ -8,6 +8,7 @@ import { TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { TradeUtil } from "./utils/trade-util";
 import { Util } from "./utils/util";
+import { LimitOrderUtil } from "./utils/limit-order-util";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -82,8 +83,22 @@ export class WizardBinanceService {
     }
 
     public async closeOpenOrder(ctx: TradeCtx, orderId: BigInt) {
-        await this.tradeService.closeOrder(ctx, orderId)
-        await this.tradeRepo.closeTradeManual(ctx)
+        const result = await this.tradeService.closeOrder(ctx, orderId)
+        if (ctx.trade.futuresResult?.orderId === result.orderId) {
+            ctx.trade.futuresResult = result
+            await this.tradeRepo.closeTradeManual(ctx)
+        } else {
+            (ctx.trade.variant.limitOrders || []).forEach(order => {
+                if (order?.result.orderId === result.orderId) {
+                    order.result = result
+                }
+            })
+            if (!LimitOrderUtil.filterOpened(ctx.trade.variant).length) {
+                await this.tradeRepo.closeTradeManual(ctx)
+            } else {
+                this.tradeRepo.update(ctx)
+            }
+        } 
         this.tradeService.closeOrderEvent(ctx)
     }
 

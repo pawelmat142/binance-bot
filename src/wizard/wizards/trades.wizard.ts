@@ -63,9 +63,7 @@ export class TradesWizard extends UnitWizard {
         this.openPositions = this.positions
             .filter(p => Number(p.positionAmt) !== 0)
 
-        this.openOrders = this.orders
-            .filter(o => o.status === TradeStatus.NEW)
-            .filter(o => o.type === TradeType.LIMIT)
+        this.openOrders = this.findOpenOrdersWithoutDuplicates()
 
         this.openStopLosses = this.orders
             .filter(o => o.status === TradeStatus.NEW)
@@ -306,7 +304,7 @@ export class TradesWizard extends UnitWizard {
             callback_data: WizBtn.closeOrder,
             process: async () => {
                 const success = await this.fullCloseOrder() 
-                return success ? 7 : 3
+                return success ? this.STEP.ORDER_CLOSED : 3
             }
         }, {
             text: `Edit take profits`,
@@ -409,7 +407,7 @@ export class TradesWizard extends UnitWizard {
 
     private findMatchingOrderTrade(order: FuturesResult): Trade {
         const matchingTrades = this.trades.filter(t => t.variant.symbol === order.symbol)
-            .filter(t => t.futuresResult?.status === TradeStatus.NEW)
+            .filter(t => t.futuresResult?.status === TradeStatus.NEW || t.variant.limitOrders?.some(lo => lo.result?.status === TradeStatus.NEW))
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]
         if (!result) {
@@ -450,10 +448,16 @@ export class TradesWizard extends UnitWizard {
         if (this.selectedTrade) {
             const position = this.openOrdersPositions.find(o => o.symbol === this.selectedTrade.variant.symbol)
             if (position) {
-                const message = [
-                    `Entry price: ${Number(this.selectedTrade.futuresResult.averagePrice).toFixed(2)} USDT`,
-                    `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
-                ]
+                const message: string[] = [] 
+                if (this.selectedTrade.futuresResult) {
+                    message.push(`Entry price: ${Number(this.selectedTrade.futuresResult.averagePrice).toFixed(2)} USDT`)
+                    message.push(`Entry price: ${Number(this.selectedTrade.futuresResult.averagePrice).toFixed(2)} USDT`)
+                } else if (this.selectedTrade.variant.limitOrders) {
+                    this.selectedTrade.variant.limitOrders.forEach(lo => {
+                        message.push(`Entry price ${lo.order+1}: ${Number(lo.result.price).toFixed(2)} USDT`)
+                    })
+                    message.push(`Market price: ${Number(position.markPrice).toFixed(2)} USDT`)
+                }
                 if (this.selectedTrade.variant.stopLoss) {
                     message.push(`Stop loss: ${this.selectedTrade.variant.stopLoss.toFixed(2)} USDT`)
                 } else {
@@ -476,10 +480,10 @@ export class TradesWizard extends UnitWizard {
             trade: this.selectedTrade
         })
         try {
-            TradeUtil.addLog(`[START] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
+            TradeUtil.addLog(`[START] closing order ${order.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             await this.services.binance.closeOpenOrder(ctx, order.orderId)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
-            TradeUtil.addLog(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
+            TradeUtil.addLog(`[STOP] closing order ${order.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             this.unselectTrade()
             return true
         } 
@@ -518,6 +522,21 @@ export class TradesWizard extends UnitWizard {
             })
         }
         throw new Error(`missing selected trade`)
+    }
+
+    private findOpenOrdersWithoutDuplicates() {
+        const orders = this.orders
+            .filter(o => o.status === TradeStatus.NEW)
+            .filter(o => o.type === TradeType.LIMIT)
+        const result: FuturesResult[] = [] 
+        const seenSymbols = new Set()
+        orders.forEach(order => {
+            if (!seenSymbols.has(order.symbol)) {
+                seenSymbols.add(order.symbol)
+                result.push(order)
+            }
+        })
+        return result
     }
 
 }

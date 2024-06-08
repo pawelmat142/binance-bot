@@ -20,12 +20,12 @@ export abstract class LimitOrderUtil {
 
 
     public static filterOpened(variant: TradeVariant): LimitOrder[] {
-        return variant.limitOrders
+        return (variant.limitOrders || [])
             .filter(lo => lo.result?.status === TradeStatus.NEW)
     }
 
     public static filterFilled(variant: TradeVariant): LimitOrder[] {
-        return variant.limitOrders
+        return (variant.limitOrders || [])
             .filter(lo => lo.result?.status === TradeStatus.FILLED)
     }
 

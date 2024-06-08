@@ -121,6 +121,11 @@ export class TradeRepository {
                 tp.reuslt.status = TradeStatus.CLOSED_MANUALLY
             }
         }
+        for (let lo of ctx.trade.variant.limitOrders || []) {
+            if (lo.result) {
+                lo.result.status = TradeStatus.CLOSED_MANUALLY
+            }
+        }
         return this.update(ctx)
     }
 
