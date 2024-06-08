@@ -5,13 +5,14 @@ import { Signal } from "../../../src/signal/signal"
 import { CalculationsService } from "../../../src/binance/calculations.service";
 import { FuturesExchangeInfo } from "../../../src/binance/model/model";
 import * as fs from 'fs';
+import { CalcUtil } from "../../../src/binance/utils/calc-util";
 
 describe('EntryPriceCalculator', () => {
 
     let calculationsService: CalculationsService
 
 
-    const jsonData = fs.readFileSync('exchange-info.json', 'utf8')
+    const jsonData = fs.readFileSync(CalcUtil.EXCHANGE_INFO_FILE_NAME, 'utf8')
     const exchangeInfo = JSON.parse(jsonData) as FuturesExchangeInfo
 
 

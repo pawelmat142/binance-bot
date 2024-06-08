@@ -4,6 +4,8 @@ import { Logger } from "@nestjs/common"
 
 export abstract class CalcUtil {
 
+    public static readonly EXCHANGE_INFO_FILE_NAME = 'exchange-info.json'
+
     public static getMinNotional(symbolInfo: FuturesExchangeInfoSymbol): Decimal { //returns min USDT needed to open trade
         const minNotionalFilter = (symbolInfo?.filters ?? []).find(f => f.filterType === 'MIN_NOTIONAL')
         if (!minNotionalFilter?.notional) {

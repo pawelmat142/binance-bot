@@ -27,16 +27,14 @@ export class CalculationsService implements OnModuleInit {
         await this.loadExchangeInfo()
     }
 
-    private readonly exchangeInfoFilename = 'exchange-info.json'
-
     private saveExchangeInfoInFile(info: FuturesExchangeInfo) {
         const json = JSON.stringify(info)
-        fs.writeFileSync(this.exchangeInfoFilename, json, 'utf8');
+        fs.writeFileSync(CalcUtil.EXCHANGE_INFO_FILE_NAME, json, 'utf8');
     }
 
     private loadExchangeInfoFromFile() {
         try {
-            const jsonData = fs.readFileSync(this.exchangeInfoFilename, 'utf8')
+            const jsonData = fs.readFileSync(CalcUtil.EXCHANGE_INFO_FILE_NAME, 'utf8')
             const info = JSON.parse(jsonData) as FuturesExchangeInfo
             this._exchangeInfo$.next(info)
             this.logger.log(`EXCHANGE INFO INITIALIZED from file <<`)
@@ -83,7 +81,6 @@ export class CalculationsService implements OnModuleInit {
         }
         return symbolInfo
     }
-
 
 
 
