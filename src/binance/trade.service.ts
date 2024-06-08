@@ -16,6 +16,7 @@ import { HttpMethod } from '../global/type';
 import { queryParams, getHeaders, sign } from '../global/util';
 import { TelegramService } from '../telegram/telegram.service';
 import { Unit } from '../unit/unit';
+import { CalcUtil } from './utils/calc-util';
 
 @Injectable()
 export class TradeService {
@@ -54,7 +55,7 @@ export class TradeService {
         }
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
         let stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : forcedPrice
-        stopLossPrice = this.calculationsService.fixPricePrecision(stopLossPrice, this.calculationsService.getExchangeInfo(ctx.symbol)).toNumber()
+        stopLossPrice = CalcUtil.fixPricePrecision(stopLossPrice, this.calculationsService.getExchangeInfo(ctx.symbol)).toNumber()
 
         TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
 

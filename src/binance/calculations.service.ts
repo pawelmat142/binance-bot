@@ -1,15 +1,15 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { TradeUtil } from './utils/trade-util';
-import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, LotSize, MarketPriceResponse } from './model/model';
+import { FuturesExchangeInfo, FuturesExchangeInfoSymbol, MarketPriceResponse } from './model/model';
 import { BehaviorSubject } from 'rxjs';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as fs from 'fs';
 import { TradeStatus } from './model/trade';
 import { TPUtil } from './utils/take-profit-util';
-import Decimal from 'decimal.js';
 import { Http } from '../global/http/http.service';
 import { roundWithFraction, findMax } from '../global/util';
 import { TradeCtx, TakeProfit } from './model/trade-variant';
+import { CalcUtil } from './utils/calc-util';
 
 
 @Injectable()
@@ -84,19 +84,8 @@ export class CalculationsService implements OnModuleInit {
         return symbolInfo
     }
 
-    public fixPricePrecision(price: number, info: FuturesExchangeInfoSymbol): Decimal {
-        const precision = info.pricePrecision
-        if (!precision) {
-            this.logger.warn(`Could not find precission for symbol: ${info.symbol}`)
-            return new Decimal(price)
-        }
-        return new Decimal(price.toFixed(precision))
-    }
 
-    public roundToTickSize(price: Decimal, info: FuturesExchangeInfoSymbol): Decimal {
-        const tickSize = this.getTickSize(info)
-        return price.div(tickSize).ceil().times(tickSize)
-    }
+
 
     private checkInitialized() {
         if (!this.initialized) {
@@ -117,7 +106,7 @@ export class CalculationsService implements OnModuleInit {
                 takeProfitQuantity = tradeQuantityLeft
             }
             const symbolInfo = this.getExchangeInfo(ctx.symbol)
-            const { minQty, stepSize } = this.getLotSize(symbolInfo)
+            const { minQty, stepSize } = CalcUtil.getLotSize(symbolInfo)
             let quantity = roundWithFraction(takeProfitQuantity, stepSize)
             quantity = findMax(quantity, minQty)
             
@@ -133,45 +122,8 @@ export class CalculationsService implements OnModuleInit {
     }
 
 
-    public getMinNotional(symbolInfo: FuturesExchangeInfoSymbol): Decimal { //returns min USDT needed to open trade
-        const minNotionalFilter = (symbolInfo?.filters ?? []).find(f => f.filterType === 'MIN_NOTIONAL')
-        if (!minNotionalFilter?.notional) {
-            throw new Error(`could not find MIN_NOTIONAL for symbol ${symbolInfo.symbol}`)
-        }
-        const notionalNum = Number(minNotionalFilter.notional)
-        if (isNaN(notionalNum)) {
-            throw new Error(`notional ${notionalNum} is not a number fot symbol ${symbolInfo.symbol}`)
-        }
-        return new Decimal(notionalNum)
-    }
 
-    public getLotSize(symbolInfo: FuturesExchangeInfoSymbol): LotSize {
-        const lotSizeFilter = (symbolInfo?.filters ?? []).find(f => f.filterType === 'LOT_SIZE')
-        if (!lotSizeFilter) {
-            throw new Error(`could not find LOT_SIZE for symbol ${symbolInfo.symbol}}`)
-        }
-        const minQty = Number(lotSizeFilter.minQty)
-        if (isNaN(minQty)) {
-            throw new Error(`LOT_SIZE.minQty isNaN for symbol ${symbolInfo.symbol}}`)
-        }
-        const stepSize = Number(lotSizeFilter.stepSize)
-        if (isNaN(stepSize)) {
-            throw new Error(`LOT_SIZE.stepSize isNaN for symbol ${symbolInfo.symbol}}`)
-        }
-        return { minQty: new Decimal(minQty), stepSize: new Decimal(stepSize) }
-    }
 
-    public getTickSize(symbolInfo: FuturesExchangeInfoSymbol): number {
-        const value = symbolInfo.filters.find(filter => filter.filterType === 'PRICE_FILTER')?.tickSize
-        if (!value) {
-            throw new Error(`Could not find tick size for symbol ${symbolInfo.symbol}`)
-        }
-        const tickSize = Number(value)
-        if (isNaN(tickSize)) {
-            throw new Error(`Tick size isNaN - ${value}`)
-        }
-        return tickSize
-    }
 
     public async fetchMarketPrice(symbol: string): Promise<number> {
         const response = await this.http.fetch<MarketPriceResponse>({

@@ -3,10 +3,17 @@ import { TradeVariant } from "../../../src/binance/model/trade-variant"
 import { EntryPriceCalculator } from "../../../src/global/calculators/entry-price.calculator"
 import { Signal } from "../../../src/signal/signal"
 import { CalculationsService } from "../../../src/binance/calculations.service";
+import { FuturesExchangeInfo } from "../../../src/binance/model/model";
+import * as fs from 'fs';
 
 describe('EntryPriceCalculator', () => {
 
     let calculationsService: CalculationsService
+
+
+    const jsonData = fs.readFileSync('exchange-info.json', 'utf8')
+    const exchangeInfo = JSON.parse(jsonData) as FuturesExchangeInfo
+
 
     beforeEach(async () => {
 
@@ -14,15 +21,15 @@ describe('EntryPriceCalculator', () => {
         providers: [{
             provide: CalculationsService,
             useValue: {
-                fetchMarketPrice: jest.fn(),  // Mocking the fetchMarketPrice method
-                fixPricePrecision: jest.fn(),  // Mocking the fixPricePrecision method
+                fetchMarketPrice: jest.fn(),
+                getExchangeInfo: jest.fn(),
             }
         }],
 
         }).compile()
 
         calculationsService = module.get<CalculationsService>(CalculationsService)
-
+        jest.spyOn(calculationsService, 'getExchangeInfo').mockImplementation((symbol: string) => exchangeInfo?.symbols.find(s => s.symbol === symbol))
     })
 
 
@@ -39,14 +46,12 @@ describe('EntryPriceCalculator', () => {
         const signal = getSignal()
 
         jest.spyOn(calculationsService, 'fetchMarketPrice').mockReturnValue(Promise.resolve(66666.666))
-        jest.spyOn(calculationsService, 'fixPricePrecision').mockImplementation((price: number, symbol: string) => Number(price.toFixed(2)))
         await EntryPriceCalculator.start(signal, calculationsService)
 
         expect(signal.variant.entryByMarket).toEqual(false)
     })
 
 })
-
 
 
 function getSignal(): Signal {

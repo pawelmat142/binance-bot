@@ -2,6 +2,7 @@ import { Logger } from "@nestjs/common";
 import { CalculationsService } from "../../binance/calculations.service";
 import { FuturesExchangeInfoSymbol } from "../../binance/model/model";
 import Decimal from "decimal.js";
+import { CalcUtil } from "../../binance/utils/calc-util";
 
 export class Calculator<T> {
 
@@ -15,7 +16,7 @@ export class Calculator<T> {
     protected minNotional: Decimal
     protected minQty: Decimal
     protected stepSize: Decimal
-    protected tickSize: number
+    protected tickSize: Decimal
 
     protected get symbol(): string {
         if (!this._symbol) throw new Error("Symbol not initialized")
@@ -29,8 +30,8 @@ export class Calculator<T> {
         this._symbol = symbol
 
         this.symbolInfo = this.service.getExchangeInfo(this.symbol)
-        this.minNotional = this.service.getMinNotional(this.symbolInfo)
-        const { minQty, stepSize } = this.service.getLotSize(this.symbolInfo)
+        this.minNotional = CalcUtil.getMinNotional(this.symbolInfo)
+        const { minQty, stepSize } = CalcUtil.getLotSize(this.symbolInfo)
         this.minQty = minQty 
         this.stepSize = stepSize
     }
@@ -42,11 +43,11 @@ export class Calculator<T> {
 
 
     protected fixPricePrecision(price: number) {
-        return this.service.fixPricePrecision(price, this.symbolInfo)
+        return CalcUtil.fixPricePrecision(price, this.symbolInfo)
     }
 
     protected roundToTickSize(price: Decimal) {
-        return this.service.roundToTickSize(price, this.symbolInfo)
+        return CalcUtil.roundToTickSize(price, this.symbolInfo)
     }
 
 }
