@@ -239,7 +239,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.onFilledStopLoss(ctx, eventTradeResult)
 
         } else if (TPUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
-            this.onFilledTakeProfit(ctx, eventTradeResult)
+            this.takeProfitsService.onFilledTakeProfit(ctx, eventTradeResult)
 
         } else {
             TradeUtil.addLog(`Found trade but matching error! ${eventTradeResult.orderId}`, ctx, this.logger)
@@ -288,44 +288,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             this.telegramService.onFilledStopLoss(ctx)
         }
     }
-
-    private async onFilledTakeProfit(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        try {
-            this.updateFilledTakeProfit(eventTradeResult, ctx)
-
-            if (TPUtil.positionFullyFilled(ctx)) {
-                ctx.trade.closed = true
-                await this.tradeService.closeStopLoss(ctx)
-                await this.takeProfitsService.closePendingTakeProfit(ctx)
-                this.manualClosePositionFull(ctx)
-                this.tradeLog(ctx, `Every take profit filled, stop loss closed ${ctx.trade._id}`)
-                this.telegramService.onClosedPosition(ctx)
-            }
-            else {
-                await this.tradeService.moveStopLoss(ctx)
-                this.tradeLog(ctx, `Moved stop loss`)
-                await this.takeProfitsService.openNextTakeProfit(ctx)
-                this.tradeLog(ctx, `Opened next take profit ${ctx.trade._id}`)
-                this.telegramService.onFilledTakeProfit(ctx)
-            }
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            TradeUtil.addError(msg, ctx, this.logger)
-        } finally {
-            const saved = await this.tradeRepo.update(ctx)
-        }
-    }
-
-
-
-    private updateFilledTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx) {
-        const takeProfits = ctx.trade.variant.takeProfits
-        const tp = takeProfits.find(t => t.reuslt?.orderId === eventTradeResult.orderId)
-        if (!tp) throw new Error(`Not found Take Profit orderId: ${eventTradeResult.orderId} in found trade ${ctx.trade._id}`)
-        tp.reuslt = eventTradeResult
-        this.tradeLog(ctx, `Filled take profit order: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`)
-    }
-
 
     private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {

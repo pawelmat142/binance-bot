@@ -18,6 +18,15 @@ import { StopLossCalculator } from "../global/calculators/stop-loss.calculator";
 @Injectable()
 export class LimitOrdersService {
 
+    /*
+        Management of Limit Orders position path
+        When signal is triggered and market price exceeds entry zone then Limit Orders should be placed instead of market order
+
+        When Limit Order is placed:
+            * Stop Loss is recalculated and placed if every Limit Orders are filled
+            * Take Profits are recalculated and first is placed or next one if there is any filled one found
+    */
+
     private readonly logger = new Logger(this.constructor.name)
 
     constructor(

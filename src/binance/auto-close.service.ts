@@ -53,7 +53,7 @@ export interface MarketPriceUpdate {
 export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
 
     /*
-        open orders should be closed automatically when market price reaches second take profit level
+        Open Limit Orders should be closed automatically when market price reaches second Take Profit price level
     */
 
 
@@ -122,7 +122,10 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
             this.logger.log(`${this.tickerLabel(symbol)} closePriceTickerIfNoOrders ticker exists`)
             const orders = await this.tradeRepo.findOpenOrdersBySymbol(symbol)
             this.logger.log(`${this.tickerLabel(symbol)} closePriceTickerIfNoOrders found ${orders.length} open orders`)
-            if (!orders.length) {
+
+            // TODO missing closing orders!
+
+            if (orders.length) {
                 this.closePriceTicker(symbol)
                 this.logger.log(`${this.tickerLabel(symbol)} closePriceTickerIfNoOrders closing...`)
             }

@@ -15,6 +15,7 @@ import { Unit } from '../unit/unit';
 import { Util } from './utils/util';
 import { StopLossCalculator } from '../global/calculators/stop-loss.calculator';
 import { PlaceOrderParams } from './model/model';
+import { TradeRepository } from './trade.repo';
 
 @Injectable()
 export class TradeService {
@@ -26,6 +27,7 @@ export class TradeService {
     constructor(
         private readonly http: Http,
         private readonly calculationsService: CalculationsService,
+        private readonly tradeRepo: TradeRepository,
     ) {}
 
     public closeOrderEvent$ = new Subject<string>()
@@ -143,9 +145,24 @@ export class TradeService {
         })
     }
 
+    public async closeTrades(ctx: TradeCtx) {
+        const trades = await this.tradeRepo.findBySymbol(ctx)
+        TradeUtil.addLog(`Found ${trades.length} open trades`, ctx, this.logger)
+        
+        for (let trade of trades) {
+            await this.tradeRepo.closeTradeManual(ctx)
+            TradeUtil.addLog(`Closed trade: ${trade._id}`, ctx, this.logger)
+        }
+    }
+
     public async closePosition(ctx: TradeCtx): Promise<FuturesResult> {
         try {
             const position = ctx.position ?? await this.fetchPosition(ctx)
+            const amount = Number(position.positionAmt)
+            if (!amount) {
+                TradeUtil.addLog(`Position empty`, ctx, this.logger)
+                return null
+            }
             const params = {
                 symbol: ctx.symbol,
                 side: VariantUtil.opositeSide(ctx.side),

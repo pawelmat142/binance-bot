@@ -165,7 +165,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledTakeProfit(ctx: TradeCtx) {
         const lines = [
-            `Filled TP ${VariantUtil.label(ctx.trade.variant)}`,
+            `${VariantUtil.label(ctx.trade.variant)} filled Take Profit`,
         ]
         this.addTakeProfitLines(ctx, lines)
         this.addStopLossLine(ctx, lines)

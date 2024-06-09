@@ -65,13 +65,15 @@ export class TradeRepository {
     }
 
     public findInProgress(ctx: TradeCtx): Promise<Trade> {
-        // TODO sprawdzic czy marketResult / limit orders
         return this.model.findOne({
+            closed: { $ne: true },
             "unitIdentifier": ctx.unit.identifier,
-            "marketResult.side": ctx.side,
-            "marketResult.symbol": ctx.symbol,
-            "marketResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] },
-            closed: { $ne: true }
+            "variant.side": ctx.side,
+            "variant.symbol": ctx.symbol,
+            $or: [
+                { "marketResult.status": TradeStatus.FILLED },
+                { "variant.limitOrders.result.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] } }
+            ],
         })
     }
 
@@ -132,10 +134,9 @@ export class TradeRepository {
     }
 
     public findOpenOrdersForPriceTicker() {
-        // TODO limit order sprawdzic
         return this.model.find({
             closed: { $ne: true },
-            "marketResult.status": TradeStatus.NEW,
+            "variant.limitOrders.reuslt.status": TradeStatus.NEW,
         }, { 
             "variant.symbol": true, 
             "variant.side": true, 
@@ -144,11 +145,10 @@ export class TradeRepository {
     }
 
     public findOpenOrdersBySymbol(symbol: string) {
-        // TODO limit order sprawdzic
         return this.model.find({
             closed: { $ne: true },
-            "marketResult.status": TradeStatus.NEW,
-            "marketResult.symbol": symbol
+            "variant.limitOrders.reuslt.status": TradeStatus.NEW,
+            "variant.symbol": symbol
         }).exec()
     }
 
