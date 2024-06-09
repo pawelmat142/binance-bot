@@ -7,13 +7,13 @@ import { Http } from "../global/http/http.service";
 import { Util } from "./utils/util";
 import { BinanceResultOrError, isBinanceError } from "./model/binance.error";
 import { LimitOrderUtil } from "./utils/limit-order-util";
-import { FuturesResult, TradeStatus } from "./model/trade";
+import { FuturesResult, TradeStatus, TradeType } from "./model/trade";
 import { TradeUtil } from "./utils/trade-util";
 import { TakeProfitsQuantityCalculator } from "../global/calculators/take-profits-quantity.calculator";
 import { TPUtil } from "./utils/take-profit-util";
 import { HttpMethod } from "../global/type";
-import { timeStamp } from "console";
 import { TradeRepository } from "./trade.repo";
+import { StopLossCalculator } from "../global/calculators/stop-loss.calculator";
 
 @Injectable()
 export class LimitOrdersService {
@@ -36,20 +36,14 @@ export class LimitOrdersService {
     
     public async onFilledLimitOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         try {
-            TradeUtil.addLog(`Filled Limit Order with orderId ${ctx.trade.stopLossResult.orderId}, price: ${eventTradeResult.price}`, ctx, this.logger)
+            TradeUtil.addLog(`Filled Limit Order, orderId ${ctx.trade.stopLossResult.orderId}, price ${eventTradeResult.price}`, ctx, this.logger)
             ctx.trade.variant.limitOrders.forEach(lo => {
                 if (lo.result?.orderId === eventTradeResult.orderId) {
                     lo.result = eventTradeResult
                 }
             })
-
             await this.closeTakeProfitAndStopLossIfOpen(ctx)
-
-            // TODO
-            // set stop loss if every lo filled
-            // recalculate takeprofit quantities
-            // recalculate stop loss if every LO filled
-            // open TP + SL
+            await this.openStopLossAndTakeProfitIfNeeded(ctx)
         } 
         catch (error) {
             const msg = Http.handleErrorMessage(error)
@@ -93,23 +87,61 @@ export class LimitOrdersService {
         }
     }
 
+    private async openStopLossAndTakeProfitIfNeeded(ctx: TradeCtx) {
+        const orders: PlaceOrderParams[] = [
+            await this.prepareStopLossParams(ctx),
+            await this.prepareTakeProfitParams(ctx)
+        ].filter(params => !!params)
+
+        if (!orders.length) {
+            TradeUtil.addError(`Not found any order to open`, ctx, this.logger)
+            return
+        }
+
+        const results = await this.openMultipleOrders(ctx, orders)
+        results.forEach(result => {
+            if (isBinanceError(result)) {
+                TradeUtil.addError(result.msg, ctx, this.logger)
+            } 
+            else if (result.type === TradeType.TAKE_PROFIT_MARKET) {
+                const tp = TPUtil.firstTakeProfitToOpen(ctx.trade.variant)
+                if (!tp) {
+                    TradeUtil.addError(`Not found Take Profit to place result`, ctx, this.logger)
+                    return null
+                }
+                tp.reuslt = result
+                TradeUtil.addLog(`Opened Take Profit ${tp.order+1}, stop price ${result.stopPrice}, orderId ${result.orderId}`, ctx, this.logger)
+            } 
+            else if (result.type === TradeType.STOP_MARKET) {
+                ctx.trade.stopLossResult = result
+                TradeUtil.addLog(`Opened Stop Loss, stop price ${result.stopPrice}, orderId: ${result.orderId}`, ctx, this.logger)
+            } 
+            else {
+                TradeUtil.addError(`Opened order result ${result.orderId} doesnt match`, ctx, this.logger)
+            }
+        })
+    }
+
+    private async prepareStopLossParams(ctx: TradeCtx): Promise<PlaceOrderParams> {
+        const stopLossParams = await StopLossCalculator.start<PlaceOrderParams>(ctx, this.calculationsService)
+        if (stopLossParams) {
+            TradeUtil.removeMultiOrderProperties(stopLossParams)
+        }
+        return stopLossParams
+    }
+
     private async prepareTakeProfitParams(ctx: TradeCtx): Promise<PlaceOrderParams> {
         TPUtil.sort(ctx)
         await TakeProfitsQuantityCalculator.start(ctx, this.calculationsService)
-        for (let tp of ctx.trade.variant.takeProfits) {
-            if (!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) {
-                let params = TPUtil.takeProfitRequestParams(ctx, tp.price, tp.quantity)
-                return TradeUtil.removeMultiOrderProperties(params)
-            }
+        const tp = TPUtil.firstTakeProfitToOpen(ctx.trade.variant)
+        if (!tp) {
+            TradeUtil.addError(`Not found Take Profit to open`, ctx, this.logger)
+            return null
         }
+        const params = TPUtil.takeProfitRequestParams(ctx, tp.price, tp.quantity)
+        TradeUtil.removeMultiOrderProperties(params)
+        return params
     }
-
-    private async prepareStopLossParams(ctx: TradeCtx) {
-        const quantity = TradeUtil.calculateStopLossQuantity(ctx)
-        const price = ctx.trade.variant.stopLoss
-        // TODO stop loss calculator
-    }
-
 
 
 

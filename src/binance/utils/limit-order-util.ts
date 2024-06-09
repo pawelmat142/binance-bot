@@ -52,6 +52,11 @@ export abstract class LimitOrderUtil {
             .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
     }
 
+
+    public static areFilled(variant: TradeVariant) {
+        return !!variant.limitOrders?.length && variant.limitOrders?.every(lo => lo.result?.status === TradeStatus.FILLED)
+    }
+
     public static quantitiesString(variant: TradeVariant): string {
         return `[ ${variant.limitOrders.map(lo => lo.quantity).join(', ')} ]`
     }

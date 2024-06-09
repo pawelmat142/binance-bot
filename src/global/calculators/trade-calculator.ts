@@ -5,19 +5,23 @@ import { TradeCtx, TradeVariant } from "../../binance/model/trade-variant"
 import { TradeUtil } from "../../binance/utils/trade-util"
 import { Calculator } from "./calculator"
 
+export interface CalculatorParams {
+    forcedPrice?: number
+}
+
 export class TradeCalculator<T> extends Calculator<T> {
 
-    // T === Type !!
+    // T = Type should be equal
 
-    public static start<Type>(ctx: TradeCtx, service: CalculationsService): Promise<Type> {
+    public static start<Type>(ctx: TradeCtx, service: CalculationsService, params?: CalculatorParams): Promise<Type> {
         const calculator = new this(service, ctx.symbol)
+        calculator.params = params || {}
         calculator.initTradeCtx(ctx)
         return calculator.calculate() as Promise<Type>
     }
 
-    protected result: T
-
     protected ctx: TradeCtx
+    protected params: CalculatorParams
 
     protected get identifier(): string {
         return this.ctx.unit.identifier

@@ -119,33 +119,8 @@ export abstract class TradeUtil {
         return isLimitType && isFilled
     }
 
-    public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-        let stopLossQuantity = new Decimal(ctx.filledQuantity)
-            .minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
-        return stopLossQuantity
-    }
 
-    public static getStopLossPrice = (ctx: TradeCtx): number => {
-        let result = Number(ctx.trade.variant.stopLoss)
-        TPUtil.sort(ctx)
-        const takeProfits = ctx.trade.variant.takeProfits
-        for (let tp of takeProfits) {
-            if (tp.reuslt?.status === TradeStatus.FILLED) {
-                if (tp.order === 0) {
-                    const entryPrice = Number(ctx.trade.marketResult.averagePrice)
-                    if (!isNaN(entryPrice)) {
-                        result = entryPrice
-                    }
-                } else if (tp.order > 1) {
-                    const takeProfitPrice = Number(ctx.trade.variant.takeProfits[tp.order-2].price)
-                    if (!isNaN(takeProfitPrice)) {
-                        result = takeProfitPrice
-                    }
-                }
-            }
-        }
-        return result
-    }
+
 
 
     public static tradeAmount = (trade: Trade): Decimal => {
@@ -189,10 +164,9 @@ export abstract class TradeUtil {
         }
     }
 
-    public static removeMultiOrderProperties(params: PlaceOrderParams): PlaceOrderParams {
+    public static removeMultiOrderProperties(params: PlaceOrderParams): void {
         delete params.recvWindow
         delete params.timestamp
-        return 
     }
 
 }

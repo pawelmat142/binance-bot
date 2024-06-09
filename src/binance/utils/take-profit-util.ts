@@ -37,6 +37,14 @@ export abstract class TPUtil {
             .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
     }
 
+    public static firstTakeProfitToOpen(variant: TradeVariant) {
+        for (let tp of variant.takeProfits) {
+            if (!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) {
+                return tp
+            }
+        }
+    }
+
 
     public static positionFullyFilled(ctx: TradeCtx): boolean {
         const logger = new Logger(this.name)
@@ -54,7 +62,7 @@ export abstract class TPUtil {
     }
 
 
-    public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): PlaceOrderParams => {
+    public static takeProfitRequestParams(ctx: TradeCtx, price: number, quantity: number): PlaceOrderParams {
         return {
             symbol: ctx.symbol,
             side: VariantUtil.opositeSide(ctx.trade.variant.side),

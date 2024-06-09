@@ -24,8 +24,6 @@ export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]>
         this.log('START')
 
         this.calculateUsdtAmountPerOrder()
-        this.log(`${this.calculatedUsdtAmountPerOrder}`)
-
         
         for (let i = 0; i < this.ordersNumber; i++) {
             const limitOrder = this.limitOrders[i]

@@ -56,7 +56,7 @@ export class TradeRepository {
             unitIdentifier: unit.identifier,
             closed: { $ne: true },
             $or: [
-                { "futuresResult.orderId": eventTradeResult.orderId },
+                { "marketResult.orderId": eventTradeResult.orderId },
                 { "stopLossResult.orderId": eventTradeResult.orderId },
                 { "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId },
                 { "variant.limitOrders.reuslt.orderId": eventTradeResult.orderId },
@@ -65,11 +65,12 @@ export class TradeRepository {
     }
 
     public findInProgress(ctx: TradeCtx): Promise<Trade> {
+        // TODO sprawdzic czy marketResult / limit orders
         return this.model.findOne({
             "unitIdentifier": ctx.unit.identifier,
-            "futuresResult.side": ctx.side,
-            "futuresResult.symbol": ctx.symbol,
-            "futuresResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] },
+            "marketResult.side": ctx.side,
+            "marketResult.symbol": ctx.symbol,
+            "marketResult.status": { $in: [ TradeStatus.NEW, TradeStatus.FILLED ] },
             closed: { $ne: true }
         })
     }
@@ -131,9 +132,10 @@ export class TradeRepository {
     }
 
     public findOpenOrdersForPriceTicker() {
+        // TODO limit order sprawdzic
         return this.model.find({
             closed: { $ne: true },
-            "futuresResult.status": TradeStatus.NEW,
+            "marketResult.status": TradeStatus.NEW,
         }, { 
             "variant.symbol": true, 
             "variant.side": true, 
@@ -142,10 +144,11 @@ export class TradeRepository {
     }
 
     public findOpenOrdersBySymbol(symbol: string) {
+        // TODO limit order sprawdzic
         return this.model.find({
             closed: { $ne: true },
-            "futuresResult.status": TradeStatus.NEW,
-            "futuresResult.symbol": symbol
+            "marketResult.status": TradeStatus.NEW,
+            "marketResult.symbol": symbol
         }).exec()
     }
 

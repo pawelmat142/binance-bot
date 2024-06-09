@@ -3,7 +3,6 @@ import { TradeUtil } from './utils/trade-util';
 import { FuturesResult, TradeType } from './model/trade';
 import { TradeCtx, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
-import { TradeRepository } from './trade.repo';
 import { Position } from './wizard-binance.service';
 import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
@@ -12,10 +11,10 @@ import { VariantUtil } from './utils/variant-util';
 import { TradeQuantityCalculator } from '../global/calculators/trade-quantity.calculator';
 import { Http } from '../global/http/http.service';
 import { HttpMethod } from '../global/type';
-import { TelegramService } from '../telegram/telegram.service';
 import { Unit } from '../unit/unit';
-import { CalcUtil } from './utils/calc-util';
 import { Util } from './utils/util';
+import { StopLossCalculator } from '../global/calculators/stop-loss.calculator';
+import { PlaceOrderParams } from './model/model';
 
 @Injectable()
 export class TradeService {
@@ -25,8 +24,6 @@ export class TradeService {
     private readonly testNetwork = process.env.BINANCE_TEST_NETWORK === 'true'
 
     constructor(
-        private readonly tradeRepo: TradeRepository,
-        private readonly telegramService: TelegramService,
         private readonly http: Http,
         private readonly calculationsService: CalculationsService,
     ) {}
@@ -46,32 +43,20 @@ export class TradeService {
         }
     }
 
-
     public async stopLossRequest(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
-        if (!ctx.trade.variant.stopLoss && !forcedPrice) {
-            TradeUtil.addWarning(`STOP LOSS NOT PROVIDED!`, ctx, this.logger)
+        const params = await StopLossCalculator.start<PlaceOrderParams>(ctx, this.calculationsService, forcedPrice ? { forcedPrice } : undefined)
+        if (!params) {
             return
         }
-
-        // TODO stop loss calculator
-        const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
-        let stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : forcedPrice
-        stopLossPrice = CalcUtil.fixPricePrecision(stopLossPrice, this.calculationsService.getExchangeInfo(ctx.symbol)).toNumber()
-        // 
-
-        TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
-
-        const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)
         const result = await this.placeOrder(params, ctx)
         if (result) {
             ctx.trade.stopLossTime = new Date()
             ctx.trade.stopLossResult = result
-            TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
+            TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${result.stopPrice}`, ctx, this.logger)
         } else {
             TradeUtil.addError(`Error placing stop loss order`, ctx, this.logger)
         }
     }
-
 
     public async moveStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         await this.closeStopLoss(ctx)
@@ -79,12 +64,11 @@ export class TradeService {
         await this.stopLossRequest(ctx, forcedPrice)
     }
 
-
     public async closeStopLoss(ctx: TradeCtx): Promise<void> {
         const trade = ctx.trade
         const stopLossOrderId = trade.stopLossResult?.orderId
         if (!stopLossOrderId) {
-            TradeUtil.addLog(`Could not find SL with id: ${stopLossOrderId}, result in trade ${trade._id}`, ctx, this.logger)
+            TradeUtil.addWarning(`Not found Stop Loss orderId ${stopLossOrderId}, result in trade ${trade._id}`, ctx, this.logger)
             return
         }
         trade.stopLossResult = await this.closeOrder(ctx, stopLossOrderId)
@@ -92,8 +76,7 @@ export class TradeService {
     }
 
     public closeOrder(ctx: TradeCtx, orderId: BigInt): Promise<FuturesResult> {
-        let params = TradeUtil.closeOrderParams(orderId, ctx.symbol)
-        params = TradeUtil.removeMultiOrderProperties(params)
+        const params = TradeUtil.closeOrderParams(orderId, ctx.symbol)
         return this.placeOrder(params, ctx, 'DELETE')
     }
 
