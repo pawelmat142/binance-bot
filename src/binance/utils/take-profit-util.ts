@@ -1,8 +1,10 @@
 import Decimal from "decimal.js";
 import { Logger } from "@nestjs/common";
 import { TakeProfit, TradeCtx, TradeVariant } from "../model/trade-variant";
-import { Trade, TradeStatus } from "../model/trade";
+import { Trade, TradeStatus, TradeType } from "../model/trade";
 import { TradeUtil } from "./trade-util";
+import { VariantUtil } from "./variant-util";
+import { PlaceOrderParams } from "../model/model";
 
 export abstract class TPUtil {
 
@@ -13,6 +15,11 @@ export abstract class TPUtil {
     public static takeProfits = (trade: Trade): TakeProfit [] => {
         return trade.variant.takeProfits || []
     }
+
+    public static orderIds(ctx: TradeCtx): BigInt[] {
+        return ctx.trade.variant.takeProfits.filter(tp => !!tp.reuslt).map(tp => tp.reuslt?.orderId)
+    }
+
 
     public static takeProfitsFilledQuantitySum = (trade: Trade): Decimal => {
         const takeProfits = trade.variant.takeProfits
@@ -44,6 +51,25 @@ export abstract class TPUtil {
             TradeUtil.addLog(`Position filled not fully`, ctx, logger)
         }
         return result
+    }
+
+
+    public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): PlaceOrderParams => {
+        return {
+            symbol: ctx.symbol,
+            side: VariantUtil.opositeSide(ctx.trade.variant.side),
+            type: TradeType.TAKE_PROFIT_MARKET,
+            quantity: quantity.toString(),
+            stopPrice: price.toString(),
+            timestamp: Date.now(),
+            timeInForce: 'GTC',
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            reduceOnly: true,
+        }
+    }
+
+    public static sort(ctx: TradeCtx) {
+        ctx.trade.variant.takeProfits.sort((a, b) => a.order - b.order)
     }
 
 

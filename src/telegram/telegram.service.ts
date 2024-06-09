@@ -152,7 +152,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             for (let tp of tps) {
                 if (tp.quantity) {
                     if (tp.reuslt) {
-                        const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.origQuantity).times(100).round()
+                        const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.marketFilledQuantity).times(100).round()
                         lines.push(`- ${this.print$(tp.reuslt?.stopPrice)}, ${realPercent}%, ${tp.reuslt.status}`)
                     } else {
                         lines.push(`- ${this.print$(tp.price)}, waiting`)

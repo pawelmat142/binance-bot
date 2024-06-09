@@ -96,7 +96,7 @@ export class CalculationsService implements OnModuleInit {
         if (!notFilledTakeProfits.length) {
             TradeUtil.addLog(`Take profits are empty, preparing one...`, ctx, this.logger)
 
-            const tradeOriginQuantity = ctx.origQuantity
+            const tradeOriginQuantity = ctx.marketFilledQuantity
             let takeProfitQuantity = tradeOriginQuantity.div(3)
             const tradeQuantityLeft = tradeOriginQuantity.minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
             if (tradeQuantityLeft.lessThan(takeProfitQuantity)) {

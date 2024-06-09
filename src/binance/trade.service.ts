@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TradeUtil } from './utils/trade-util';
-import { FuturesResult, TradeStatus, TradeType } from './model/trade';
-import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
+import { FuturesResult, TradeType } from './model/trade';
+import { TradeCtx, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
 import { TradeRepository } from './trade.repo';
 import { Position } from './wizard-binance.service';
@@ -9,7 +9,6 @@ import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
 import { Subject } from 'rxjs';
 import { VariantUtil } from './utils/variant-util';
-import { TPUtil } from './utils/take-profit-util';
 import { TradeQuantityCalculator } from '../global/calculators/trade-quantity.calculator';
 import { Http } from '../global/http/http.service';
 import { HttpMethod } from '../global/type';
@@ -42,8 +41,8 @@ export class TradeService {
         ctx.trade.timestamp = new Date()
         ctx.trade.marketResult = result
         TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.marketResult.origQty}`, ctx, this.logger)
-        if (!ctx.origQuantity.equals(new Decimal(quantity))) {
-            TradeUtil.addWarning(`origQuantity ${ctx.origQuantity} != quantity ${quantity}`, ctx, this.logger)
+        if (!ctx.marketFilledQuantity.equals(new Decimal(quantity))) {
+            TradeUtil.addWarning(`origQuantity ${ctx.marketFilledQuantity} != quantity ${quantity}`, ctx, this.logger)
         }
     }
 
@@ -53,9 +52,12 @@ export class TradeService {
             TradeUtil.addWarning(`STOP LOSS NOT PROVIDED!`, ctx, this.logger)
             return
         }
+
+        // TODO stop loss calculator
         const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
         let stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : forcedPrice
         stopLossPrice = CalcUtil.fixPricePrecision(stopLossPrice, this.calculationsService.getExchangeInfo(ctx.symbol)).toNumber()
+        // 
 
         TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
 
@@ -89,98 +91,9 @@ export class TradeService {
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
-    public async closePendingTakeProfit(ctx: TradeCtx) {
-        const takeProfits = ctx.trade.variant.takeProfits
-        for (let tp of takeProfits) {
-            if (tp.reuslt?.status === TradeStatus.NEW) {
-                const tpOrderId = tp.reuslt.orderId
-                tp.reuslt = null // delete result prevents triggers onFilledTakeProfit
-                await this.tradeRepo.update(ctx)
-                tp.reuslt = await this.closeOrder(ctx, tpOrderId)
-                TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
-            }
-        }
-    }
-
-    public async openNextTakeProfit(ctx: TradeCtx) {
-        const takeProfits = ctx.trade.variant.takeProfits
-        takeProfits.sort((a, b) => a.order - b.order)
-        for (let tp of takeProfits) {
-            if (!tp.reuslt && tp.quantity) {
-                await this.takeProfitRequest(ctx, tp)
-                return
-            }
-        }
-    }
-
-    public async takeSomeProfit(ctx: TradeCtx): Promise<boolean> {
-        try {
-            this.calculationsService.calculateSingleTakeProfitQuantityIfEmpty(ctx)
-            const takeProfits = ctx.trade.variant.takeProfits
-            takeProfits.sort((a, b) => a.order - b.order)
-            for (let i = takeProfits.length-1; i >= 0; i--) {
-                const tp = takeProfits[i]
-                const quantity = Number(tp.quantity)
-                if ((!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) && quantity) {
-                    if (tp.reuslt?.status === TradeStatus.NEW) {
-                        await this.closePendingTakeProfit(ctx)
-                    }
-                    delete tp.reuslt
-                    tp.takeSomeProfitFlag = true
-                    const result = await this.takeSomeProfitRequest(ctx, tp)
-                    result.status = TradeStatus.FILLED
-                    result.executedQty = result.origQty
-                    tp.reuslt = result
-                    this.onFilledTakeSomeProfit(ctx)
-                    return !!result
-                }
-            }
-            throw new Error(`Take profits are empty`)
-        } catch (error) {
-            this.handleError(error, `TAKE SOME PROFIT ERROR`, ctx)
-            return false
-        }
-    }
-
-    private async onFilledTakeSomeProfit(ctx: TradeCtx) {
-        if (TPUtil.positionFullyFilled(ctx)) {
-            await this.closeStopLoss(ctx)
-            await this.closePendingTakeProfit(ctx)
-            TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
-            this.telegramService.onClosedPosition(ctx)
-        } else {
-            const stopLossPrice = Number(ctx.trade.stopLossResult?.stopPrice)
-            await this.moveStopLoss(ctx, isNaN(stopLossPrice) ? undefined : stopLossPrice)
-            TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
-            this.telegramService.onFilledTakeProfit(ctx)
-        }
-        const saved = await this.tradeRepo.update(ctx)
-    }
-
-
-    private async takeSomeProfitRequest(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
-        const params = {
-            symbol: ctx.trade.variant.symbol,
-            side: VariantUtil.opositeSide(ctx.trade.variant.side),
-            type: TradeType.MARKET,
-            quantity: Number(tp.quantity),
-            timestamp: Date.now(),
-            reduceOnly: true,
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        }
-        const result = await this.placeOrder(params, ctx)
-        TradeUtil.addLog(`Took profit with order ${tp.order}, price: ${result.price}, unit: ${ctx.unit.identifier}, symbol: ${result.symbol}`, ctx, this.logger)
-        return result
-    }
-
     public closeOrder(ctx: TradeCtx, orderId: BigInt): Promise<FuturesResult> {
-        const params = {
-            symbol: ctx.symbol,
-            orderId: orderId,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-        }
+        let params = TradeUtil.closeOrderParams(orderId, ctx.symbol)
+        params = TradeUtil.removeMultiOrderProperties(params)
         return this.placeOrder(params, ctx, 'DELETE')
     }
 
@@ -212,28 +125,6 @@ export class TradeService {
             }
         }
     }
-
-    private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
-        const quantity = forcedQuantity ?? takeProfit.quantity
-        TradeUtil.addLog(`Placing Take Profit order: ${takeProfit.order} with quantity: ${quantity}`, ctx, this.logger)
-        if (this.takeProfitQuantitiesFilled(ctx) || !quantity) {
-            return
-        }
-        const params = TradeUtil.takeProfitRequestParams(ctx, takeProfit.price, quantity)
-        const result = await this.placeOrder(params, ctx)
-        takeProfit.reuslt = result
-        takeProfit.resultTime = new Date()
-    }
-
-    private takeProfitQuantitiesFilled(ctx: TradeCtx): boolean {
-        if (ctx.origQuantity.equals(new Decimal(ctx.takeProfitOrigQuentitesSum))) {
-            return true
-        } else if (new Decimal(TPUtil.takeProfitsFilledQuantitySum(ctx.trade)).greaterThan(ctx.origQuantity)) {
-            throw new Error(`Take profit quantities sum > origQuantity`)
-        }
-        return false
-    }
-
 
     public async setPositionLeverage(ctx: TradeCtx) {
         const lever = ctx.lever
@@ -355,7 +246,7 @@ export class TradeService {
         return Util.sign(url, params, unit)
     }
 
-    private handleError(error, msg?: string, ctx?: TradeCtx) {
+    public handleError(error, msg?: string, ctx?: TradeCtx) {
         const errorMessage = Http.handleErrorMessage(error)
         if (ctx) {
             if (msg) {

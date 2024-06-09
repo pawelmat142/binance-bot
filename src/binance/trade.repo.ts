@@ -59,6 +59,7 @@ export class TradeRepository {
                 { "futuresResult.orderId": eventTradeResult.orderId },
                 { "stopLossResult.orderId": eventTradeResult.orderId },
                 { "variant.takeProfits.reuslt.orderId": eventTradeResult.orderId },
+                { "variant.limitOrders.reuslt.orderId": eventTradeResult.orderId },
             ]
         }).exec()
     }

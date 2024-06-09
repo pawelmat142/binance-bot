@@ -10,10 +10,11 @@ import { UnitModule } from '../unit/unit.module';
 import { AutoCloseService } from './auto-close.service';
 import { CalculationsService } from './calculations.service';
 import { DuplicateService } from './duplicate.service';
-import { MultiOrderService } from './multi-order.service';
+import { LimitOrdersService } from './limit-orders.service';
 import { TradeRepository } from './trade.repo';
 import { TradeService } from './trade.service';
 import { WizardBinanceService } from './wizard-binance.service';
+import { TakeProfitsService } from './take-profits.service';
 
 @Module({
   imports: [
@@ -41,12 +42,14 @@ import { WizardBinanceService } from './wizard-binance.service';
     DuplicateService, 
     TradeRepository, 
     AutoCloseService,
-    MultiOrderService,
+    LimitOrdersService,
+    TakeProfitsService,
   ],
   exports: [
     BinanceService,
     TradeService,
     WizardBinanceService,
+    TakeProfitsService,
   ]
 })
 export class BinanceModule {}

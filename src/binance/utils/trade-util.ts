@@ -1,6 +1,6 @@
 import { Logger } from "@nestjs/common"
 import { FuturesResult, Trade, TradeStatus, TradeType } from "../model/trade"
-import { TradeEventData } from "../model/model"
+import { PlaceOrderParams, TradeEventData } from "../model/model"
 import { TakeProfit, TradeCtx } from "../model/trade-variant"
 import Decimal from "decimal.js"
 import { Position } from "../wizard-binance.service"
@@ -86,19 +86,6 @@ export abstract class TradeUtil {
         }
     }
 
-    public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): Object => {
-        return {
-            symbol: ctx.symbol,
-            side: VariantUtil.opositeSide(ctx.trade.variant.side),
-            type: TradeType.TAKE_PROFIT_MARKET,
-            quantity: quantity,
-            stopPrice: price,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-            reduceOnly: true,
-        }
-    }
 
     public static isTradeEvent(tradeEvent: TradeEventData): boolean {
         const isOrderTradeUpdate = tradeEvent?.e === 'ORDER_TRADE_UPDATE'
@@ -133,15 +120,15 @@ export abstract class TradeUtil {
     }
 
     public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-        let stopLossQuantity = new Decimal(ctx.trade.marketResult.origQty ?? 0)
+        let stopLossQuantity = new Decimal(ctx.filledQuantity)
             .minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
         return stopLossQuantity
     }
 
     public static getStopLossPrice = (ctx: TradeCtx): number => {
         let result = Number(ctx.trade.variant.stopLoss)
+        TPUtil.sort(ctx)
         const takeProfits = ctx.trade.variant.takeProfits
-        takeProfits.sort((a, b) => a.order - b.order)
         for (let tp of takeProfits) {
             if (tp.reuslt?.status === TradeStatus.FILLED) {
                 if (tp.order === 0) {
@@ -189,6 +176,23 @@ export abstract class TradeUtil {
             }
         }
         return 'waiting'
+    }
+
+    public static closeOrderParams(orderId: BigInt, symbol: string): PlaceOrderParams {
+        return {
+            symbol: symbol,
+            orderId: orderId,
+            timeInForce: 'GTC',
+            type: undefined,
+            timestamp: Date.now(),
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+        }
+    }
+
+    public static removeMultiOrderProperties(params: PlaceOrderParams): PlaceOrderParams {
+        delete params.recvWindow
+        delete params.timestamp
+        return 
     }
 
 }

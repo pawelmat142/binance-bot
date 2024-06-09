@@ -101,7 +101,7 @@ export class TakeProfitsWizard extends UnitWizard {
                             trade: this.selectedTrade,
                             unit: this.unit
                         })
-                        await this.services.binanceServie.openFirstTakeProfit(ctx)
+                        await this.services.takeProfitsService.openFirstTakeProfit(ctx)
                         TradeUtil.addLog(`Opened first take profit`, ctx, this.logger)
                         await this.services.binanceServie.update(ctx)
                         this.select(ctx.trade)
@@ -138,7 +138,7 @@ export class TakeProfitsWizard extends UnitWizard {
                             unit: this.unit,
                             trade: trade
                         })
-                        await this.services.tradeService.closePendingTakeProfit(ctx)
+                        await this.services.takeProfitsService.closePendingTakeProfit(ctx)
                         trade.variant.takeProfits = trade.variant.takeProfits.filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
                         await this.services.binanceServie.update(ctx)
                         this.takeProfitsAggregator = ctx.trade.variant.takeProfits

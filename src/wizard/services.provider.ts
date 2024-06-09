@@ -6,6 +6,7 @@ import { Http } from "../global/http/http.service";
 import { SignalService } from "../signal/signal.service";
 import { UnitService } from "../unit/unit.service";
 import { SelectedTradeProvider } from "./selected-trade.service";
+import { TakeProfitsService } from "../binance/take-profits.service";
 
 @Injectable()
 export class ServiceProvider {
@@ -17,6 +18,7 @@ export class ServiceProvider {
         public readonly signalService: SignalService,
         public readonly tradeService: TradeService,
         public readonly selectedTradeService: SelectedTradeProvider,
+        public readonly takeProfitsService: TakeProfitsService,
         public readonly http: Http,
     ) {}
 

@@ -11,9 +11,15 @@ export interface PlaceOrderParams {
     type: TradeType
     timeInForce?: string
     symbol: string
-    side: VariantSide
-    price: string
-    quantity: string
+    side?: VariantSide
+    price?: string
+    stopPrice?: string
+    quantity?: string
+    reduceOnly?: boolean
+
+    orderId?: BigInt,
+    recvWindow?: number
+    timestamp?: number
 }
 
 

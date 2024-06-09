@@ -278,7 +278,7 @@ export class TradesWizard extends UnitWizard {
                     unit: this.unit,
                     trade: this.selectedTrade
                 })
-                const success = await this.services.tradeService.takeSomeProfit(ctx)
+                const success = await this.services.takeProfitsService.takeSomeProfit(ctx)
                 if (success) {
                     this.select(ctx.trade)
                     return 12

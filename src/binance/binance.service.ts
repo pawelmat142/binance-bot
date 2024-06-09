@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { TradeUtil } from './utils/trade-util';
-import { FuturesResult, Trade, TradeStatus, TradeType } from './model/trade';
+import { FuturesResult, TradeStatus, TradeType } from './model/trade';
 import { CalculationsService } from './calculations.service';
 import { TradeService } from './trade.service';
 import { TradeCtx } from './model/trade-variant';
@@ -8,7 +8,6 @@ import { Subscription } from 'rxjs';
 import { DuplicateService } from './duplicate.service';
 import { TradeRepository } from './trade.repo';
 import { EntryPriceCalculator } from '../global/calculators/entry-price.calculator';
-import { TakeProfitsQuantityCalculator } from '../global/calculators/take-profits-quantity.calculator';
 import { Http } from '../global/http/http.service';
 import { Signal } from '../signal/signal';
 import { SignalUtil } from '../signal/signal-util';
@@ -17,10 +16,11 @@ import { TelegramService } from '../telegram/telegram.service';
 import { Unit } from '../unit/unit';
 import { UnitService } from '../unit/unit.service';
 import { TradeEventData } from './model/model';
-import { MultiOrderService } from './multi-order.service';
+import { LimitOrdersService } from './limit-orders.service';
 import { LimitOrderUtil } from './utils/limit-order-util';
 import { TPUtil } from './utils/take-profit-util';
 import { VariantUtil } from './utils/variant-util';
+import { TakeProfitsService } from './take-profits.service';
 
 
 @Injectable()
@@ -36,7 +36,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         private readonly unitService: UnitService,
         private readonly duplicateService: DuplicateService,
         private readonly tradeRepo: TradeRepository,
-        private readonly multiOrderService: MultiOrderService,
+        private readonly limitOrdersService: LimitOrdersService,
+        private readonly takeProfitsService: TakeProfitsService,
     ) {}
 
 
@@ -138,7 +139,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                 await this.tradeService.openPositionByMarket(ctx)
             } 
             else if (LimitOrderUtil.limitOrdersCalculated(ctx.trade.variant)) {
-                await this.multiOrderService.openLimitOrders(ctx)
+                await this.limitOrdersService.openLimitOrders(ctx)
             } 
             else {
                 throw new Error(`Not by market and limits not calculated`)
@@ -189,13 +190,13 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             else {
                 if (signal.otherSignalAction.takeSomgeProfit) {
                     TradeUtil.addLog(`[START] take some profit`, ctx, this.logger)
-                    await this.tradeService.takeSomeProfit(ctx)
+                    await this.takeProfitsService.takeSomeProfit(ctx)
                     TradeUtil.addLog(`[STOP] take some profit`, ctx, this.logger)
                 } 
                 else if (signal.otherSignalAction.takeProfitFound && !TPUtil.anyPendingOrFilledTakeProfit(ctx)) {
                     TradeUtil.addLog(`[START] place take profits`, ctx, this.logger)
                     ctx.trade.variant.takeProfits = signal.variant.takeProfits
-                    await this.openFirstTakeProfit(ctx)
+                    await this.takeProfitsService.openFirstTakeProfit(ctx)
                     TradeUtil.addLog(`[STOP] place take profits`, ctx, this.logger)
                 }
                 if (signal.otherSignalAction.moveSl) {
@@ -231,10 +232,13 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         if (ctx.trade.marketResult.orderId === eventTradeResult.orderId) {
             this.onFilledPosition(ctx, eventTradeResult)
 
+        } else if (LimitOrderUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
+            this.limitOrdersService.onFilledLimitOrder(ctx, eventTradeResult)
+            
         } else if (ctx.trade.stopLossResult.orderId === eventTradeResult.orderId) {
             this.onFilledStopLoss(ctx, eventTradeResult)
 
-        } else if (this.takeProfitOrderIds(ctx.trade).includes(eventTradeResult.orderId)) {
+        } else if (TPUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
             this.onFilledTakeProfit(ctx, eventTradeResult)
 
         } else {
@@ -242,9 +246,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private takeProfitOrderIds(order: Trade): BigInt[] {
-        return order.variant.takeProfits.filter(tp => !!tp.reuslt).map(tp => tp.reuslt?.orderId)
-    }
 
     private async onFilledPosition(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         TradeUtil.addLog(`Found trade with result id ${ctx.trade.marketResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
@@ -256,7 +257,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             }
             ctx.trade.marketResult = eventTradeResult
             await this.tradeService.stopLossRequest(ctx)
-            await this.openFirstTakeProfit(ctx)
+            await this.takeProfitsService.openFirstTakeProfit(ctx)
         } catch (error) {
             const msg = Http.handleErrorMessage(error)
             TradeUtil.addError(msg, ctx, this.logger)
@@ -267,7 +268,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async onFilledStopLoss(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Filled stop loss with orderId ${ctx.trade.stopLossResult.orderId}, stopPrice: ${eventTradeResult.stopPrice}`, ctx, this.logger)
+        TradeUtil.addLog(`Filled Stop Loss with orderId ${ctx.trade.stopLossResult.orderId}, stopPrice: ${eventTradeResult.stopPrice}`, ctx, this.logger)
         try {
             ctx.trade.closed = true
             ctx.trade.stopLossResult = eventTradeResult
@@ -295,7 +296,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             if (TPUtil.positionFullyFilled(ctx)) {
                 ctx.trade.closed = true
                 await this.tradeService.closeStopLoss(ctx)
-                await this.tradeService.closePendingTakeProfit(ctx)
+                await this.takeProfitsService.closePendingTakeProfit(ctx)
                 this.manualClosePositionFull(ctx)
                 this.tradeLog(ctx, `Every take profit filled, stop loss closed ${ctx.trade._id}`)
                 this.telegramService.onClosedPosition(ctx)
@@ -303,7 +304,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
             else {
                 await this.tradeService.moveStopLoss(ctx)
                 this.tradeLog(ctx, `Moved stop loss`)
-                await this.tradeService.openNextTakeProfit(ctx)
+                await this.takeProfitsService.openNextTakeProfit(ctx)
                 this.tradeLog(ctx, `Opened next take profit ${ctx.trade._id}`)
                 this.telegramService.onFilledTakeProfit(ctx)
             }
@@ -315,15 +316,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    public async openFirstTakeProfit(ctx: TradeCtx) {
-        if (!ctx.trade.variant.takeProfits?.length) {
-            TradeUtil.addLog(`Take Profits empty, skipped opening`, ctx, this.logger)
-            return
-        }
-        TradeUtil.addLog(`Opening first Take Profit`, ctx, this.logger)
-        await TakeProfitsQuantityCalculator.start(ctx, this.calculationsService)
-        await this.tradeService.openNextTakeProfit(ctx)
-    }
+
 
     private updateFilledTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx) {
         const takeProfits = ctx.trade.variant.takeProfits

@@ -7,7 +7,7 @@ import Decimal from "decimal.js";
 export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]> {
 
     private takeProfits: TakeProfit[]
-    private origQuantity: Decimal
+    private positionFilledQuantity: Decimal
 
 
     private get length(): number {
@@ -16,7 +16,8 @@ export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]>
 
     protected init() {
         this.takeProfits = this.variant.takeProfits
-        this.origQuantity = this.ctx.origQuantity
+        this.positionFilledQuantity = this.ctx.filledQuantity 
+        this.log(`Take profits quantity sum to calculate ${this.positionFilledQuantity}`)
     }
 
 
@@ -30,17 +31,17 @@ export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]>
                 this.log(`Skipped calculation for TP with order: ${tp.order}`)
                 continue
             }
-            let quantity = this.roundWithFraction(this.origQuantity.times(tp.closePercent).div(100), this.stepSize)
+            let quantity = this.roundWithFraction(this.positionFilledQuantity.times(tp.closePercent).div(100), this.stepSize)
             quantity = this.findMax(quantity, this.minQty)
             const sum = TPUtil.takeProfitQuentitesSum(this.trade).plus(quantity)
 
-            if (sum.equals(this.origQuantity)) {
+            if (sum.equals(this.positionFilledQuantity)) {
                 tp.quantity = quantity.toNumber()
                 break
             }
 
-            else if (sum.greaterThan(this.origQuantity)) {
-                const correctedQuantity = quantity.minus(sum.minus(this.origQuantity)) 
+            else if (sum.greaterThan(this.positionFilledQuantity)) {
+                const correctedQuantity = quantity.minus(sum.minus(this.positionFilledQuantity)) 
                 if (correctedQuantity.lessThan(this.minQty)) {
                     if (i > 0) {
                         const prevTp = this.takeProfits[i-1]
@@ -62,10 +63,10 @@ export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]>
         const sum = TPUtil.takeProfitQuentitesSum(this.trade)
         const tpQtiesString = TPUtil.quantitiesString(this.variant)
 
-        if (sum.equals(this.origQuantity)) {
-            this.log(`Successfully calculated TP quantities: ${tpQtiesString}, sum: ${sum}, origin: ${this.origQuantity}`)
+        if (sum.equals(this.positionFilledQuantity)) {
+            this.log(`Successfully calculated TP quantities: ${tpQtiesString}, sum: ${sum}, origin: ${this.positionFilledQuantity}`)
         } else {
-            throw new Error(`calculated TP quantities: ${tpQtiesString}, sum: ${sum}, origin: ${this.origQuantity}`)
+            throw new Error(`calculated TP quantities: ${tpQtiesString}, sum: ${sum}, origin: ${this.positionFilledQuantity}`)
         }
 
         this.log('STOP')

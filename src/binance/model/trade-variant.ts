@@ -5,6 +5,7 @@ import { Position } from "../wizard-binance.service";
 import { VariantSide, VariantUtil } from "../utils/variant-util";
 import { Unit } from "../../unit/unit";
 import { BinanceError } from "./binance.error";
+import { LimitOrderUtil } from "../utils/limit-order-util";
 
 export class TakeProfit {
     @Prop() order: number
@@ -63,10 +64,6 @@ export class TradeCtx implements TradeContext {
 
     public error = false
 
-    public get filled(): boolean {
-        return this.trade?.marketResult?.status === 'FILLED'
-    }
-    
     public get status(): string {
         return this.trade?.marketResult?.status
     }
@@ -79,7 +76,17 @@ export class TradeCtx implements TradeContext {
         return this.trade?.variant?.side
     }
 
-    public get origQuantity(): Decimal {
+    public get entryByMarket(): boolean {
+        return this.trade.variant.entryByMarket
+    }
+
+    public get filledQuantity(): Decimal {
+        return this.trade.variant.entryByMarket
+            ? this.marketFilledQuantity
+            : this.limitFilledQuantity
+    }
+
+    public get marketFilledQuantity(): Decimal {
         const origQuantity = this.trade.marketResult.origQty
         if (!origQuantity) {
             throw new Error(`origQuantity could not be found`)
@@ -87,10 +94,17 @@ export class TradeCtx implements TradeContext {
         return new Decimal(origQuantity)
     }
 
+    public get limitFilledQuantity(): Decimal {
+        if (!this.trade.variant.limitOrders) {
+            throw new Error(`Limit Orders not found`)
+        }
+        return LimitOrderUtil.limitOrderQuantitiesFilledSum(this.trade.variant)
+    }
+
 
     public get takeProfitOrigQuentitesSum(): number {
         return this.trade.variant.takeProfits
-        .reduce((acc, tp) => acc + (Number(tp.reuslt?.origQty ??0)), 0)
+            .reduce((acc, tp) => acc + (Number(tp.reuslt?.origQty ??0)), 0)
     }
 
     public get lever(): number {
