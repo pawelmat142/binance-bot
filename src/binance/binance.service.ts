@@ -229,7 +229,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        if (ctx.trade.marketResult.orderId === eventTradeResult.orderId) {
+        if (ctx.trade.marketResult?.orderId === eventTradeResult.orderId) {
             this.onFilledPosition(ctx, eventTradeResult)
 
         } else if (LimitOrderUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {

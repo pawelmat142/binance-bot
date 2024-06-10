@@ -20,7 +20,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
 
-    private readonly bot = this.initBot()
+    private readonly bot: TelegramBot = this.initBot()
 
     constructor() {}
 

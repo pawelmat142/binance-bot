@@ -38,6 +38,7 @@ export class EntryPriceCalculator extends Calculator<void> {
         this.log('START')
 
         await this.fetchMarketPrice()
+        this.log(`Found Market Price: ${this.signal.variant.marketPriceOnCalculate.toFixed(2)} USDT`)
 
         this.resolveEntryByMarket()
 
@@ -122,7 +123,6 @@ export class EntryPriceCalculator extends Calculator<void> {
             const marketPrice = await this.service.fetchMarketPrice(symbol)
             this.signal.variant.marketPriceOnCalculate = marketPrice
             this.signal.variant.calculationTimestamp = new Date()
-            SignalUtil.addLog(`Found Market Price: ${marketPrice.toFixed(2)} USDT`, this.signal, this.logger)
         } catch (error) {
             const msg = Http.handleErrorMessage(error)
             throw new Error(msg)
