@@ -5,22 +5,18 @@ import { Unit } from './unit';
 import { Model } from 'mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BinanceError } from '../binance/model/binance.error';
-import { TradeEventData, ListeKeyResponse } from '../binance/model/model';
+import { TradeEventData } from '../binance/model/model';
 import { TradeUtil } from '../binance/utils/trade-util';
 import { Http } from '../global/http/http.service';
-import { HttpMethod } from '../global/type';
 import { BotUtil } from '../wizard/bot.util';
-import { UnitUtil } from './unit.util';
-import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
-import * as JSONbig from 'json-bigint';
 import { Util } from '../binance/utils/util';
+import { Data } from 'ws';
 
 
 @Injectable()
 export class UnitService implements OnModuleInit {
 
     private readonly logger = new Logger(UnitService.name)
-    private readonly WEBSOCKET_ONLY_FOR = process.env.WEBSOCKET_ONLY_FOR
 
     constructor(
         @InjectModel(Unit.name) private unitModel: Model<Unit>,
@@ -34,6 +30,9 @@ export class UnitService implements OnModuleInit {
     }
 
     private _units$ = new BehaviorSubject<Unit[]>([])
+    public get units$(): Observable<Unit[]> {
+        return this._units$.asObservable()
+    }
 
     private tradeEventSubject$ = new Subject<TradeEventData>()
 
@@ -44,7 +43,7 @@ export class UnitService implements OnModuleInit {
     onModuleInit() {
         this.initUnits()
         this._units$.subscribe(units => {
-            this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
+            this.logger.log(`Loaded ${units.length} active units: [ ${units.map(u => u.identifier).join(', ')} ]`)
         })
     }
 
@@ -62,24 +61,7 @@ export class UnitService implements OnModuleInit {
 
     private async initUnits() {
         await this.loadUnits()
-        this.startListeningForEveryUnit()
     }
-
-    @Cron(CronExpression.EVERY_30_MINUTES)
-    private async keepAliveListenKeyForEveryUnit() {
-        if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
-            this.logger.warn(`[SKIP] keep alive listen keys`)
-            return
-        }
-        this.logger.warn('Refreshing listen keys')
-        const units = await this.unitModel.find(
-            { active: true, listenKey: { $exists: true } },
-            { listenJsons: false, tradeObjectIds: false }).exec()
-
-       await Promise.all(units.map(this.keepAliveListenKey))
-       this.logger.log(`Keeping alive listenKey for ${units.length} units: [ ${units.map(u=>u.identifier).join(' ')} ]`)
-    }
-
 
     public get units(): Unit[] {
         return this._units$.value
@@ -102,109 +84,6 @@ export class UnitService implements OnModuleInit {
         return unit.listenJsons
     }
 
-    private async startListeningForEveryUnit() {
-        if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
-            this.logger.warn(`[SKIP] listening websockets`)
-            return
-        }
-        const units = this._units$.value
-
-        await Promise.all(units.map(this.startListening))
-    }
-
-
-    public startListening = async (unit: Unit) => {
-        if (this.WEBSOCKET_ONLY_FOR) {
-            if (unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
-                return
-            }
-        }
-        if (UnitUtil.socketOpened(unit)) {
-            this.logger.warn(`Socket fot unit ${unit.identifier} already opened`)
-            return
-        }
-
-        const listenKey = await this.fetchListenKey(unit)
-        const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
-
-        ws.onopen = (event: Event) => {
-            this.logger.log(`Opened socket for unit: ${unit.identifier}`)
-        }
-        
-        ws.onclose = (event: CloseEvent) => {
-            this.logger.warn(`Closed socket for unit: ${unit.identifier}`)
-        }
-        
-        ws.onerror = (event: ErrorEvent) => {
-            this.addError(unit, `Error on socket for unit: ${unit.identifier}`)
-            this.addError(unit, `event.error`)
-            this.addError(unit, event.error)
-            this.removeListenKey(unit)
-        }
-
-        ws.onmessage = (event: MessageEvent) => {
-            this.removeListenKeyIfMessageIsAboutClose(event, unit)
-            const tradeEvent: TradeEventData = JSONbig.parse(event.data as string)
-            this.logger.log(`[${unit.identifier}] Biannce Event ${tradeEvent.e} received`)
-            if (TradeUtil.isTradeEvent(tradeEvent)) {
-                tradeEvent.unitIdentifier = unit.identifier
-                this.tradeEventSubject$.next(tradeEvent)
-            }
-        }
-        unit.socket = ws as WebSocket
-    }
-
-
-    public keepAliveListenKey = async (unit: Unit) =>  { //
-        if (this.WEBSOCKET_ONLY_FOR) {
-            if (unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
-                return
-            }
-        }
-        const fetched = await this.fetchUnit(unit.identifier)
-        const listenKey = fetched?.listenKey
-        if (!listenKey) {
-            this.logger.error(`Could not find listenKey for unit ${unit.identifier}`)
-        }
-        return this.request(unit, 'PUT')
-    }
-
-    public stopListening(unit: Unit) {
-        unit.socket?.close()
-        return this.request(unit, 'DELETE')
-    }
-
-
-    private async fetchListenKey(unit: Unit): Promise<string> {
-        try {
-            const listenKey = await this.request(unit, 'POST')
-            if (!listenKey || typeof listenKey !== 'string') {
-                throw new Error(`Listen key error response for unit: ${unit.identifier}`)
-            }
-            this.logger.log(`Found new listenKey for unit ${unit.identifier}: ${listenKey}`)
-            this.updateListenKey(unit, listenKey)
-            return listenKey
-        } catch (error) {
-            const message = Http.handleErrorMessage(error)
-            this.logger.error(message)
-        }
-    }
-
-    private async request(unit: Unit, method: HttpMethod): Promise<string> {
-        const response = await this.http.fetch<ListeKeyResponse>({
-            url: this.signUrlWithParams(`/listenKey`, unit, ''),
-            method: method,
-            headers: Util.getHeaders(unit)
-        })
-        return response.listenKey
-    }
-
-
-    private signUrlWithParams(path: string, unit: Unit, queryString: string) {
-        const url = `${TradeUtil.futuresUri}${path}`
-        return Util.sign(url, queryString, unit)
-    }
-
     private async fetchUnit(identifier: string): Promise<Unit> {
         const found = await this.unitModel.findOne(
             { identifier: identifier }, 
@@ -213,47 +92,19 @@ export class UnitService implements OnModuleInit {
         return found
     }
 
-
-    private onBinanceError(err: BinanceError, unit: Unit) {
-        this.logger.error(`[${err.code}] unit: ${unit.identifier} - ${err.msg}`)
-        if (err?.code === -1125) {
-            this.removeListenKey(unit)
-        }
-        if (UnitUtil.socketOpened(unit)) {
-            unit.socket.close()
-        }
-    }
-
-    private removeListenKeyIfMessageIsAboutClose(event: MessageEvent, unit: Unit) {
-        try {
-            const data = JSON.parse(event?.data.toString())
-            if (data?.e === 'listenKeyExpired') {
-                if (UnitUtil.socketOpened(unit)) {
-                    unit.socket.close()
-                }
-            }
-        } catch {
-            return
-        }
-    }
-
-
-    private removeListenKey(unit: Unit) {
+    public removeListenKey(unit: Unit) {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
             { $unset: { listenKey: 1 } }
         ).exec().finally(() => this.logger.warn(`Removed listen key for unit ${unit.identifier}`))
     }
 
-
-    private updateListenKey(unit: Unit, listenKey: string) {
+    public updateListenKey(unit: Unit) {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
-            { $set: { listenKey: listenKey } }
+            { $set: { listenKey: unit.listenKey } }
         ).exec()
     }
-
-
 
     public async addUnit(body: Unit) {
         if (!body.identifier) {
@@ -310,10 +161,6 @@ export class UnitService implements OnModuleInit {
                 units.push(unit)
             }
             this._units$.next(units)
-
-            if (unit.active) {
-                this.startListening(unit)
-            }
         } else {
             const units = this._units$.value.filter(u => u.identifier !== identifier)
             this._units$.next(units)

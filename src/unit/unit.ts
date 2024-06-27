@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
-import { WebSocket } from 'ws';
 
 export type UnitDocument = HydratedDocument<Unit>
 
@@ -41,8 +40,6 @@ export class Unit {
 
     @Prop()
     allowMinNotional?: boolean
-
-    socket?: WebSocket
 }
 
 export const UnitSchema = SchemaFactory.createForClass(Unit)

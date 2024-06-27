@@ -15,12 +15,12 @@ import { SignalService } from '../signal/signal.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { Unit } from '../unit/unit';
 import { UnitService } from '../unit/unit.service';
-import { TradeEventData } from './model/model';
 import { LimitOrdersService } from './limit-orders.service';
 import { LimitOrderUtil } from './utils/limit-order-util';
 import { TPUtil } from './utils/take-profit-util';
 import { VariantUtil } from './utils/variant-util';
 import { TakeProfitsService } from './take-profits.service';
+import { BinanceUnitListener } from './binance-unit-listener';
 
 
 @Injectable()
@@ -38,53 +38,69 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         private readonly tradeRepo: TradeRepository,
         private readonly limitOrdersService: LimitOrdersService,
         private readonly takeProfitsService: TakeProfitsService,
+        private readonly http: Http,
     ) {}
 
 
+    private unitListeners: BinanceUnitListener[] = []
+
     private signalSubscription: Subscription
-    private tradeEventSubscription: Subscription
 
     public update(ctx: TradeCtx) {
         return this.tradeRepo.update(ctx)
     }
 
+
     onModuleInit(): void {
+        this.logger.log(`onModuleInit`)
         if (!this.signalSubscription) {
             this.signalSubscription = this.signalService.tradeObservable$.subscribe({
                 next: this.onSignalEvent,
                 error: this.logger.error
             })
         }
-        if (!this.tradeEventSubscription) {
-            this.tradeEventSubscription = this.unitService.tradeEventObservable$.subscribe({
-                next: async (tradeEvent: TradeEventData) => {
-                    const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
-                    const unit = this.unitService.getUnit(tradeEvent.unitIdentifier)
-            
-                    if (TradeUtil.isFilledOrder(eventTradeResult)) {
-                        if (this.duplicateService.preventDuplicate(eventTradeResult, unit)) {
-                            return
-                        }
-                        const ctx = await this.prepareTradeContext(eventTradeResult, unit)
-                        if (ctx) {
-                            this.onFilledOrder(ctx, eventTradeResult)
-                        }
-                    }
-                },
-                error: console.error,
-                complete: () => {}
-            })
-        }
+        this.unitService.units$.subscribe(units => this.initBinanceUnitListeners(units))
     }
 
+    public async initBinanceUnitListeners(units: Unit[]) {
+        this.logger.debug(`initItems`)
+
+        this.deactivateInactiveUnitListeners(units)
+
+        this.unitListeners = units
+            .filter(u => u.active)
+            .map(u => this.createBinanceUnitListenerInstance(u))
+    }
+
+    private deactivateInactiveUnitListeners(activeUnits: Unit[]) {
+        const activeUnitIdentifiers = activeUnits.map(u => u.identifier)
+        this.unitListeners.filter(unitListener => !activeUnitIdentifiers.includes(unitListener.identifier)).forEach(unitListener => {
+            unitListener.stopListening()
+        })
+    }
+
+    private createBinanceUnitListenerInstance = (unit: Unit): BinanceUnitListener => {
+        const instance = new BinanceUnitListener(unit, 
+            this.unitService, 
+            this,
+            this.tradeService,
+            this.duplicateService,
+            this.tradeRepo,
+            this.telegramService,
+            this.limitOrdersService,
+            this.takeProfitsService,
+            this.http
+        )
+        instance.onModuleInit()
+        return instance
+    }
+
+
     onModuleDestroy() {
+        this.logger.log(`[${this.constructor.name}] onModuleDestroy`)
         if (this.signalSubscription) {
             this.signalSubscription.unsubscribe()
             this.signalSubscription = undefined
-        }
-        if (this.tradeEventSubscription) {
-            this.tradeEventSubscription.unsubscribe()
-            this.tradeEventSubscription = undefined
         }
     }
 
@@ -228,66 +244,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     }
 
-    private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        if (ctx.trade.marketResult?.orderId === eventTradeResult.orderId) {
-            this.onFilledPosition(ctx, eventTradeResult)
-
-        } else if (LimitOrderUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
-            this.limitOrdersService.onFilledLimitOrder(ctx, eventTradeResult)
-            
-        } else if (ctx.trade.stopLossResult.orderId === eventTradeResult.orderId) {
-            this.onFilledStopLoss(ctx, eventTradeResult)
-
-        } else if (TPUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
-            this.takeProfitsService.onFilledTakeProfit(ctx, eventTradeResult)
-
-        } else {
-            TradeUtil.addLog(`Found trade but matching error! ${eventTradeResult.orderId}`, ctx, this.logger)
-        }
-    }
-
-
-    private async onFilledPosition(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Found trade with result id ${ctx.trade.marketResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
-        try {
-            const wasOpenOrder = ctx.trade.marketResult?.status === TradeStatus.NEW
-            if (wasOpenOrder) {
-                TradeUtil.addLog(`Was open order`, ctx, this.logger)
-                this.tradeService.closeOrderEvent(ctx)
-            }
-            ctx.trade.marketResult = eventTradeResult
-            await this.tradeService.stopLossRequest(ctx)
-            await this.takeProfitsService.openFirstTakeProfit(ctx)
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            TradeUtil.addError(msg, ctx, this.logger)
-        } finally {
-            const saved = await this.tradeRepo.update(ctx)
-            this.telegramService.onFilledPosition(ctx)
-        }
-    }
-
-    private async onFilledStopLoss(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Filled Stop Loss with orderId ${ctx.trade.stopLossResult.orderId}, stopPrice: ${eventTradeResult.stopPrice}`, ctx, this.logger)
-        try {
-            ctx.trade.closed = true
-            ctx.trade.stopLossResult = eventTradeResult
-            const takeProfits = ctx.trade.variant.takeProfits
-            for (let tp of takeProfits) {
-                if (tp.reuslt && tp.reuslt.status === TradeStatus.NEW) {
-                    const closeResult = await this.tradeService.closeOrder(ctx, tp.reuslt.orderId)
-                    tp.reuslt = closeResult
-                    TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
-                }
-            }
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            TradeUtil.addError(msg, ctx, this.logger)
-        } finally {
-            const saved = await this.tradeRepo.update(ctx)
-            this.telegramService.onFilledStopLoss(ctx)
-        }
-    }
 
     private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
