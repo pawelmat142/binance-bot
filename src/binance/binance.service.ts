@@ -52,7 +52,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
 
     onModuleInit(): void {
-        this.logger.log(`onModuleInit`)
         if (!this.signalSubscription) {
             this.signalSubscription = this.signalService.tradeObservable$.subscribe({
                 next: this.onSignalEvent,
@@ -63,7 +62,10 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
     }
 
     public async initBinanceUnitListeners(units: Unit[]) {
-        this.logger.debug(`initItems`)
+        if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
+            this.logger.warn(`SKIP_WEBSOCKET_LISTEN`)
+            return
+        }
 
         this.deactivateInactiveUnitListeners(units)
 
