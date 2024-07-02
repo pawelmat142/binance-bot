@@ -15,6 +15,7 @@ import { TradeRepository } from './trade.repo';
 import { TradeService } from './trade.service';
 import { WizardBinanceService } from './wizard-binance.service';
 import { TakeProfitsService } from './take-profits.service';
+import { StatisticsBinanceService } from './statistics-binance.service';
 
 @Module({
   imports: [
@@ -44,12 +45,14 @@ import { TakeProfitsService } from './take-profits.service';
     AutoCloseService,
     LimitOrdersService,
     TakeProfitsService,
+    StatisticsBinanceService,
   ],
   exports: [
     BinanceService,
     TradeService,
     WizardBinanceService,
     TakeProfitsService,
+    StatisticsBinanceService,
   ]
 })
 export class BinanceModule {}

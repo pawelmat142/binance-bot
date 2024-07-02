@@ -125,3 +125,19 @@ export interface MarketPriceResponse {
     nextFundingTime: number;
     time: number;
 }
+
+export interface Period {
+    from: number
+    to: number
+}
+
+export interface IncomeRecord {
+    symbol: string;              // trade symbol, if existing
+    incomeType: string;          // income type
+    income: string;              // income amount
+    asset: string;               // income asset
+    info: string;                // extra information
+    time: number;                // timestamp
+    tranId: string;              // transaction id
+    tradeId: string;             // trade id, if existing
+}

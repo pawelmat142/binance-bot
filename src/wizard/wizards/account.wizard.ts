@@ -6,6 +6,7 @@ import { BotUtil } from "../bot.util"
 import { StartWizard } from "./start.wizard"
 import { BinanceFuturesAccountInfo } from "../../binance/wizard-binance.service"
 import { Unit } from "../../unit/unit"
+import { IncomesWizard } from "./incomes.wizard"
 
 export class AccountWizard extends UnitWizard {
 
@@ -44,6 +45,10 @@ export class AccountWizard extends UnitWizard {
                 callback_data: WizBtn.usdtPerTransaction,
                 process: async () => 1,
             }], [{
+                text: 'Incomes',
+                callback_data: 'income',
+                switch: IncomesWizard.name
+            }], [{
                 text: allowMinNotional,
                 callback_data: WizBtn.allowMinNotional,
                 process: async () => {
@@ -54,7 +59,7 @@ export class AccountWizard extends UnitWizard {
                 text: 'Check your balance',
                 callback_data: WizBtn.balance,
                 process: async () => {
-                    const usdtInfo = await this.services.binance.getBalance(this.unit)
+                    const usdtInfo = await this.services.statisticsBinanceService.getBalance(this.unit)
                     if (!usdtInfo) return 0
                     this.usdtInfo = usdtInfo
                     // TODO show also transactions pending USDT

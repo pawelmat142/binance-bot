@@ -15,6 +15,7 @@ import { LogsWizard } from "./wizards/logs.wizard";
 import { NewUnitWizard } from "./wizards/new-unit.wizard";
 import { TakeProfitsWizard } from "./wizards/take-profits.wizard";
 import { TelegramService } from "../telegram/telegram.service";
+import { IncomesWizard } from "./wizards/incomes.wizard";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {
@@ -247,6 +248,8 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
                 return new TakeProfitsWizard(currentWizard.getUnit(), this.service)
             case StartWizard.name:
                 return new StartWizard(currentWizard.getUnit(), this.service)
+            case IncomesWizard.name:
+                return new IncomesWizard(currentWizard.getUnit(), this.service)
             default: throw new Error('switch wizard error')
         }
     }

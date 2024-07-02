@@ -66,18 +66,6 @@ export class WizardBinanceService {
         })
     }
 
-    public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
-        const params = {
-            timestamp: Date.now()
-        }
-        const accountInfos = await this.http.fetch<BinanceFuturesAccountInfo[]>({
-            url: Util.sign(`${TradeUtil.futuresUriV2}/balance`, params, unit),
-            method: 'GET',
-            headers: Util.getHeaders(unit)
-        })
-        return (accountInfos || []).find(info => info.asset === 'USDT')
-    }
-
     public async fetchTrades(unit: Unit) {
         return this.tradeRepo.findByUnit(unit)
     }
