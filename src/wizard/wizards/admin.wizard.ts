@@ -2,7 +2,7 @@ import { TelegramMessage } from "../../telegram/message"
 import { Unit } from "../../unit/unit"
 import { BotUtil } from "../bot.util"
 import { ServiceProvider } from "../services.provider"
-import { LogsWizard } from "./logs.wizard"
+import { AdminIncomesWizard } from "./admin-incomes.wizard"
 import { StartWizard } from "./start.wizard"
 import { UnitWizard } from "./unit-wizard"
 import { WizardStep } from "./wizard"
@@ -28,9 +28,9 @@ export class AdminWizard extends UnitWizard {
                 callback_data: WizBtn.signal,
                 process: async () => 1,
             }], [{
-                text: `LOGS`,
-                callback_data: `logswizard`,
-                switch: LogsWizard.name
+                text: `Users incomes`,
+                callback_data: 'usersincomes',
+                switch: AdminIncomesWizard.name
             }], [BotUtil.getBackSwitchButton(StartWizard.name)]],
         }, {
             order: 1,

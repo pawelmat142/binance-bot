@@ -34,6 +34,12 @@ export class UnitService implements OnModuleInit {
         return this._units$.asObservable()
     }
 
+    public get units(): Unit[] {
+        return this._units$.value
+    }
+
+
+
     private tradeEventSubject$ = new Subject<TradeEventData>()
 
     public get tradeEventObservable$(): Observable<TradeEventData> {
@@ -63,10 +69,6 @@ export class UnitService implements OnModuleInit {
         await this.loadUnits()
     }
 
-    public get units(): Unit[] {
-        return this._units$.value
-    }
-
     public getUnit(identifier: string): Unit {
         const unit = this._units$.value.find(u => u.identifier === identifier)
         if (!unit) throw new Error(`Unit ${identifier} not found`)
@@ -75,7 +77,7 @@ export class UnitService implements OnModuleInit {
 
     public findUnitByChatId(chatId: number): Promise<Unit> {
         return this.unitModel.findOne({ telegramChannelId: chatId }, 
-            { listenJsons: false, tradeObjectIds: false }).exec()
+            { listenJsons: false }).exec()
     }
 
     public async fetchLogs(identifier: string): Promise<string[]> {
@@ -87,9 +89,13 @@ export class UnitService implements OnModuleInit {
     private async fetchUnit(identifier: string): Promise<Unit> {
         const found = await this.unitModel.findOne(
             { identifier: identifier }, 
-            { listenJsons: false, tradeObjectIds: false }).exec()
+            { listenJsons: false }).exec()
         if (!found) throw new Error(`Could not found unit ${identifier}`)
         return found
+    }
+
+    public async fetchAllUnits(): Promise<Unit[]> {
+        return this.unitModel.find({})
     }
 
     public removeListenKey(unit: Unit) {
@@ -119,7 +125,6 @@ export class UnitService implements OnModuleInit {
             identifier: body.identifier,
             active: body.active,
             listenJsons: [],
-            tradeObjectIds: [],
             usdtPerTransaction: body.usdtPerTransaction,
             binanceApiKey: body.binanceApiKey,
             binanceApiSecret: body.binanceApiSecret,

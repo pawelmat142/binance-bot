@@ -19,9 +19,6 @@ export class Unit {
     listenJsons: string[]
 
     @Prop()
-    tradeObjectIds: string[]
-
-    @Prop()
     usdtPerTransaction: number
 
     @Prop()

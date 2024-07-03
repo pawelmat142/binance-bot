@@ -1,6 +1,7 @@
-import { Period } from "../binance/model/model";
+import Decimal from "decimal.js";
+import { IncomeRecord, Period } from "../binance/model/model";
 
-export abstract class PeriodUtil {
+export abstract class IncomesUtil {
 
     private static readonly monthNames = [
         "January", "February", "March", "April", "May", "June",
@@ -56,6 +57,13 @@ export abstract class PeriodUtil {
         const now = new Date();
         const monthBefore = new Date(now.getFullYear(), now.getMonth() - monthsBefore)
         return this.monthNames[monthBefore.getMonth()];
+    }
+
+    public static sumIncomes(incomes: IncomeRecord[]): number  {
+        return incomes
+            .map(income => new Decimal(income.income))
+            .reduce((sum, income) => sum.plus(income), new Decimal(0))
+            .toNumber()
     }
 
 }
