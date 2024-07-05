@@ -2,7 +2,7 @@ import { Prop } from "@nestjs/mongoose";
 import { FuturesResult, Trade, TradeStatus } from "./trade";
 import Decimal from "decimal.js";
 import { Position } from "../wizard-binance.service";
-import { VariantSide, VariantUtil } from "../utils/variant-util";
+import { SignalSource, VariantSide, VariantUtil } from "../utils/variant-util";
 import { Unit } from "../../unit/unit";
 import { BinanceError } from "./binance.error";
 import { LimitOrderUtil } from "../utils/limit-order-util";
@@ -19,6 +19,7 @@ export class TakeProfit {
 }
 
 export class TradeVariant {
+    @Prop() signalSource: SignalSource
     @Prop() side: VariantSide
     @Prop() symbol: string
     @Prop() entryZoneStart: number

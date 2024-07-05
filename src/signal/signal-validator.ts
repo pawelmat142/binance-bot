@@ -12,9 +12,7 @@ export class SignalValidator extends BaseValidator {
     
     errors: string[] = []
 
-    variant: Partial<TradeVariant> = { 
-        takeProfits: [] 
-    }
+    variant: Partial<TradeVariant>
 
     public get valid() {
         return this.modeValueOk
@@ -23,6 +21,7 @@ export class SignalValidator extends BaseValidator {
 
     constructor(signal: Signal) {
         super(signal)
+        this.variant = this.signal.variant
     }
 
     private readonly entryZoneRegex = /entry\s*zone/i;

@@ -39,7 +39,8 @@ export class AdminWizard extends UnitWizard {
             process: async (input: string) => {
                 const result = await this.services.signalService.onReceiveTelegramMessage({
                     message: input,
-                    id: BotUtil.getRandomInt(1, 5000)
+                    id: BotUtil.getRandomInt(1, 5000),
+                    peer_id: { channel_id: this.unit.telegramChannelId }
                 } as TelegramMessage)
                 if (result.error) {
                     this.error = result.error

@@ -31,6 +31,10 @@ export class Signal {
     @Expose() 
     @Prop()
     telegramMessageId: string
+
+    @Expose() 
+    @Prop()
+    telegramChannelId: string
     
     @Prop()
     @Expose() 

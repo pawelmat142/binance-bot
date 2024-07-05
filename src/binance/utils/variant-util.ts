@@ -5,6 +5,8 @@ export type VariantMode = 'SHORT' | 'LONG'
 
 export type VariantSide = 'SELL' | 'BUY'
 
+export type SignalSource = 'ADMIN' | 'GALAXY' | 'CRYPTO_HUNTER' 
+
 export abstract class VariantUtil {
 
     public static readonly DEFAULT_LEVER = 5

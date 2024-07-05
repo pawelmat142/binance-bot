@@ -23,7 +23,7 @@ export class UnitService implements OnModuleInit {
         private readonly http: Http,
     ) {}
 
-    private adminChannelIds = BotUtil.adminChannelIds()
+    private readonly adminChannelIds = BotUtil.adminChannelIds()
 
     public isAdmin = (chatId: string): boolean => {
         return this.adminChannelIds.includes(chatId?.toString())

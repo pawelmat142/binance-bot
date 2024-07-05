@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppHttpModule } from '../global/http/http.module';
 import { AppTelegramModule } from '../telegram/telegram.module';
 import { Signal, SignalSchema } from './signal';
+import { SignalSourceService } from './signal-source.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { Signal, SignalSchema } from './signal';
     }]),
     AppHttpModule,
   ],
-  providers: [SignalService],
+  providers: [SignalService, SignalSourceService],
   exports: [SignalService]
 })
 export class SignalModule {}

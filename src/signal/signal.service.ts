@@ -8,6 +8,7 @@ import { Observable, Subject } from 'rxjs';
 import { SignalOtherActionValidator } from './additional-validator';
 import { TelegramService } from '../telegram/telegram.service';
 import { TelegramMessage } from '../telegram/message';
+import { SignalSourceService } from './signal-source.service';
 
 @Injectable()
 export class SignalService {
@@ -17,6 +18,7 @@ export class SignalService {
     constructor(
         @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
+        private readonly signalSourceService: SignalSourceService,
     ) {}
 
     private tradeSubject$ = new Subject<Signal>()
@@ -29,6 +31,8 @@ export class SignalService {
     public async onReceiveTelegramMessage(telegramMessage: TelegramMessage) {
         const signal: Signal = this.prepareSignal(telegramMessage)
         try {
+            this.signalSourceService.findSignalSourceName(telegramMessage, signal)
+
             this.validateSignal(signal)
 
             await this.verifyIfDuplicate(signal)
@@ -37,7 +41,7 @@ export class SignalService {
 
             await this.save(signal)
 
-            this.telegramService.sendPublicMessage(telegramMessage?.message)
+            this.sendTelegramPublicMessage(telegramMessage, signal)
 
             if (signal.valid || SignalUtil.anyOtherAction(signal)) {
                 this.tradeSubject$.next(signal)
@@ -65,15 +69,22 @@ export class SignalService {
 
     private prepareSignal(telegramMessage: TelegramMessage): Signal {
         return new this.signalModel({
+            variant: { takeProfits: [] },
             content: telegramMessage?.message ?? 'no-content',
             timestamp: new Date(),
             telegramMessageId: telegramMessage?.id ?? 'missing'
         })
     }
 
+    private sendTelegramPublicMessage(telegramMessage: TelegramMessage, signal: Signal) {
+        const signalSource = signal.variant.signalSource
+        const message = `${signalSource}: \n\n${telegramMessage.message}`
+        this.telegramService.sendPublicMessage(message)
+    }
+
+
 
     
-
     // REPOSITORY
 
     public list(): Promise<Signal[]> {

@@ -22,7 +22,7 @@ export abstract class BotUtil {
     }
     
     public static adminChannelIds = (): string[] => {
-        return process.env.ADMIN_CHAT_ID.split('_')
+        return process.env.ADMIN_CHANNEL_ID.split('_')
     }
 
     public static messageFromButtonCallback = (callback: TelegramBot.CallbackQuery): TelegramBot.Message => {
