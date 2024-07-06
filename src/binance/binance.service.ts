@@ -125,7 +125,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private openTradesPerUnit = async (signal: Signal) => {
         if (process.env.SKIP_TRADE === 'true') {
-            this.logger.warn('SKIP TRADE')
+            SignalUtil.addWarning(`SKIP_TRADE`, signal, this.logger)
             return
         }
         

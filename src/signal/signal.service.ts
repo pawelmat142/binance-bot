@@ -99,6 +99,8 @@ export class SignalService {
         SignalUtil.addLog(`Saved signal ${saved._id}`, signal, this.logger)
     }
 
+    private async 
+
     private async verifyIfDuplicate(signal: Signal) {
         if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
             this.logger.warn('SKIP PREVENT DUPLICATE')

@@ -2,11 +2,11 @@ import { TradeVariant } from "../../../binance/model/trade-variant"
 import { TradeUtil } from "../../../binance/utils/trade-util"
 import { VariantUtil } from "../../../binance/utils/variant-util"
 import { BaseSignalValidator } from "../base-signal-validator"
-import { Signal } from "../../signal"
 import { SignalUtil } from "../../signal-util"
 import { SignalValidator } from "../signal-validator"
 import { GalaxyStopLossValidator } from "./galaxy-stop-loss-validator"
 import { GalaxyTakeProfitsValidator } from "./galaxy-take-profits.validator"
+import { ValidatorUtil } from "../validator.util"
 
 export class GalaxySignalValidator extends BaseSignalValidator implements SignalValidator {
     
@@ -24,7 +24,7 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
 
         GalaxyTakeProfitsValidator.start(this.signal)
         GalaxyStopLossValidator.start(this.signal)
-        
+
         this.addLog(`[STOP] ${this.constructor.name}`)
     }
 
@@ -43,7 +43,7 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
         for(let i=0; i < this.lines.length; i++) {
             if (!this.lines[i]) continue
             this.findSignalSideAndSymbol(i)
-            this.findEntryZoneIndex(i)
+            this.findEntryZoneLineIndex(i)
             this.findLeverageLineIndex(i)
             this.findPercentOfBalanceLineIndex(i)
         }
@@ -78,13 +78,14 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
 
     }
 
+    // SYMBOL SIDE
     private findSignalSideAndSymbol(lineIndex: number) {
         if (this.tokenNameLineIndex !== -1) {
             return
         }
         const line = this.lines[lineIndex]
-        const isShort = this.isShort(line)
-        const isLong = this.isLong(line)
+        const isShort = ValidatorUtil.isShort(line)
+        const isLong = ValidatorUtil.isLong(line)
         if (isShort && !isLong) {
             this.variant.side = 'SELL'
             this.tokenNameLineIndex = lineIndex
@@ -101,7 +102,7 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
             let words = line.split(' ')
                 .filter(word => !!word)
             if (words.length > 0) {
-                const sideIndex = words.findIndex(word => this.isShort(word) || this.isLong(word))
+                const sideIndex = words.findIndex(word => ValidatorUtil.isShort(word) || ValidatorUtil.isLong(word))
                 if (sideIndex !== -1) {
                     const wordAfter = words[sideIndex + 1]
                     if (wordAfter) {
@@ -118,7 +119,11 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
     }
 
 
-    private findEntryZoneIndex(lineIndex: number) {
+    // ENTRY ZONE
+    private findEntryZoneLineIndex(lineIndex: number) {
+        if (this.entryZoneLineIndex !== -1) {
+            return
+        }
         const line = this.lines[lineIndex]
         const isEntryZone = this.entryZoneRegex.test(line) || this.enteringRegex.test(line)
         if (isEntryZone) {
@@ -242,14 +247,6 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
         }
     }
 
-
-    private isShort(line: string): boolean {
-        return /\bshort\b/i.test(line)
-    }
-
-    private isLong(line: string): boolean {
-        return /\blong\b/i.test(line)
-    }
 
     private numberOk(input: number) {
         return !isNaN(input)
