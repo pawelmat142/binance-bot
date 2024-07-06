@@ -4,10 +4,6 @@ import { TradeVariant } from "../binance/model/trade-variant"
 import { LimitOrderUtil } from "../binance/utils/limit-order-util"
 import { VariantUtil } from "../binance/utils/variant-util"
 import { toDateString } from "../global/util"
-import { SignalValidator } from "./signal-validators/signal-validator"
-import { CryptoHunterSignalValidator } from "./signal-validators/crypto-hunter/crypto-hunter-signal-validator"
-import { GalaxySignalValidator } from "./signal-validators/galaxy/galaxy-signal-validator"
-import { GalaxyOtherActionValidator } from "./signal-validators/galaxy/galaxy-other-action-validator"
 
 export abstract class SignalUtil {
 
@@ -21,44 +17,7 @@ export abstract class SignalUtil {
 
     public static readonly dolarValueSpaceRegex = /\$ ?\d+[.,]?\d*|\d+[.,]?\d* ?\$/g //  [ 0,014033$ 0.014033$ 0,014033 $  0.014033 $  $0.014033  $ 0,014033 ] 
 
-    public static validateSignal(signal: Signal): void {
-        const validator: SignalValidator = SignalUtil.selectValidatorBySource(signal)
-        validator.validate()
-    }
 
-    public static additionalValidationIfNeeded(signal: Signal): void {
-        const validator: SignalValidator = this.selectAdditionValidatorIfNeeded(signal)
-        if (validator) {
-            validator.validate()
-        }
-    } 
-
-    private static selectValidatorBySource(signal: Signal): SignalValidator {
-        switch (signal.variant.signalSource) {
-            case "CRYPTO_HUNTER":
-                return new CryptoHunterSignalValidator(signal)
-            case "GALAXY":
-                return new GalaxySignalValidator(signal)
-            case "ADMIN":
-                return this.selectValidatorForAdminSource(signal)
-
-            default: throw new Error(`Unknown signal source: ${signal?.variant?.signalSource}`)
-        }
-    }
-
-
-    private static selectAdditionValidatorIfNeeded(signal: Signal): SignalValidator {
-        switch (signal.variant.signalSource) {
-            case "GALAXY": return new GalaxyOtherActionValidator(signal)
-            default: return null
-        }
-    }
-    
-    private static selectValidatorForAdminSource(signal: Signal): SignalValidator {
-        // TODO chosing validator by admin source signal by wizard
-        return new CryptoHunterSignalValidator(signal)
-        // return new GalaxySignalValidator(signal)
-    }
 
     public static mayBeOpened(signal: Signal): boolean {
         return signal.valid && this.entryCalculated(signal)

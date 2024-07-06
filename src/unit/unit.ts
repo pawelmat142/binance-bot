@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
+import { SignalSource } from "../binance/utils/variant-util";
 
 export type UnitDocument = HydratedDocument<Unit>
 
@@ -37,6 +38,9 @@ export class Unit {
 
     @Prop()
     allowMinNotional?: boolean
+
+    @Prop()
+    adminSignalSource?: SignalSource
 }
 
 export const UnitSchema = SchemaFactory.createForClass(Unit)

@@ -7,6 +7,7 @@ import { Observable, Subject } from 'rxjs';
 import { TelegramService } from '../telegram/telegram.service';
 import { TelegramMessage } from '../telegram/message';
 import { SignalSourceService } from './signal-source.service';
+import { SignalValidationService } from './signal-validation.service';
 
 @Injectable()
 export class SignalService {
@@ -17,6 +18,7 @@ export class SignalService {
         @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
         private readonly signalSourceService: SignalSourceService,
+        private readonly signalValidationService: SignalValidationService,
     ) {}
 
     private tradeSubject$ = new Subject<Signal>()
@@ -31,12 +33,13 @@ export class SignalService {
         try {
             this.signalSourceService.findSignalSourceName(telegramMessage, signal)
 
-            SignalUtil.validateSignal(signal)
+            this.signalValidationService.validateSignal(signal)
+
 
             await this.verifyIfDuplicate(signal)
 
             if (!signal.valid) {
-                SignalUtil.additionalValidationIfNeeded(signal)
+                this.signalValidationService.additionalValidationIfNeeded(signal)
             }
 
             await this.save(signal)

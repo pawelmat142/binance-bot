@@ -19,7 +19,11 @@ export class SignalSourceService implements OnModuleInit {
 
     private readonly adminChannelIds = BotUtil.adminChannelIds()
 
-    private signalSources: SignalSourceInterface[] = []
+    private _signalSources: SignalSourceInterface[] = []
+
+    public get signalSources(): SignalSourceInterface[] {
+        return this._signalSources
+    }
 
     onModuleInit() {
         this.loadSignalSourceFromFile()
@@ -37,7 +41,7 @@ export class SignalSourceService implements OnModuleInit {
             return
         }
 
-        const signalSource = this.signalSources.find(s => s.telegramChannelId === telegramChannelId)
+        const signalSource = this._signalSources.find(s => s.telegramChannelId === telegramChannelId)
         if (!signalSource) {
             throw new Error(`Not found signal source with telegram channel id ${telegramChannelId}`)
         }
@@ -46,12 +50,12 @@ export class SignalSourceService implements OnModuleInit {
 
     private loadSignalSourceFromFile() {
         const jsonData = fs.readFileSync(this.SIGNAL_SOURCES_FILE_NAME, 'utf8')
-        this.signalSources = JSON.parse(jsonData) as SignalSourceInterface[]
-        if (!this.signalSources.length) {
+        this._signalSources = JSON.parse(jsonData) as SignalSourceInterface[]
+        if (!this._signalSources.length) {
             throw new Error("Signal sources not found")
         }
-        this.logger.log(`Initialized ${this.signalSources.length} signal sources`)
-        this.logger.log(this.signalSources.map(s => s.name).join(', '))
+        this.logger.log(`Initialized ${this._signalSources.length} signal sources`)
+        this.logger.log(this._signalSources.map(s => s.name).join(', '))
     }
 
 }

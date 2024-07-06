@@ -72,20 +72,8 @@ export class CryptoHunterSignalValidator extends BaseSignalValidator implements 
             this.findTakeProfits(i)
             this.findLever(i)
         }
-    
-        this.test()
     }
 
-    private test() {
-        console.log(`symbol: ${this.variant.symbol}`)
-        console.log(`side: ${this.variant.side}`)
-        console.log(`entryZoneStart: ${this.variant.entryZoneStart}`)
-        console.log(`entryZoneEnd: ${this.variant.entryZoneEnd}`)
-        console.log(`stopLoss: ${this.variant.stopLoss}`)
-        console.log(`takeProfits: ${this.variant.takeProfits.map(tp => tp.price).join(', ')}`)
-        console.log(`leverMin: ${this.variant.leverMin}`)
-        console.log(`leverMax: ${this.variant.leverMax}`)
-    }
 
     // SYMBOL SIDE
     private findSignalSideAndSymbol(lineIndex: number) {
