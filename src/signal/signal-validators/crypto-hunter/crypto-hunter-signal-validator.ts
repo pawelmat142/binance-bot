@@ -1,4 +1,5 @@
 import { TakeProfit, TradeVariant } from "../../../binance/model/trade-variant";
+import { TPUtil } from "../../../binance/utils/take-profit-util";
 import { TradeUtil } from "../../../binance/utils/trade-util";
 import { BaseSignalValidator } from "../base-signal-validator";
 import { SignalValidator } from "../signal-validator";
@@ -158,13 +159,14 @@ export class CryptoHunterSignalValidator extends BaseSignalValidator implements 
     // TAKE PROFIT
     private findTakeProfits(lineIndex: number): void {
         if (this.takeProfitLineIndex !== -1) {
-            return
+            return  
         }
         const value = this.findTakeProfitValue(lineIndex)
         if (value) {
             this.takeProfitLineIndex = lineIndex
             this.addTakeProfit(value)
             this.findNextTakeProfits()
+            TPUtil.calculatePercentages(this.variant.takeProfits)
         }
     }
 

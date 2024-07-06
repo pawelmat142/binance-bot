@@ -69,6 +69,11 @@ export class EntryPriceCalculator extends Calculator<void> {
 
 
     private calculateOrdersPrices() {
+        if (this.variant.entryZoneStart === this.variant.entryZoneEnd) {
+            this.addLimitPrice(this.variant.entryZoneStart)
+            this.log(`Single entry Limit Order at ${this.variant.entryZoneStart.toFixed(2)}`)
+            return
+        }
 
         const diff = Math.abs(this.variant.entryZoneStart - this.variant.entryZoneEnd)
         this.entryPriceDifference = diff / (LimitOrderUtil.DEFAULT_ORDERS_NUMBER + 1)
@@ -78,15 +83,19 @@ export class EntryPriceCalculator extends Calculator<void> {
 
         for (let i = 0; i < LimitOrderUtil.DEFAULT_ORDERS_NUMBER; i++) {
             entryPrice += this.entryPriceDifference
-            let orderPrice = this.fixPricePrecision(entryPrice)
-            orderPrice = this.roundToTickSize(orderPrice)
-            
-            if (!orderPrice) {
-                throw new Error(`Limit Orders price error ${orderPrice}`)
-            }
-            
-            this.limitPrices.push(orderPrice.toNumber())
+            this.addLimitPrice(entryPrice)
         }
+    }
+
+    private addLimitPrice(entryPrice: number) {
+        let orderPrice = this.fixPricePrecision(entryPrice)
+        orderPrice = this.roundToTickSize(orderPrice)
+        
+        if (!orderPrice) {
+            throw new Error(`Limit Orders price error ${orderPrice}`)
+        }
+        
+        this.limitPrices.push(orderPrice.toNumber())
     }
 
 

@@ -17,7 +17,7 @@ export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]>
     protected init() {
         this.limitOrders = this.variant.limitOrders
         this.usdtAmount = this.findUsdtAmount()
-        this.ordersNumber = LimitOrderUtil.DEFAULT_ORDERS_NUMBER
+        this.ordersNumber = this.variant.limitOrders.length
     }
 
     protected async calculate(): Promise<LimitOrder[]> {
