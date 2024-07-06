@@ -1,27 +1,31 @@
-import { TradeVariant } from "../binance/model/trade-variant"
-import { TradeUtil } from "../binance/utils/trade-util"
-import { VariantUtil } from "../binance/utils/variant-util"
-import { BaseValidator } from "./base-validator"
-import { Signal } from "./signal"
-import { SignalUtil } from "./signal-util"
-import { StopLossValidator } from "./stop-loss-validator"
-import { TakeProfitsValidator } from "./take-profits.validator"
+import { TradeVariant } from "../../../binance/model/trade-variant"
+import { TradeUtil } from "../../../binance/utils/trade-util"
+import { VariantUtil } from "../../../binance/utils/variant-util"
+import { BaseSignalValidator } from "../base-signal-validator"
+import { Signal } from "../../signal"
+import { SignalUtil } from "../../signal-util"
+import { SignalValidator } from "../signal-validator"
+import { GalaxyStopLossValidator } from "./galaxy-stop-loss-validator"
+import { GalaxyTakeProfitsValidator } from "./galaxy-take-profits.validator"
 
-export class SignalValidator extends BaseValidator {
-
+export class GalaxySignalValidator extends BaseSignalValidator implements SignalValidator {
     
-    errors: string[] = []
-
-    variant: Partial<TradeVariant>
-
-    public get valid() {
+    override valid() {
         return this.modeValueOk
         && this.entryZoneValuesOk 
     }
 
-    constructor(signal: Signal) {
-        super(signal)
-        this.variant = this.signal.variant
+    override validate() {
+        this.addLog(`[START] ${this.constructor.name}`)
+
+        this.processValidation()
+        this.signal.valid = this.valid()
+        this.signal.variant = this.variant as TradeVariant
+
+        GalaxyTakeProfitsValidator.start(this.signal)
+        GalaxyStopLossValidator.start(this.signal)
+        
+        this.addLog(`[STOP] ${this.constructor.name}`)
     }
 
     private readonly entryZoneRegex = /entry\s*zone/i;
@@ -34,16 +38,6 @@ export class SignalValidator extends BaseValidator {
     private entryZoneLineIndex = -1
     private leverageLineIndex = -1
     private percentOfBalanceLineIndex = -1
-
-    public validate() {
-        this.addLog(`[START] SignalValidator`)
-        this.processValidation()
-        this.signal.valid = this.valid
-        this.signal.variant = this.variant as TradeVariant
-        TakeProfitsValidator.start(this.signal)
-        StopLossValidator.start(this.signal)
-        this.addLog(`[STOP] SignalValidator`)
-    }
 
     private processValidation() {
         for(let i=0; i < this.lines.length; i++) {

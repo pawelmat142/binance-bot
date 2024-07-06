@@ -1,17 +1,13 @@
-import { Signal } from "./signal";
-import { BaseValidator } from "./base-validator";
-import { SignalUtil } from "./signal-util";
-import { TakeProfit } from "../binance/model/trade-variant";
-import { TPUtil } from "../binance/utils/take-profit-util";
+import { Signal } from "../../signal";
+import { BaseSignalValidator } from "../base-signal-validator";
+import { SignalUtil } from "../../signal-util";
+import { TakeProfit } from "../../../binance/model/trade-variant";
+import { TPUtil } from "../../../binance/utils/take-profit-util";
 
-export class TakeProfitsValidator extends BaseValidator {
+export class GalaxyTakeProfitsValidator extends BaseSignalValidator {
 
     private readonly takeProfitRegex = /take profit/i;
     private readonly dolarOrPercentRegex = /(?:\d{1,3}(?:\s\d{3})*|\d+)(?:\.\d+)?(?:[$%])/g
-
-    constructor(signal: Signal) {
-        super(signal)
-    }
 
     private takeProfitLineIndex = -1
 
@@ -22,7 +18,7 @@ export class TakeProfitsValidator extends BaseValidator {
     }
 
     static start(signal: Signal): boolean {
-        const val = new TakeProfitsValidator(signal)
+        const val = new GalaxyTakeProfitsValidator(signal)
         val.validate()
         return val.triggered
     }

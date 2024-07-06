@@ -2,10 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Signal } from './signal';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { SignalValidator } from './signal-validator';
 import { SignalUtil } from './signal-util';
 import { Observable, Subject } from 'rxjs';
-import { SignalOtherActionValidator } from './additional-validator';
 import { TelegramService } from '../telegram/telegram.service';
 import { TelegramMessage } from '../telegram/message';
 import { SignalSourceService } from './signal-source.service';
@@ -33,11 +31,13 @@ export class SignalService {
         try {
             this.signalSourceService.findSignalSourceName(telegramMessage, signal)
 
-            this.validateSignal(signal)
+            SignalUtil.validateSignal(signal)
 
             await this.verifyIfDuplicate(signal)
 
-            this.additionalValidationIfNotValid(signal)
+            if (!signal.valid) {
+                SignalUtil.additionalValidationIfNeeded(signal)
+            }
 
             await this.save(signal)
 
@@ -57,15 +57,6 @@ export class SignalService {
         return telegramMessage
     }
 
-    private validateSignal(signal: Signal): void {
-        const validator = new SignalValidator(signal)
-        validator.validate()
-    }
-
-    private additionalValidationIfNotValid(signal: Signal) {
-        const validator = new SignalOtherActionValidator(signal)
-        validator.validate()
-    }
 
     private prepareSignal(telegramMessage: TelegramMessage): Signal {
         return new this.signalModel({
@@ -81,7 +72,6 @@ export class SignalService {
         const message = `${signalSource}: \n\n${telegramMessage.message}`
         this.telegramService.sendPublicMessage(message)
     }
-
 
 
     
