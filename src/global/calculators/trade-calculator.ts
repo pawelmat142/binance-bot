@@ -27,10 +27,17 @@ export class TradeCalculator<T> extends Calculator<T> {
         return this.ctx.unit.identifier
     }
 
-    protected get usdtPerTransaction(): number {
-        return this.ctx.unit.usdtPerTransaction
+    protected get tradeAmount(): number {
+        const signalSource = this.ctx.trade.variant.signalSource
+        if (!signalSource) {
+            throw new Error(`Missing signal source`)
+        }
+        const amount = this.ctx.unit.tradeAmounts.get(signalSource)
+        if (!amount) {
+            throw new Error(`Not found trade amount for ${signalSource}`)
+        }
+        return amount
     }
-
 
 
     protected get trade(): Trade {
@@ -82,21 +89,21 @@ export class TradeCalculator<T> extends Calculator<T> {
     }
 
 
-    protected findUsdtAmount(): Decimal {
-        let usdtAmount = new Decimal(this.usdtPerTransaction)
+    protected findTradeAmount(): Decimal {
+        let tradeAmount = new Decimal(this.tradeAmount)
 
-        if (usdtAmount.times(this.lever).lessThan(this.minNotional)) {
+        if (tradeAmount.times(this.lever).lessThan(this.minNotional)) {
             if (this.ctx.unit.allowMinNotional) {
-                usdtAmount = this.minNotional.div(this.lever) 
+                tradeAmount = this.minNotional.div(this.lever) 
             } else {
                 throw new Error(`USDT per transaction is not enough for this position`)
             }
         }
 
-        if (!usdtAmount || usdtAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)
+        if (!tradeAmount || tradeAmount.equals(0)) throw new Error(`usdtAmount not found or 0`)
         if (!this.variant.marketPriceOnCalculate) throw new Error(`Missing market price`)
 
-        return usdtAmount
+        return tradeAmount
     }
 
 }

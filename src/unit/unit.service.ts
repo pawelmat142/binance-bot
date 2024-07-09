@@ -125,7 +125,7 @@ export class UnitService implements OnModuleInit {
             identifier: body.identifier,
             active: body.active,
             listenJsons: [],
-            usdtPerTransaction: body.usdtPerTransaction,
+            tradeAmounts: body.tradeAmounts,
             binanceApiKey: body.binanceApiKey,
             binanceApiSecret: body.binanceApiSecret,
             telegramChannelId: body.telegramChannelId,
@@ -253,11 +253,11 @@ export class UnitService implements OnModuleInit {
         return update
     } 
 
-    public async updateUsdtPerTransaction(_unit: Unit) {
+    public async updateTradeAmounts(_unit: Unit) {
         const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
             { identifier: unit.identifier },
-            { $set: { usdtPerTransaction: _unit.usdtPerTransaction } }
+            { $set: { tradeAmounts: _unit.tradeAmounts } }
         ).exec()
         this.loadUnit(unit.identifier)
         return update

@@ -20,7 +20,7 @@ export class Unit {
     listenJsons: string[]
 
     @Prop()
-    usdtPerTransaction: number
+    tradeAmounts: Map<string, number> //key: signal source, value: usdt amount per trade
 
     @Prop()
     binanceApiKey: string

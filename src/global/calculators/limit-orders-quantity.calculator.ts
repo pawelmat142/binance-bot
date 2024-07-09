@@ -16,7 +16,7 @@ export class LimitOrdersQuantityCalculator extends TradeCalculator<LimitOrder[]>
 
     protected init() {
         this.limitOrders = this.variant.limitOrders
-        this.usdtAmount = this.findUsdtAmount()
+        this.usdtAmount = this.findTradeAmount()
         this.ordersNumber = this.variant.limitOrders.length
     }
 

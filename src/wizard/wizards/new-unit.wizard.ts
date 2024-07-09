@@ -13,7 +13,7 @@ export class NewUnitWizard extends Wizard {
 
     private error: string
 
-    private static USDT_MIN_LIMIT = 10
+    public static USDT_MIN_LIMIT = 10
 
     private getBotIp(): string {
         return process.env.BOT_IP
@@ -83,17 +83,23 @@ export class NewUnitWizard extends Wizard {
             nextOrder: 5
         }, {
             order: 7,
-            message: [`Provide USDT amount per single transaction...`],
+            message: [`Provide trade amount (USDT) per single trade...`],
             backButton: true,
             process: async (input: string) => {
-                const usdtPerTransaction = Number(input)
-                if (isNaN(usdtPerTransaction)) {
+                const amount = Number(input)
+                if (isNaN(amount)) {
                     return 8
                 }
-                if (usdtPerTransaction < NewUnitWizard.USDT_MIN_LIMIT) {
+                if (amount < NewUnitWizard.USDT_MIN_LIMIT) {
                     return 9
                 }
-                this.unit.usdtPerTransaction = usdtPerTransaction
+                
+                this.unit.tradeAmounts = new Map<string, number>()
+
+                this.services.signalSourceService.signalSources.forEach(s => {
+                    this.unit.tradeAmounts.set(s.name, amount)
+                })
+
                 return 10
 
             }
@@ -103,7 +109,7 @@ export class NewUnitWizard extends Wizard {
             nextOrder: 7
         }, {
             order: 9,
-            message: [`Amount should be more than ${NewUnitWizard.USDT_MIN_LIMIT} USDT`],
+            message: [`Amount should be ${NewUnitWizard.USDT_MIN_LIMIT} USDT or more`],
             nextOrder: 7,
         }, {
             order: 10,

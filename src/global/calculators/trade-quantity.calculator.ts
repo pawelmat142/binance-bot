@@ -6,7 +6,7 @@ export class TradeQuantityCalculator extends TradeCalculator<number> {
     protected async calculate(): Promise<number> {
         this.log('START')
 
-        const usdtAmount = this.findUsdtAmount()
+        const usdtAmount = this.findTradeAmount()
 
         const entryPrice = new Decimal(this.variant.marketPriceOnCalculate)
 
