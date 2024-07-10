@@ -243,59 +243,54 @@ export class UnitService implements OnModuleInit {
         return unit?.listenJsons ?? []
     }
 
-    public async activation(identifier: string, active: boolean) {
-        const unit = await this.fetchUnitByIdentifier(identifier)
+    public async activation(_unit: Unit) {
         const update = await this.unitModel.updateOne(
-            { identifier: unit?.identifier },
-            { $set: { active: active } }
+            { identifier: _unit.identifier },
+            { $set: { active: _unit.active } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     } 
 
     public async updateTradeAmounts(_unit: Unit) {
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: _unit.identifier },
             { $set: { tradeAmounts: _unit.tradeAmounts } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
 
     public async updateAllowMinNotional(_unit: Unit) {
         _unit.allowMinNotional = !_unit.allowMinNotional
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: _unit.identifier },
             { $set: { allowMinNotional: _unit.allowMinNotional } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
 
     public async updateApiKey(_unit: Unit) {
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: _unit.identifier },
             { $set: { 
                 binanceApiKey: _unit.binanceApiKey,
                 binanceApiSecret: _unit.binanceApiSecret 
             } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
 
     public async updateAdminSignalSource(_unit: Unit) {
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: _unit.identifier },
             { $set: { 
                 adminSignalSource: _unit.adminSignalSource,
             } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
     
