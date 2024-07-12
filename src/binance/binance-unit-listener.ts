@@ -58,6 +58,7 @@ export class BinanceUnitListener {
     }
 
     public startListening = async () => {
+        this.log('startListening')
         if (this.WEBSOCKET_ONLY_FOR) {
             if (this.unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
                 return
@@ -79,13 +80,13 @@ export class BinanceUnitListener {
         this.unitService.updateListenKey(this.unit)
     }
 
-    @Cron(CronExpression.EVERY_30_MINUTES)
-    private async keepAliveListenKey() {
+    public async keepAliveListenKey() {
         if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
             this.log(`[SKIP] keep alive listen keys`)
             return
         }
         if (this.WEBSOCKET_ONLY_FOR) {
+            this.log(`Keep alive only for ${this.WEBSOCKET_ONLY_FOR}`)
             if (this.unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
                 return
             }
@@ -149,6 +150,7 @@ export class BinanceUnitListener {
                 if (this.socketOpened()) {
                     this.unitService.removeListenKey(this.unit)
                     this.socket.close()
+                    this.errorLog(`LISTENER CLOSED`)
                 }
             }
         } catch {
@@ -270,6 +272,10 @@ export class BinanceUnitListener {
 
     private log(log: string) {
         this.logger.warn(`[${this.unit.identifier}] ${log}`)
+    }
+
+    private errorLog(log: string) {
+        this.logger.error(`[${this.unit.identifier}] ${log}`)
     }
     
 }

@@ -21,6 +21,7 @@ import { TPUtil } from './utils/take-profit-util';
 import { VariantUtil } from './utils/variant-util';
 import { TakeProfitsService } from './take-profits.service';
 import { BinanceUnitListener } from './binance-unit-listener';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 
 @Injectable()
@@ -95,6 +96,11 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         )
         instance.onModuleInit()
         return instance
+    }
+
+    @Cron(CronExpression.EVERY_30_MINUTES)
+    private async keepAliveListenKeys() {
+        (this.unitListeners || []).forEach(u => u.keepAliveListenKey())
     }
 
 
