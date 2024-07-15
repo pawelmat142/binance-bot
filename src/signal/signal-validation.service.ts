@@ -57,6 +57,7 @@ export class SignalValidationService {
         if (!adminSignalSource) {
             throw new Error(`Not found adminSignalSource for unit ${unit.identifier}`)
         }
+        signal.variant.signalSource = adminSignalSource
 
         return this.selectValidatorBySource(signal, adminSignalSource)
     }

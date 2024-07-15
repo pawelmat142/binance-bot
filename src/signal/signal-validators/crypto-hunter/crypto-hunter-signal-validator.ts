@@ -209,13 +209,14 @@ export class CryptoHunterSignalValidator extends BaseSignalValidator implements 
     }
 
 
-
-
     private findNumberValue(str: string) {
-        const regex = /-?\d+(\.\d+)?/;
-        const match = str.match(regex);
+        // const regex = /-?\d+(\.\d+)?/;
+        const regex = /[-+]?\d*[\.,]?\d+/g;
+        const match = str.match(regex)
         if (match?.length) {
-            return Number(match[0]);
+            const a = match[0]
+            const b = a.replace(',', '.')
+            return Number(b);
         }
     }
 }
