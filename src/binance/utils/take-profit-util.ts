@@ -9,23 +9,23 @@ import { PlaceOrderParams } from "../model/model";
 export abstract class TPUtil {
 
     public static anyPendingOrFilledTakeProfit = (ctx: TradeCtx): boolean => {
-        return this.takeProfits(ctx.trade).some(tp => [TradeStatus.FILLED, TradeStatus.NEW].includes(tp.reuslt?.status))
+        return this.takeProfits(ctx.trade).some(tp => [TradeStatus.FILLED, TradeStatus.NEW].includes(tp.result?.status))
     }
 
     public static takeProfits = (trade: Trade): TakeProfit [] => {
         return trade.variant.takeProfits || []
     }
 
-    public static orderIds(ctx: TradeCtx): BigInt[] {
-        return ctx.trade.variant.takeProfits.filter(tp => !!tp.reuslt).map(tp => tp.reuslt?.orderId)
+    public static orderIds(ctx: TradeCtx): string[] {
+        return ctx.trade.variant.takeProfits.filter(tp => !!tp.result).map(tp => tp.result?.orderId)
     }
 
 
     public static takeProfitsFilledQuantitySum = (trade: Trade): Decimal => {
         const takeProfits = trade.variant.takeProfits
         return takeProfits
-            .filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
-            .map(tp => new Decimal(tp.reuslt?.origQty || 0))
+            .filter(tp => tp.result?.status === TradeStatus.FILLED)
+            .map(tp => new Decimal(tp.result?.origQty || 0))
             .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
     }
 
@@ -39,7 +39,7 @@ export abstract class TPUtil {
 
     public static firstTakeProfitToOpen(variant: TradeVariant) {
         for (let tp of variant.takeProfits) {
-            if (!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) {
+            if (!tp.result || tp.result.status === TradeStatus.NEW) {
                 return tp
             }
         }
@@ -100,7 +100,7 @@ export abstract class TPUtil {
     }
 
     public static tpNotFilled = (takeProfit: TakeProfit): boolean => {
-        return !takeProfit.reuslt || takeProfit.reuslt.status === TradeStatus.NEW
+        return !takeProfit.result || takeProfit.result.status === TradeStatus.NEW
     }
 
     public static takeProfitsPercentageSum(takeProfits: TakeProfit[]) {

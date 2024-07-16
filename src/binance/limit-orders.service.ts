@@ -64,10 +64,10 @@ export class LimitOrdersService {
     }
 
     private async closeTakeProfitAndStopLossIfOpen(ctx: TradeCtx) {
-        const orderIdList: BigInt[] = []
-        const openedTakeProfit = ctx.trade.variant.takeProfits.find(tp => tp.reuslt?.status === TradeStatus.NEW)
+        const orderIdList: string[] = []
+        const openedTakeProfit = ctx.trade.variant.takeProfits.find(tp => tp.result?.status === TradeStatus.NEW)
         if (openedTakeProfit) {
-            orderIdList.push(openedTakeProfit.reuslt.orderId)
+            orderIdList.push(openedTakeProfit.result.orderId)
         }
         if (ctx.trade.stopLossResult?.status === TradeStatus.NEW) {
             orderIdList.push(ctx.trade.stopLossResult.orderId)
@@ -79,8 +79,8 @@ export class LimitOrdersService {
                 if (isBinanceError(result)) {
                     TradeUtil.addError(result.msg, ctx, this.logger)
                 } 
-                else if (result.orderId === openedTakeProfit.reuslt?.orderId) {
-                    openedTakeProfit.reuslt = result
+                else if (result.orderId === openedTakeProfit.result?.orderId) {
+                    openedTakeProfit.result = result
                     TradeUtil.addLog(`Closed Take Profit ${openedTakeProfit.order+1}, orderId: ${result.orderId}`, ctx, this.logger)
                 } 
                 else if (result.orderId === ctx.trade.stopLossResult?.orderId) {
@@ -118,7 +118,7 @@ export class LimitOrdersService {
                     TradeUtil.addError(`Not found Take Profit to place result`, ctx, this.logger)
                     return null
                 }
-                tp.reuslt = result
+                tp.result = result
                 TradeUtil.addLog(`Opened Take Profit ${tp.order+1}, stop price ${result.stopPrice}, orderId ${result.orderId}`, ctx, this.logger)
             } 
             else if (result.type === TradeType.STOP_MARKET) {
@@ -156,10 +156,10 @@ export class LimitOrdersService {
 
     // REQUESTS
 
-    private closeMultipleOrders(ctx: TradeCtx, orderIdList: BigInt[]): Promise<BinanceResultOrError[]> {
+    private closeMultipleOrders(ctx: TradeCtx, orderIdList: string[]): Promise<BinanceResultOrError[]> {
         const params = {
             symbol: ctx.symbol,
-            orderIdList: orderIdList,
+            orderIdList: orderIdList.map(o => BigInt(o)),
             timeStamp: Date.now()
         }
         return this.placeMultipleOrders(ctx, params, 'DELETE')

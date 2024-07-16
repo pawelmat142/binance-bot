@@ -81,25 +81,46 @@ export class TradeRepository {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
             this.logger.warn('[SKIP] Saved trade')
         }
+        this.convertBigIntOrderIdsToString(ctx.trade)
         ctx.trade._id = Util.newObjectId()
         ctx.trade.timestamp = new Date()
         const newTrade = new this.model(ctx.trade)
-
+        
         TradeUtil.addLog(`Saving trade ${newTrade._id}`, ctx, this.logger)
         const saved = await newTrade.save()
         return saved
     }
-
+    
     public update(ctx: TradeCtx) {
         if (process.env.SKIP_SAVE_TRADE === 'true') {
             this.logger.warn('[SKIP] Updated trade')
         }
+        this.convertBigIntOrderIdsToString(ctx.trade)
         ctx.trade.timestamp = new Date()
         TradeUtil.addLog(`Updating trade ${ctx.trade._id}`, ctx, this.logger)
         return this.model.updateOne(
             { _id: ctx.trade._id },
             { $set: ctx.trade }
         ).exec()
+    }
+
+    private convertBigIntOrderIdsToString(trade: Trade) {
+        if (trade.marketResult) {
+            trade.marketResult.orderId = trade.marketResult.orderId.toString()
+        }
+        if (trade.stopLossResult) {
+            trade.stopLossResult.orderId = trade.stopLossResult.orderId.toString()
+        }
+        for (let lo of (trade?.variant?.limitOrders || [])) {
+            if (lo.result?.orderId) {
+                lo.result.orderId = lo.result.orderId.toString()
+            }
+        }
+        for (let tp of (trade?.variant?.takeProfits || [])) {
+            if (tp.result?.orderId) {
+                tp.result.orderId = tp.result.orderId.toString()
+            }
+        }
     }
 
     public prepareTrade(signal: Signal, unitIdentifier: string): Trade {
@@ -121,8 +142,8 @@ export class TradeRepository {
             ctx.trade.stopLossResult.status = TradeStatus.CLOSED_MANUALLY
         }
         for (let tp of ctx.trade.variant.takeProfits || []) {
-            if (tp.reuslt) {
-                tp.reuslt.status = TradeStatus.CLOSED_MANUALLY
+            if (tp.result) {
+                tp.result.status = TradeStatus.CLOSED_MANUALLY
             }
         }
         for (let lo of ctx.trade.variant.limitOrders || []) {
@@ -136,7 +157,7 @@ export class TradeRepository {
     public findOpenOrdersForPriceTicker() {
         return this.model.find({
             closed: { $ne: true },
-            "variant.limitOrders.reuslt.status": TradeStatus.NEW,
+            "variant.limitOrders.result.status": TradeStatus.NEW,
         }, { 
             "variant.symbol": true, 
             "variant.side": true, 
@@ -147,7 +168,7 @@ export class TradeRepository {
     public findOpenOrdersBySymbol(symbol: string) {
         return this.model.find({
             closed: { $ne: true },
-            "variant.limitOrders.reuslt.status": TradeStatus.NEW,
+            "variant.limitOrders.result.status": TradeStatus.NEW,
             "variant.symbol": symbol
         }).exec()
     }

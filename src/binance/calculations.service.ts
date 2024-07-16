@@ -92,7 +92,7 @@ export class CalculationsService implements OnModuleInit {
 
 
     public calculateSingleTakeProfitQuantityIfEmpty = (ctx: TradeCtx) => {
-        const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.reuslt?.status !== TradeStatus.FILLED)
+        const notFilledTakeProfits = ctx.trade.variant.takeProfits.filter(tp => tp.result?.status !== TradeStatus.FILLED)
         if (!notFilledTakeProfits.length) {
             TradeUtil.addLog(`Take profits are empty, preparing one...`, ctx, this.logger)
 
@@ -112,7 +112,7 @@ export class CalculationsService implements OnModuleInit {
                 price: 0,
                 closePercent: 0,
                 quantity: quantity.toNumber(),
-            }
+            } as TakeProfit
             TradeUtil.addLog(`Calculated ${newTakeProfit.order}. take profit quantity: ${newTakeProfit.quantity}`, ctx, this.logger)
             ctx.trade.variant.takeProfits.push(newTakeProfit)
         }

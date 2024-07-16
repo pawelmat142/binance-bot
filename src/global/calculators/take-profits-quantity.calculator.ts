@@ -27,7 +27,7 @@ export class TakeProfitsQuantityCalculator extends TradeCalculator<TakeProfit[]>
         for (let i = 0; i < this.length; i++) {
 
             const tp = this.takeProfits[i]
-            if (tp.reuslt?.status === TradeStatus.FILLED) {
+            if (tp.result?.status === TradeStatus.FILLED) {
                 this.log(`Skipped calculation for TP with order: ${tp.order}`)
                 continue
             }

@@ -95,7 +95,7 @@ export abstract class TradeUtil {
 
     public static parseToFuturesResult(tradeEvent: TradeEventData): FuturesResult {
         return {
-            orderId: tradeEvent.o?.i,
+            orderId: tradeEvent.o?.i?.toString(),
             symbol: tradeEvent.o?.s,
             status: tradeEvent.o?.X,
             clientOrderId: tradeEvent.o?.c,
@@ -142,8 +142,8 @@ export abstract class TradeUtil {
     }
  
     public static takeProfitStatus = (tp: TakeProfit): string => {
-        if (tp.reuslt) {
-            switch (tp.reuslt.status) {
+        if (tp.result) {
+            switch (tp.result.status) {
                 case TradeStatus.NEW: return `pending`
                 case TradeStatus.FILLED: return `filled`
                 case TradeStatus.CANCELED: return `canceled`
@@ -153,10 +153,10 @@ export abstract class TradeUtil {
         return 'waiting'
     }
 
-    public static closeOrderParams(orderId: BigInt, symbol: string): PlaceOrderParams {
+    public static closeOrderParams(orderId: string, symbol: string): PlaceOrderParams {
         return {
             symbol: symbol,
-            orderId: orderId,
+            orderId: BigInt(orderId),
             timeInForce: 'GTC',
             type: undefined,
             timestamp: Date.now(),

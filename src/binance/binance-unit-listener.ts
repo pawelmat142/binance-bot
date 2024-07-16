@@ -58,12 +58,12 @@ export class BinanceUnitListener {
     }
 
     public startListening = async () => {
-        this.log('startListening')
         if (this.WEBSOCKET_ONLY_FOR) {
             if (this.unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
                 return
             }
         }
+        this.log('startListening')
         if (this.socketOpened()) {
             this.log(`Socket already opened`)
             return
@@ -237,9 +237,9 @@ export class BinanceUnitListener {
             ctx.trade.stopLossResult = eventTradeResult
             const takeProfits = ctx.trade.variant.takeProfits
             for (let tp of takeProfits) {
-                if (tp.reuslt && tp.reuslt.status === TradeStatus.NEW) {
-                    const closeResult = await this.tradeService.closeOrder(ctx, tp.reuslt.orderId)
-                    tp.reuslt = closeResult
+                if (tp.result && tp.result.status === TradeStatus.NEW) {
+                    const closeResult = await this.tradeService.closeOrder(ctx, tp.result.orderId)
+                    tp.result = closeResult
                     TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
                 }
             }
@@ -265,9 +265,6 @@ export class BinanceUnitListener {
     private async waitUntilSaveTrade() {
         return new Promise(resolve => setTimeout(resolve, 1000))
     }
-
-
-
 
 
     private log(log: string) {

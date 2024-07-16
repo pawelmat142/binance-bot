@@ -18,7 +18,7 @@ export abstract class LimitOrderUtil {
         return this.limitOrdersCalculated(variant) && variant.limitOrders.every(lo => !!lo.quantity)
     }
 
-    public static orderIds(ctx: TradeCtx): BigInt[] {
+    public static orderIds(ctx: TradeCtx): string[] {
         return (ctx.trade.variant.limitOrders || []).filter(lo => !!lo.result).map(lo => lo.result.orderId)
     }
 

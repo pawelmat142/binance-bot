@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { Expose } from "class-transformer"
+import { Expose, Transform, Type } from "class-transformer"
 import { HydratedDocument } from "mongoose"
 import { TradeVariant } from "./trade-variant"
-
+import { Document } from 'mongoose';
 
 export abstract class TradeStatus {
     public static readonly FILLED = 'FILLED'
@@ -20,8 +20,12 @@ export abstract class TradeType {
 
 export type TradeDocument = HydratedDocument<Trade>
 
-export class FuturesResult {
-    @Expose() @Prop({ type: 'string' }) orderId: BigInt // The unique identifier for the order  zamieniam typ przez buga z BigInt  https://github.com/jaggedsoft/node-binance-api/issues/539
+export class FuturesResult extends Document {
+
+    @Expose() 
+    @Prop({type: 'string'   }) 
+    orderId: string // The unique identifier for the order  zamieniam typ przez buga z BigInt  https://github.com/jaggedsoft/node-binance-api/issues/539
+    
     @Expose() @Prop() symbol: string // The trading pair symbol for the order (e.g., ‘BTCUSDT’).
     @Expose() @Prop() status: string // The current status of the order (e.g., ‘FILLED’, ‘NEW’).
     @Expose() @Prop() clientOrderId: string //The unique identifier for the order provided by the client
@@ -74,11 +78,13 @@ export class Trade {
 
     @Expose() 
     @Prop()
+    @Type(() => FuturesResult)
     marketResult: FuturesResult
 
     
     @Expose()
     @Prop()
+    @Type(() => FuturesResult)
     stopLossResult: FuturesResult
 
     @Expose()

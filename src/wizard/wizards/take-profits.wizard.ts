@@ -93,7 +93,7 @@ export class TakeProfitsWizard extends UnitWizard {
                     process: async () => {
                         TPUtil.calculatePercentages(this.takeProfits)
                         this.selectedTrade.variant.takeProfits = this.takeProfits
-                        const anyPendingTakeProfit = this.takeProfits.some(tp => tp.reuslt?.status === TradeStatus.NEW)
+                        const anyPendingTakeProfit = this.takeProfits.some(tp => tp.result?.status === TradeStatus.NEW)
                         if (anyPendingTakeProfit) {
                             throw new Error(`Should be no any pending Take Profit now!`)
                         }
@@ -139,7 +139,7 @@ export class TakeProfitsWizard extends UnitWizard {
                             trade: trade
                         })
                         await this.services.takeProfitsService.closePendingTakeProfit(ctx)
-                        trade.variant.takeProfits = trade.variant.takeProfits.filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
+                        trade.variant.takeProfits = trade.variant.takeProfits.filter(tp => tp.result?.status === TradeStatus.FILLED)
                         await this.services.binanceServie.update(ctx)
                         this.takeProfitsAggregator = ctx.trade.variant.takeProfits
                         return 1
@@ -161,7 +161,7 @@ export class TakeProfitsWizard extends UnitWizard {
     }
 
     private get hasOnlyFilledTps(): boolean {
-        return this.takeProfits.every(tp => tp.reuslt?.status === TradeStatus.FILLED)
+        return this.takeProfits.every(tp => tp.result?.status === TradeStatus.FILLED)
     }
 
 

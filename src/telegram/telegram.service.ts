@@ -151,9 +151,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         if (tps.length) {
             for (let tp of tps) {
                 if (tp.quantity) {
-                    if (tp.reuslt) {
-                        const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.marketFilledQuantity).times(100).round()
-                        lines.push(`- ${this.print$(tp.reuslt?.stopPrice)}, ${realPercent}%, ${tp.reuslt.status}`)
+                    if (tp.result) {
+                        const realPercent = new Decimal(tp.result.origQty).div(ctx.marketFilledQuantity).times(100).round()
+                        lines.push(`- ${this.print$(tp.result?.stopPrice)}, ${realPercent}%, ${tp.result.status}`)
                     } else {
                         lines.push(`- ${this.print$(tp.price)}, waiting`)
                     }
@@ -170,7 +170,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         this.addTakeProfitLines(ctx, lines)
         this.addStopLossLine(ctx, lines)
         const everyTpFilled = ctx.trade.variant.takeProfits
-            .every(tp => tp.reuslt?.status === TradeStatus.FILLED)
+            .every(tp => tp.result?.status === TradeStatus.FILLED)
         if (everyTpFilled) lines.push(`Position closed successfully!`)
         this.sendUnitMessage(ctx, lines)
     }

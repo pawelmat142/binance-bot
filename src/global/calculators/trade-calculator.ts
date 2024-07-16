@@ -4,6 +4,7 @@ import { Trade } from "../../binance/model/trade"
 import { TradeCtx, TradeVariant } from "../../binance/model/trade-variant"
 import { TradeUtil } from "../../binance/utils/trade-util"
 import { Calculator } from "./calculator"
+import { Logger } from "@nestjs/common"
 
 export interface CalculatorParams {
     forcedPrice?: number
@@ -28,6 +29,11 @@ export class TradeCalculator<T> extends Calculator<T> {
     }
 
     protected get tradeAmount(): number {
+        const testValue = this.getTestTradeAmount()
+        if (testValue) {
+            return testValue
+        }
+
         let signalSource = this.ctx.trade.variant.signalSource
         if (!signalSource) {
             throw new Error(`Missing signal source`)
@@ -39,6 +45,16 @@ export class TradeCalculator<T> extends Calculator<T> {
         return amount
     }
 
+    private getTestTradeAmount(): number {
+        const env = process.env.TEST_TRADE_AMOUNT
+        if (env) {
+            const value = Number(env)
+            if (!isNaN(value)) {
+                new Logger.warn(`used ${value} USDT TEST_TRADE_AMOUNT`)
+                return value
+            }
+        }
+    }
 
     protected get trade(): Trade {
         return this.ctx.trade

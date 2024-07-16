@@ -130,7 +130,7 @@ export class GalaxyTakeProfitsValidator extends BaseSignalValidator {
             order: index,
             closePercent: closePercent ?? 0,
             price: value ?? 0
-        } 
+        } as TakeProfit
         this.signal.variant.takeProfits.push(takeProfit)
     } 
 

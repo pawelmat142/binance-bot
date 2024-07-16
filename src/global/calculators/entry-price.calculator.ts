@@ -57,7 +57,7 @@ export class EntryPriceCalculator extends Calculator<void> {
             return {
                 order: i,
                 price: price
-            }
+            } as LimitOrder
         })
 
         this.variant.limitOrders = this.limitOrders

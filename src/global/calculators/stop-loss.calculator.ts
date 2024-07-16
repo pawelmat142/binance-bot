@@ -55,7 +55,7 @@ export class StopLossCalculator extends TradeCalculator<PlaceOrderParams> {
         TPUtil.sort(ctx)
         const takeProfits = ctx.trade.variant.takeProfits
         for (let tp of takeProfits) {
-            if (tp.reuslt?.status === TradeStatus.FILLED) {
+            if (tp.result?.status === TradeStatus.FILLED) {
                 if (tp.order === 0) {
                     const entryPrice = this.findEntryPrice(ctx)
                     if (!isNaN(entryPrice)) {

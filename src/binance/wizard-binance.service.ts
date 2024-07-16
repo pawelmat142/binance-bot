@@ -70,7 +70,7 @@ export class WizardBinanceService {
         return this.tradeRepo.findByUnit(unit)
     }
 
-    public async closeOpenOrder(ctx: TradeCtx, orderId: BigInt) {
+    public async closeOpenOrder(ctx: TradeCtx, orderId: string) {
         const result = await this.tradeService.closeOrder(ctx, orderId)
         if (ctx.trade.marketResult?.orderId === result.orderId) {
             ctx.trade.marketResult = result

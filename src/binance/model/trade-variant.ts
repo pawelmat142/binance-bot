@@ -4,21 +4,31 @@ import Decimal from "decimal.js";
 import { Position } from "../wizard-binance.service";
 import { SignalSource, VariantSide, VariantUtil } from "../utils/variant-util";
 import { Unit } from "../../unit/unit";
-import { BinanceError } from "./binance.error";
 import { LimitOrderUtil } from "../utils/limit-order-util";
+import { Document } from 'mongoose';
+import { BinanceError } from "./binance.error";
 
-export class TakeProfit {
+export class TakeProfit extends Document {
     @Prop() order: number
     @Prop() price: number
     @Prop() closePercent: number
 
     @Prop() quantity?: number
-    @Prop({ type: Object }) reuslt?: FuturesResult
+    @Prop({ type: FuturesResult }) result?: FuturesResult
     @Prop() resultTime?: Date
     @Prop() takeSomeProfitFlag?: boolean
 }
 
-export class TradeVariant {
+export class LimitOrder extends Document {
+    @Prop() price: number
+    @Prop() order: number
+    
+    @Prop() quantity?: number
+    @Prop({ type: FuturesResult }) result?: FuturesResult
+    @Prop({ type: Object }) error?: BinanceError
+}
+
+export class TradeVariant extends Document {
     @Prop() signalSource: SignalSource
     @Prop() side: VariantSide
     @Prop() symbol: string
@@ -38,14 +48,6 @@ export class TradeVariant {
     @Prop() limitOrders?: LimitOrder[]
 }
 
-export interface LimitOrder {
-    price: number
-    order: number
-    
-    quantity?: number
-    result?: FuturesResult
-    error?: BinanceError
-}
 
 export interface TradeContext {
     trade: Trade
@@ -105,7 +107,7 @@ export class TradeCtx implements TradeContext {
 
     public get takeProfitOrigQuentitesSum(): number {
         return this.trade.variant.takeProfits
-            .reduce((acc, tp) => acc + (Number(tp.reuslt?.origQty ??0)), 0)
+            .reduce((acc, tp) => acc + (Number(tp.result?.origQty ??0)), 0)
     }
 
     public get lever(): number {
@@ -134,12 +136,12 @@ export class TradeCtx implements TradeContext {
 
     public takeProfitPlaced(order: number): boolean {
         const tp = this.getTakeProfit(order)
-        return [TradeStatus.NEW].includes(tp.reuslt?.status)
+        return [TradeStatus.NEW].includes(tp.result?.status)
     }
     
     public takeProfitFilled(order: number): boolean {
         const tp = this.getTakeProfit(order)
-        return [TradeStatus.FILLED].includes(tp.reuslt?.status)
+        return [TradeStatus.FILLED].includes(tp.result?.status)
     }
 
 }

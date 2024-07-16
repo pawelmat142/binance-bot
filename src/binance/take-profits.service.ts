@@ -47,7 +47,7 @@ export class TakeProfitsService {
         TPUtil.sort(ctx)
         const takeProfits = ctx.trade.variant.takeProfits
         for (let tp of takeProfits) {
-            if (!tp.reuslt && tp.quantity) {
+            if (!tp.result && tp.quantity) {
                 await this.takeProfitRequest(ctx, tp)
                 return
             }
@@ -57,11 +57,11 @@ export class TakeProfitsService {
     public async closePendingTakeProfit(ctx: TradeCtx) {
         const takeProfits = ctx.trade.variant.takeProfits
         for (let tp of takeProfits) {
-            if (tp.reuslt?.status === TradeStatus.NEW) {
-                const tpOrderId = tp.reuslt.orderId
-                tp.reuslt = null // delete result prevents triggers onFilledTakeProfit
+            if (tp.result?.status === TradeStatus.NEW) {
+                const tpOrderId = tp.result.orderId
+                tp.result = null // delete result prevents triggers onFilledTakeProfit
                 await this.tradeRepo.update(ctx)
-                tp.reuslt = await this.tradeService.closeOrder(ctx, tpOrderId)
+                tp.result = await this.tradeService.closeOrder(ctx, tpOrderId)
                 TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
             }
         }
@@ -97,10 +97,10 @@ export class TakeProfitsService {
 
     private updateFilledTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx) {
         const takeProfits = ctx.trade.variant.takeProfits
-        const tp = takeProfits.find(t => t.reuslt?.orderId === eventTradeResult.orderId)
+        const tp = takeProfits.find(t => t.result?.orderId === eventTradeResult.orderId)
         if (!tp) throw new Error(`Not found Take Profit orderId: ${eventTradeResult.orderId} in found trade ${ctx.trade._id}`)
-        tp.reuslt = eventTradeResult
-        this.tradeLog(ctx, `Filled take profit order: ${tp.order}, averagePrice: ${tp.reuslt?.averagePrice}`)
+        tp.result = eventTradeResult
+        this.tradeLog(ctx, `Filled take profit order: ${tp.order}, averagePrice: ${tp.result?.averagePrice}`)
     }
 
     private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
@@ -111,7 +111,7 @@ export class TakeProfitsService {
         }
         const params = TPUtil.takeProfitRequestParams(ctx, takeProfit.price, quantity)
         const result = await this.tradeService.placeOrder(params, ctx)
-        takeProfit.reuslt = result
+        takeProfit.result = result
         takeProfit.resultTime = new Date()
     }
 
@@ -134,16 +134,16 @@ export class TakeProfitsService {
             for (let i = takeProfits.length-1; i >= 0; i--) {
                 const tp = takeProfits[i]
                 const quantity = Number(tp.quantity)
-                if ((!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) && quantity) {
-                    if (tp.reuslt?.status === TradeStatus.NEW) {
+                if ((!tp.result || tp.result.status === TradeStatus.NEW) && quantity) {
+                    if (tp.result?.status === TradeStatus.NEW) {
                         await this.closePendingTakeProfit(ctx)
                     }
-                    delete tp.reuslt
+                    delete tp.result
                     tp.takeSomeProfitFlag = true
                     const result = await this.takeSomeProfitRequest(ctx, tp)
                     result.status = TradeStatus.FILLED
                     result.executedQty = result.origQty
-                    tp.reuslt = result
+                    tp.result = result
                     this.onFilledTakeSomeProfit(ctx)
                     return !!result
                 }

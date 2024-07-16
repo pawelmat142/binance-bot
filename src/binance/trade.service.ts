@@ -77,9 +77,11 @@ export class TradeService {
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
-    public closeOrder(ctx: TradeCtx, orderId: BigInt): Promise<FuturesResult> {
+    public async closeOrder(ctx: TradeCtx, orderId: string): Promise<FuturesResult> {
         const params = TradeUtil.closeOrderParams(orderId, ctx.symbol)
-        return this.placeOrder(params, ctx, 'DELETE')
+        const result = await this.placeOrder(params, ctx, 'DELETE')
+        this.parseBigIntOrderIdToString(result)
+        return result
     }
 
     public closeOrderEvent(ctx: TradeCtx) {
@@ -127,22 +129,26 @@ export class TradeService {
         TradeUtil.addLog(`Leverage is set to ${lever}x for symbol: ${ctx.trade.variant.symbol}`, ctx, this.logger)
     } 
 
-    public placeOrder(params: Object, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
+    public async placeOrder(params: Object, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
-        return this.http.fetch<FuturesResult>({
+        const result = await this.http.fetch<FuturesResult>({
             url: this.signUrlWithParams(path, ctx, params),
             method: method ?? 'POST',
             headers: Util.getHeaders(ctx.unit)
         })
+        this.parseBigIntOrderIdToString(result)
+        return result
     }
 
-    public placeOrderByUnit(params: Object, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
+    public async placeOrderByUnit(params: Object, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
-        return this.http.fetch<FuturesResult>({
+        const result = await this.http.fetch<FuturesResult>({
             url: this.signUrlWithParamsAndUnit(path, unit, params),
             method: method ?? 'POST',
             headers: Util.getHeaders(unit)
         })
+        this.parseBigIntOrderIdToString(result)
+        return result
     }
 
     public async closeTrades(ctx: TradeCtx) {
@@ -171,7 +177,9 @@ export class TradeService {
                 reduceOnly: true,
                 timestamp: Date.now()
             }
-            return this.placeOrder(params, ctx, 'POST')
+            const result = await this.placeOrder(params, ctx, 'POST')
+            this.parseBigIntOrderIdToString(result)
+            return result
         } catch (error) {
             this.handleError(error, `CLOSE POSITION ERROR`, ctx)
             return null
@@ -230,6 +238,7 @@ export class TradeService {
                 method: 'GET',
                 headers: Util.getHeaders(unit)
             })
+            this.parseBigIntOrderIdsToString(result)
             return result
         } catch (error) {
             this.handleError(error, `FETCH OPEN ORDERS ERROR`)
@@ -256,6 +265,18 @@ export class TradeService {
             }
         } else {
             this.logger.error(errorMessage)
+        }
+    }
+
+    private parseBigIntOrderIdToString(result: FuturesResult) {
+        if (result?.orderId) {
+            result.orderId = result.orderId.toString()
+        }
+    }
+
+    private parseBigIntOrderIdsToString(results: FuturesResult[]) {
+        for (let result of results || []) {
+            this.parseBigIntOrderIdToString(result)
         }
     }
 

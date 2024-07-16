@@ -54,8 +54,7 @@ export class SignalSourceService implements OnModuleInit {
         if (!this._signalSources.length) {
             throw new Error("Signal sources not found")
         }
-        this.logger.log(`Initialized ${this._signalSources.length} signal sources`)
-        this.logger.log(this._signalSources.map(s => s.name).join(', '))
+        this.logger.log(`Initialized ${this._signalSources.length} signal sources: ${this._signalSources.map(s => s.name).join(', ')}`)
     }
 
 }

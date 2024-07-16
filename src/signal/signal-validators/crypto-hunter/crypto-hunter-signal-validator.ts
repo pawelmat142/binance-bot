@@ -187,7 +187,7 @@ export class CryptoHunterSignalValidator extends BaseSignalValidator implements 
             order: this.variant.takeProfits.length,
             price: value,
             closePercent: 0
-        }
+        } as TakeProfit
         this.signal.variant.takeProfits.push(takeProfit)
     }
 

@@ -267,8 +267,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
                     this.tradeLog(ctx, `Closed STOP LOSS  ${order.orderId}`)
                 } else if (result.type === TradeType.TAKE_PROFIT_MARKET) {
                     ctx.trade.variant.takeProfits
-                        .filter(tp => tp.reuslt?.orderId === result.orderId)
-                        .forEach(tp => tp.reuslt = result)
+                        .filter(tp => tp.result?.orderId === result.orderId)
+                        .forEach(tp => tp.result = result)
                     this.tradeLog(ctx, `Closed TAKE PROFIT ${order.orderId}`)
                 } else {
                     (ctx.trade.variant.limitOrders || [])
