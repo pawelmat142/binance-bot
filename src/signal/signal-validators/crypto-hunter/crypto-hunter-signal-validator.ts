@@ -162,7 +162,6 @@ export class CryptoHunterSignalValidator extends BaseSignalValidator implements 
         let lineIndex = this.takeProfitLineIndex
         while (true) {
             lineIndex++
-            console.log('lofindNextTakeProfitsop iteration ' + lineIndex)
             const value = this.findTakeProfitValue(lineIndex)
             if (value) {
                 this.addTakeProfit(value)

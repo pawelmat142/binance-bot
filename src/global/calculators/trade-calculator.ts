@@ -28,7 +28,7 @@ export class TradeCalculator<T> extends Calculator<T> {
     }
 
     protected get tradeAmount(): number {
-        const signalSource = this.ctx.trade.variant.signalSource
+        let signalSource = this.ctx.trade.variant.signalSource
         if (!signalSource) {
             throw new Error(`Missing signal source`)
         }

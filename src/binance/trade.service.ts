@@ -178,7 +178,7 @@ export class TradeService {
         }
     }
 
-    private async fetchPosition(ctx: TradeCtx): Promise<Position> {
+    public async fetchPosition(ctx: TradeCtx): Promise<Position> {
         try {
             const params = {
                 timestamp: Date.now(),

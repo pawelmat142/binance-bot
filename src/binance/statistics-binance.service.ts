@@ -6,8 +6,6 @@ import { Util } from "./utils/util";
 import { TradeUtil } from "./utils/trade-util";
 import { IncomeRecord, Period } from "./model/model";
 
-
-
 @Injectable()
 export class StatisticsBinanceService {
 
@@ -57,8 +55,5 @@ export class StatisticsBinanceService {
         })
         return (accountInfos || []).find(info => info.asset === 'USDT')
     }
-
-
-
 
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { TradeUtil } from './utils/trade-util';
-import { FuturesResult, TradeStatus, TradeType } from './model/trade';
+import { TradeStatus, TradeType } from './model/trade';
 import { CalculationsService } from './calculations.service';
 import { TradeService } from './trade.service';
 import { TradeCtx } from './model/trade-variant';
@@ -140,8 +140,8 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
             const trade = this.tradeRepo.prepareTrade(signal, unit.identifier)
             const ctx = new TradeCtx({ trade, unit })
-            if (await this.findInProgressTrade(ctx)) {
-                return
+            if (await this.duplicateService.preventDuplicateTradeInProgress(ctx)) {
+                continue
             }
             this.tradeLog(ctx, `Opening trade`)
             trade.timestamp = new Date()
@@ -252,33 +252,6 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     }
 
-
-    private async findInProgressTrade(ctx: TradeCtx): Promise<boolean> {
-        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.warn('SKIP PREVENT DUPLICATE TRADE IN PROGRESS')
-            return false
-        } 
-        const trade = await this.tradeRepo.findInProgress(ctx)
-        if (trade) {
-            TradeUtil.addWarning(`Prevented duplicate trade, found objectId: ${trade._id}`, ctx, this.logger)
-            return true
-        }
-        return false
-    }
-
-    private async prepareTradeContext(eventTradeResult: FuturesResult, unit: Unit): Promise<TradeCtx> {
-        await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
-        let trade = await this.tradeRepo.findByTradeEvent(eventTradeResult, unit)
-        if (!trade) {
-            this.logger.error(`[${unit.identifier}] Not found matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
-        }
-        return new TradeCtx({ unit, trade })
-    }
-
-    private async waitUntilSaveTrade() {
-        return new Promise(resolve => setTimeout(resolve, 1000))
-    }
 
     public async manualClosePositionFull(ctx: TradeCtx) {
         const symbol = ctx.trade.variant.symbol

@@ -108,7 +108,6 @@ export class TradesWizard extends UnitWizard {
                     ...this.openOrders.map(o => this.orderButton(o))
                 ]),
 
-
                 [BotUtil.getBackSwitchButton(StartWizard.name), {
                     text: `Refresh`,
                     callback_data: `refresh`,

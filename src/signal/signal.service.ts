@@ -102,11 +102,10 @@ export class SignalService {
         SignalUtil.addLog(`Saved signal ${saved._id}`, signal, this.logger)
     }
 
-    private async 
 
     private async verifyIfDuplicate(signal: Signal) {
-        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.warn('SKIP PREVENT DUPLICATE')
+        if (process.env.SKIP_PREVENT_DUPLICATE_SIGNAL === 'true') {
+            this.logger.warn('SKIP_PREVENT_DUPLICATE_SIGNAL')
             return
         } 
         const found = await this.signalModel.findOne(
