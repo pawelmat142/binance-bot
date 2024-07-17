@@ -188,10 +188,6 @@ export class BinanceUnitListener {
     }
 
 
-
-
-
-
     private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         if (ctx.trade.marketResult?.orderId === eventTradeResult.orderId) {
             this.onFilledPosition(ctx, eventTradeResult)
@@ -256,7 +252,7 @@ export class BinanceUnitListener {
         await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
         let trade = await this.tradeRepo.findByTradeEvent(eventTradeResult, this.unit)
         if (!trade) {
-            this.logger.error(`[${this.unit.identifier}] Not found matching trade - on filled order ${eventTradeResult.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
+            this.logger.error(`[${this.unit.identifier}] Not found matching trade - on filled order ${eventTradeResult?.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
             return
         }
         return new TradeCtx({ unit: this.unit, trade })

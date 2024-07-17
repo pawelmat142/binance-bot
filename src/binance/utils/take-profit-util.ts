@@ -72,7 +72,7 @@ export abstract class TPUtil {
             timestamp: Date.now(),
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-            reduceOnly: true,
+            reduceOnly: "true",
         }
     }
 

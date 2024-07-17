@@ -20,7 +20,10 @@ export class DuplicateService {
     private filledOrderIdsPreventDuplicateStorage: string[] = []
 
     public preventDuplicate(eventTradeResult: FuturesResult, unit: Unit): boolean {
-        const orderId = eventTradeResult.orderId.toString()
+        const orderId = eventTradeResult?.orderId.toString()
+        // TODO temporarry logs
+        this.logger.warn(`filledOrderIdsPreventDuplicateStorage:`)
+        this.logger.warn(`${this.filledOrderIdsPreventDuplicateStorage.join(', ')}`)
         if (this.filledOrderIdsPreventDuplicateStorage.includes(orderId)) {
             this.logger.warn(`Prevented duplicate ${eventTradeResult.side} ${eventTradeResult.symbol}, orderId: ${orderId}, unit: ${unit.identifier}`)
             return true

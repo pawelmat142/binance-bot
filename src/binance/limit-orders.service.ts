@@ -45,7 +45,7 @@ export class LimitOrdersService {
     
     public async onFilledLimitOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
         try {
-            TradeUtil.addLog(`Filled Limit Order, orderId ${ctx.trade.stopLossResult.orderId}, price ${eventTradeResult.price}`, ctx, this.logger)
+            TradeUtil.addLog(`Filled Limit Order, orderId ${eventTradeResult.orderId}, price ${eventTradeResult.price}`, ctx, this.logger)
             ctx.trade.variant.limitOrders.forEach(lo => {
                 if (lo.result?.orderId === eventTradeResult.orderId) {
                     lo.result = eventTradeResult
@@ -108,6 +108,7 @@ export class LimitOrdersService {
         }
 
         const results = await this.openMultipleOrders(ctx, orders)
+
         results.forEach(result => {
             if (isBinanceError(result)) {
                 TradeUtil.addError(result.msg, ctx, this.logger)
@@ -165,7 +166,7 @@ export class LimitOrdersService {
         return this.placeMultipleOrders(ctx, params, 'DELETE')
     }
 
-    private openMultipleOrders(ctx: TradeCtx, ordersParams: PlaceOrderParams[]): Promise<BinanceResultOrError[]> {
+    private async openMultipleOrders(ctx: TradeCtx, ordersParams: PlaceOrderParams[]): Promise<BinanceResultOrError[]> {
         const params = {
             batchOrders: JSON.stringify(ordersParams),
             timestamp: Date.now(),
@@ -173,11 +174,17 @@ export class LimitOrdersService {
         return this.placeMultipleOrders(ctx, params, 'POST')
     }
 
-    private placeMultipleOrders(ctx: TradeCtx, params: Object, method: HttpMethod): Promise<BinanceResultOrError[]> {
-        return this.http.fetch<BinanceResultOrError[]>({
+    private async placeMultipleOrders(ctx: TradeCtx, params: Object, method: HttpMethod): Promise<BinanceResultOrError[]> {
+        const results = await this.http.fetch<BinanceResultOrError[]>({
             url: Util.sign(`https://fapi.binance.com/fapi/v1/batchOrders`, params, ctx.unit),
             method: method,
             headers: Util.getHeaders(ctx.unit),
         })
+        for (let r of results || []) {
+            if (!isBinanceError(r) && r.orderId) {
+                r.orderId = r.orderId.toString()
+            } 
+        }
+        return results
     }
 }

@@ -9,9 +9,9 @@ export type BinanceResultOrError = FuturesResult | BinanceError
 
 
 export const isBinanceError = (object: BinanceResultOrError): object is BinanceError => {
-    if (object instanceof Object) {
-        return 'code' in object && 'msg' in object
-    }
+    // if (object instanceof Object) {
+    return 'code' in object && 'msg' in object
+    // }
     return false
 }
 

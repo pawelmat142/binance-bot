@@ -15,7 +15,7 @@ export interface PlaceOrderParams {
     price?: string
     stopPrice?: string
     quantity?: string
-    reduceOnly?: boolean
+    reduceOnly?: string | boolean
 
     orderId?: BigInt,
     recvWindow?: number

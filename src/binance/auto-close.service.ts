@@ -13,6 +13,7 @@ import { Http } from "../global/http/http.service";
 import { TelegramService } from "../telegram/telegram.service";
 import { UnitService } from "../unit/unit.service";
 import { UnitUtil } from "../unit/unit.util";
+import { LimitOrderUtil } from "./utils/limit-order-util";
 
 export interface PriceTickerParams {
     symbol: string
@@ -225,13 +226,14 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
         this.logger.warn(`${this.tickerLabel(symbol)} - limit exceeded - closing orders`)
 
         const openOrders: Trade[] = await this.tradeRepo.findOpenOrdersBySymbol(symbol)
-
+        
         for (let order of openOrders) {
             const unit = this.unitService.units.find(u => u.identifier === order.unitIdentifier)
             if (!unit) {
                 this.logger.warn(`${this.tickerLabel(symbol)} - Not found unit ${order.unitIdentifier} to close order ${order.marketResult.orderId}`)
                 continue
             }
+
             const ctx = new TradeCtx({
                 unit: unit,
                 trade: order
@@ -243,11 +245,16 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
     private async closeUnitOrder(ctx: TradeCtx) {
         try {
             TradeUtil.addLog(`Closing order by Price Ticker`, ctx, this.logger)
+
+            for (let lo of ctx.trade.variant.limitOrders) {
+                if (lo.result) {
+                    const result = await this.tradeService.closeOrder(ctx, lo.result.orderId)
+                    ctx.trade.closed = true
+                    ctx.trade.marketResult = result
+                    this.telegramService.sendUnitMessage(ctx, [VariantUtil.label(ctx.trade.variant), `Closed order bcs price limit exceeded`])
+                }
+            }
             
-            const result = await this.tradeService.closeOrder(ctx, ctx.trade.marketResult.orderId)
-            ctx.trade.closed = true
-            ctx.trade.marketResult = result
-            this.telegramService.sendUnitMessage(ctx, [VariantUtil.label(ctx.trade.variant), `Closed order bcs price limit exceeded`])
         } 
         catch (error) {
             const msg = Http.handleErrorMessage(error)

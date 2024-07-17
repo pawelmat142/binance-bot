@@ -85,7 +85,6 @@ export class AdminIncomesWizard extends UnitWizard {
                 unit: this.units[i]
             }
         })
-        console.log(this.unitIncomes)
         return 2
     }
 
