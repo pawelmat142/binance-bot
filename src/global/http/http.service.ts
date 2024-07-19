@@ -51,9 +51,6 @@ export class Http {
                 return `[${error.response?.status}] ${error.response?.statusText}`
             }
         }
-        // TODO remove
-        console.log(error)
-        console.log('console.log')
         return error
     }
 

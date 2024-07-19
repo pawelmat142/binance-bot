@@ -207,7 +207,7 @@ export class TradesWizard extends UnitWizard {
                 `Found ${this.selectedPosition?.symbol} position in your Binance Futures account without bot reference`,
                 `Would you like to close it?`
             ],
-            buttons: [[{
+            buttons: [ [{
                 text: 'No',
                 callback_data: WizBtn.NO,
                 process: async () => this.STEP?.TRADES_ORDERS
@@ -392,9 +392,6 @@ export class TradesWizard extends UnitWizard {
             .filter(t => {
                 const tradeAmount = TradeUtil.tradeAmount(t)
                 const positionAmount = new Decimal(position.positionAmt)
-                // TODO check/test if any TP is filled
-                // console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
-                // console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
                 return tradeAmount.equals(positionAmount)
             }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]

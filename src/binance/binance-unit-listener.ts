@@ -68,16 +68,14 @@ export class BinanceUnitListener {
             this.log(`Socket already opened`)
             return
         }
-        
-        const listenKey = await this.listenKeyRequest('POST')
-        if (!listenKey) {
-            this.log(`Listen key not found`)
-            return
+
+        await this.getNewListenKey()
+        if (!this.unit.listenKey) {
+            this.errorLog(`No listen key when starting listening`)
         }
 
-        this.unit.listenKey = listenKey
+
         this.startBinanceUserWebSocket()
-        this.unitService.updateListenKey(this.unit)
     }
 
     public async keepAliveListenKey() {
@@ -93,12 +91,24 @@ export class BinanceUnitListener {
         }
         const listenKey = await this.listenKeyRequest('PUT')
         if (!listenKey) {
-            this.log(`Listen key not found when keeping alive`)
+            this.errorLog(`Listen key not valid when keeping alive`)
+            await this.getNewListenKey()
             return
         }
         this.unit.listenKey = listenKey
         await this.unitService.updateListenKey(this.unit)
         this.log('Listen key kept alive')
+    }
+
+
+    private async getNewListenKey() {
+        const listenKey = await this.listenKeyRequest('POST')
+        if (!listenKey) {
+            this.log(`Listen key not found`)
+            return
+        }
+        this.unit.listenKey = listenKey
+        this.unitService.updateListenKey(this.unit)
     }
 
 

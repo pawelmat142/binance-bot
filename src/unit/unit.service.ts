@@ -102,7 +102,7 @@ export class UnitService implements OnModuleInit {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
             { $unset: { listenKey: 1 } }
-        ).exec().finally(() => this.logger.warn(`Removed listen key for unit ${unit.identifier}`))
+        ).exec().finally(() => this.logger.warn(`[${unit.identifier}] Removed listen key`))
     }
 
     public updateListenKey(unit: Unit) {
