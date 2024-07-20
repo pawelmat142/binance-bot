@@ -35,7 +35,7 @@ export class TradeService {
 
     public async openPositionByMarket(ctx: TradeCtx): Promise<void> {
         const quantity = await TradeQuantityCalculator.start<number>(ctx, this.calculationsService)
-        const params = TradeUtil.marketOrderParams(ctx.trade, quantity)
+        const params = TradeUtil.marketOrderParams(ctx, quantity)
         const result = await this.placeOrder(params, ctx)
         ctx.trade.timestamp = new Date()
         ctx.trade.marketResult = result
@@ -45,7 +45,7 @@ export class TradeService {
         }
     }
 
-    public async stopLossRequest(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
+    public async placeStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         const params = await StopLossCalculator.start<PlaceOrderParams>(ctx, this.calculationsService, forcedPrice ? { forcedPrice } : undefined)
         if (!params) {
             return
@@ -63,24 +63,23 @@ export class TradeService {
     public async moveStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         await this.closeStopLoss(ctx)
         await new Promise(resolve => setTimeout(resolve, 3000))
-        await this.stopLossRequest(ctx, forcedPrice)
+        await this.placeStopLoss(ctx, forcedPrice)
     }
 
     public async closeStopLoss(ctx: TradeCtx): Promise<void> {
         const trade = ctx.trade
-        const stopLossOrderId = trade.stopLossResult?.orderId
-        if (!stopLossOrderId) {
-            TradeUtil.addWarning(`Not found Stop Loss orderId ${stopLossOrderId}, result in trade ${trade._id}`, ctx, this.logger)
+        const stopLossClientOrderId = trade.stopLossResult?.clientOrderId
+        if (!stopLossClientOrderId) {
+            TradeUtil.addWarning(`Not found Stop Loss clientOrderId ${stopLossClientOrderId}, result in trade ${trade._id}`, ctx, this.logger)
             return
         }
-        trade.stopLossResult = await this.closeOrder(ctx, stopLossOrderId)
+        trade.stopLossResult = await this.closeOrder(ctx, stopLossClientOrderId)
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
-    public async closeOrder(ctx: TradeCtx, orderId: string): Promise<FuturesResult> {
-        const params = TradeUtil.closeOrderParams(orderId, ctx.symbol)
+    public async closeOrder(ctx: TradeCtx, clientOrderId: string): Promise<FuturesResult> {
+        const params = TradeUtil.closeOrderParams(clientOrderId, ctx.symbol)
         const result = await this.placeOrder(params, ctx, 'DELETE')
-        this.parseBigIntOrderIdToString(result)
         return result
     }
 
@@ -136,7 +135,6 @@ export class TradeService {
             method: method ?? 'POST',
             headers: Util.getHeaders(ctx.unit)
         })
-        this.parseBigIntOrderIdToString(result)
         return result
     }
 
@@ -147,7 +145,6 @@ export class TradeService {
             method: method ?? 'POST',
             headers: Util.getHeaders(unit)
         })
-        this.parseBigIntOrderIdToString(result)
         return result
     }
 
@@ -178,7 +175,6 @@ export class TradeService {
                 timestamp: Date.now()
             }
             const result = await this.placeOrder(params, ctx, 'POST')
-            this.parseBigIntOrderIdToString(result)
             return result
         } catch (error) {
             this.handleError(error, `CLOSE POSITION ERROR`, ctx)
@@ -238,7 +234,6 @@ export class TradeService {
                 method: 'GET',
                 headers: Util.getHeaders(unit)
             })
-            this.parseBigIntOrderIdsToString(result)
             return result
         } catch (error) {
             this.handleError(error, `FETCH OPEN ORDERS ERROR`)
@@ -268,16 +263,5 @@ export class TradeService {
         }
     }
 
-    private parseBigIntOrderIdToString(result: FuturesResult) {
-        if (result?.orderId) {
-            result.orderId = result.orderId.toString()
-        }
-    }
-
-    private parseBigIntOrderIdsToString(results: FuturesResult[]) {
-        for (let result of results || []) {
-            this.parseBigIntOrderIdToString(result)
-        }
-    }
 
 }

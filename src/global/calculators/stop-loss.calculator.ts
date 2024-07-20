@@ -7,6 +7,7 @@ import { TradeUtil } from "../../binance/utils/trade-util";
 import { LimitOrderUtil } from "../../binance/utils/limit-order-util";
 import { VariantUtil } from "../../binance/utils/variant-util";
 import { TradeStatus, TradeType } from "../../binance/model/trade";
+import { ClientOrderId, ClientOrderIdUtil } from "../../binance/utils/client-order-id-util";
 
 export class StopLossCalculator extends TradeCalculator<PlaceOrderParams> {
 
@@ -35,6 +36,7 @@ export class StopLossCalculator extends TradeCalculator<PlaceOrderParams> {
         this.log(`Calculated stop price ${price}`)
 
         this.log('STOP')
+        const clientOrderId = ClientOrderIdUtil.reprepare(ClientOrderId.STOP_LOSS, this.ctx)
         return {
             symbol: this.ctx.symbol,
             side: VariantUtil.opositeSide(this.ctx.side),
@@ -44,9 +46,12 @@ export class StopLossCalculator extends TradeCalculator<PlaceOrderParams> {
             timestamp: Date.now(),
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-            reduceOnly: "true"
+            reduceOnly: "true",
+            newClientOrderId: clientOrderId
         }
     }
+
+
 
 
     

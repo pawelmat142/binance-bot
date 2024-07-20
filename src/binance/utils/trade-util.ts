@@ -6,7 +6,8 @@ import Decimal from "decimal.js"
 import { Position } from "../wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
 import { VariantUtil } from "./variant-util"
-import { toDateString } from "../../global/util"
+import { ClientOrderId, ClientOrderIdUtil } from "./client-order-id-util"
+import { Util } from "./util"
 
 
 export abstract class TradeUtil {
@@ -52,19 +53,22 @@ export abstract class TradeUtil {
     }
 
     private static addToCtxLogs(log: string, ctx: TradeCtx) {
-        log = `[${toDateString(new Date())}] ${log}`
+        log = `[${Util.toDateString(new Date())}] ${log}`
         ctx.trade.logs = ctx.trade.logs || []
         ctx.trade.logs.push(log)
     }
 
-    public static marketOrderParams (trade: Trade, quantity: number): Object  {
+    public static marketOrderParams (ctx: TradeCtx, quantity: number): Object  {
+        const trade = ctx.trade
+        const clientOrderId = ClientOrderIdUtil.generate(ClientOrderId.MARKET_ORDER, ctx.unit, ctx.trade.variant.symbol)
         return {
             symbol: trade.variant.symbol,
             side: trade.variant.side,
             type: TradeType.MARKET,
             quantity: quantity,
             timestamp: Date.now(),
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            newClientOrderId: clientOrderId
         }
     }
 
@@ -153,14 +157,14 @@ export abstract class TradeUtil {
         return 'waiting'
     }
 
-    public static closeOrderParams(orderId: string, symbol: string): PlaceOrderParams {
+    public static closeOrderParams(clientOrderId : string, symbol: string): PlaceOrderParams {
         return {
             symbol: symbol,
-            orderId: BigInt(orderId),
             timeInForce: 'GTC',
             type: undefined,
             timestamp: Date.now(),
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            origClientOrderId: clientOrderId
         }
     }
 

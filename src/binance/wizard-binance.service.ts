@@ -9,6 +9,7 @@ import { TradeRepository } from "./trade.repo";
 import { TradeUtil } from "./utils/trade-util";
 import { Util } from "./utils/util";
 import { LimitOrderUtil } from "./utils/limit-order-util";
+import { ClientOrderId } from "./utils/client-order-id-util";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -70,14 +71,14 @@ export class WizardBinanceService {
         return this.tradeRepo.findByUnit(unit)
     }
 
-    public async closeOpenOrder(ctx: TradeCtx, orderId: string) {
-        const result = await this.tradeService.closeOrder(ctx, orderId)
-        if (ctx.trade.marketResult?.orderId === result.orderId) {
+    public async closeOpenOrder(ctx: TradeCtx, clientOrderId: string) {
+        const result = await this.tradeService.closeOrder(ctx, clientOrderId)
+        if (ctx.trade.marketResult?.clientOrderId === result.clientOrderId) {
             ctx.trade.marketResult = result
             await this.tradeRepo.closeTradeManual(ctx)
         } else {
             (ctx.trade.variant.limitOrders || []).forEach(order => {
-                if (order?.result.orderId === result.orderId) {
+                if (order?.result.clientOrderId === result.clientOrderId) {
                     order.result = result
                 }
             })

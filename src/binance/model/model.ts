@@ -20,6 +20,8 @@ export interface PlaceOrderParams {
     orderId?: BigInt,
     recvWindow?: number
     timestamp?: number
+    newClientOrderId?: string
+    origClientOrderId?: string
 }
 
 

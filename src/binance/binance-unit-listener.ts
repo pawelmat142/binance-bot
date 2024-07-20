@@ -8,19 +8,19 @@ import * as JSONbig from 'json-bigint';
 import { TradeUtil } from "./utils/trade-util";
 import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent } from 'ws';
 import { DuplicateService } from "./duplicate.service";
-import { FuturesResult, TradeStatus } from "./model/trade";
+import { FuturesResult, Trade, TradeStatus } from "./model/trade";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
 import { TradeService } from "./trade.service";
 import { Http } from "../global/http/http.service";
 import { TelegramService } from "../telegram/telegram.service";
-import { LimitOrderUtil } from "./utils/limit-order-util";
 import { LimitOrdersService } from "./limit-orders.service";
 import { TakeProfitsService } from "./take-profits.service";
-import { TPUtil } from "./utils/take-profit-util";
-import { Cron, CronExpression } from "@nestjs/schedule";
 import { HttpMethod } from "../global/type";
 import { Util } from "./utils/util";
+import { ClientOrderId, ClientOrderIdUtil } from "./utils/client-order-id-util";
+import { TPUtil } from "./utils/take-profit-util";
+import { LimitOrderUtil } from "./utils/limit-order-util";
 
 
 @Injectable()
@@ -56,6 +56,171 @@ export class BinanceUnitListener {
     onModuleDestroy() {
         this.stopListening()
     }
+
+
+
+    private startBinanceUserWebSocket() {
+        this.socket = new WebSocket(`${UnitUtil.socketUri}/${this.unit.listenKey}`)
+
+        this.socket.onopen = (event: Event) => {
+            this.log(`Opened socket`)
+        }
+
+        this.socket.onclose = (event: CloseEvent) => {
+            this.log(`Closed socket`)
+        }
+        
+        this.socket.onerror = (event: ErrorEvent) => {
+            this.log(`Error on socket`)
+            this.log(`event.error`)
+            this.log(event.error)
+            this.unitService.removeListenKey(this.unit)
+        }
+
+        this.socket.onmessage = async (event: MessageEvent) => {
+            this.removeListenKeyIfMessageIsAboutClose(event)
+
+            const tradeEvent: TradeEventData = JSONbig.parse(event.data as string)
+            this.logger.log(`[${this.unit.identifier}] Biannce Event ${tradeEvent.e} received`)
+
+            if (TradeUtil.isTradeEvent(tradeEvent)) {
+                const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
+
+                if (TradeUtil.isFilledOrder(eventTradeResult)) {
+                    this.filledOrderAction(eventTradeResult)
+                }
+            }
+        }
+    }
+
+
+    private async filledOrderAction(eventTradeResult: FuturesResult) {
+        if (this.duplicateService.preventDuplicate(eventTradeResult, this.unit)) {
+            return
+        }
+
+        const orderType = ClientOrderIdUtil.orderTypeByClientOrderId(eventTradeResult.clientOrderId)
+        switch (orderType) {
+            case ClientOrderId.MARKET_ORDER: return this.onFilledPosition(eventTradeResult)
+
+            case ClientOrderId.LIMIT_ORDER: return this.onFilledLimitOrder(eventTradeResult)
+
+            case ClientOrderId.TAKE_PROFIT: return this.onFilledTakeProfit(eventTradeResult)
+
+            case ClientOrderId.STOP_LOSS: return this.onFilledStopLoss(eventTradeResult)
+
+            default: 
+                this.logger.error(`Found trade but matching error! clientOrderId: ${eventTradeResult.clientOrderId}, orderId: ${eventTradeResult.orderId}`)
+        }
+
+    }
+
+
+    private async onFilledPosition(eventTradeResult: FuturesResult) {
+        await this.waitUntilSaveTrade()
+        const trade = await this.tradeRepo.findByFilledMarketOrder(eventTradeResult, this.unit)
+        if (!trade) {
+            this.logger.error(`[${this.unit.identifier}] not found trade when filled position, clientOrderId: ${eventTradeResult.clientOrderId}`)
+            return
+        }
+        const ctx = this.tradeContext(trade)
+        TradeUtil.addLog(`Found trade on filled position ${ctx.trade.marketResult.clientOrderId}}`, ctx, this.logger)
+        try {
+            const wasOpenOrder = ctx.trade.marketResult?.status === TradeStatus.NEW
+            if (wasOpenOrder) {
+                TradeUtil.addLog(`Was open order`, ctx, this.logger)
+                this.tradeService.closeOrderEvent(ctx)
+            }
+            ctx.trade.marketResult = eventTradeResult
+            await this.tradeService.placeStopLoss(ctx)
+            await this.takeProfitsService.openFirstTakeProfit(ctx)
+        } catch (error) {
+            const msg = Http.handleErrorMessage(error)
+            TradeUtil.addError(msg, ctx, this.logger)
+        } finally {
+            const saved = await this.tradeRepo.update(ctx)
+            this.telegramService.onFilledPosition(ctx)
+        }
+    }
+
+    private async onFilledStopLoss(eventTradeResult: FuturesResult) {
+        const trade = await this.tradeRepo.findByFilledStopLoss(eventTradeResult, this.unit)
+        if (!trade) {
+            this.logger.error(`[${this.unit.identifier}] not found trade when filled Stop Loss`)
+            return
+        }
+        const ctx = this.tradeContext(trade)
+        TradeUtil.addLog(`Found trade on filled Stop Loss ${ctx.trade.marketResult.clientOrderId}}`, ctx, this.logger)
+        try {
+            ctx.trade.closed = true
+            ctx.trade.stopLossResult = eventTradeResult
+            const takeProfits = ctx.trade.variant.takeProfits
+            for (let tp of takeProfits) {
+                if (tp.result && tp.result.status === TradeStatus.NEW) {
+                    const closeResult = await this.tradeService.closeOrder(ctx, tp.result.clientOrderId)
+                    tp.result = closeResult
+                    TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
+                }
+            }
+        } catch (error) {
+            const msg = Http.handleErrorMessage(error)
+            TradeUtil.addError(msg, ctx, this.logger)
+        } finally {
+            const saved = await this.tradeRepo.update(ctx)
+            this.telegramService.onFilledStopLoss(ctx)
+        }
+    }
+
+    private async onFilledLimitOrder(eventTradeResult: FuturesResult) {
+        const trade = await this.tradeRepo.findByFilledLimitOrder(eventTradeResult, this.unit)
+        if (!trade) {
+            this.logger.error(`[${this.unit.identifier}] not found trade when filled Limit Order`)
+            return
+        }
+        const ctx = this.tradeContext(trade)
+
+        const limitOrder =LimitOrderUtil.updateFilledLimitOrder(ctx, eventTradeResult)
+        TradeUtil.addLog(`Filled ${limitOrder.order} Limit Order: ${eventTradeResult.clientOrderId}, averagePrice: ${limitOrder.result?.averagePrice}`, ctx, this.logger)
+
+        this.limitOrdersService.onFilledLimitOrder(ctx)
+    }
+
+    private async onFilledTakeProfit(eventTradeResult: FuturesResult) {
+        const trade = await this.tradeRepo.findByFilledTakeProfit(eventTradeResult, this.unit)
+        if (!trade) {
+            this.logger.error(`[${this.unit.identifier}] not found trade when filled Take Profit`)
+            return
+        }
+        const ctx = this.tradeContext(trade)
+
+        const takeProfit = TPUtil.updateFilledTakeProfit(eventTradeResult, ctx)
+        TradeUtil.addLog(`Filled take profit order: ${takeProfit.order}, averagePrice: ${takeProfit.result?.averagePrice}`, ctx, this.logger)
+        
+        this.takeProfitsService.onFilledTakeProfit(ctx)
+    }
+
+
+    private tradeContext(trade: Trade) {
+        return new TradeCtx({ trade: trade, unit: this.unit })
+    }
+
+    private async waitUntilSaveTrade() {
+        return new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
+    private log(log: string) {
+        this.logger.warn(`[${this.unit.identifier}] ${log}`)
+    }
+
+    private errorLog(log: string) {
+        this.logger.error(`[${this.unit.identifier}] ${log}`)
+    }
+
+
+
+
+
+// listenkey
 
     public startListening = async () => {
         if (this.WEBSOCKET_ONLY_FOR) {
@@ -112,43 +277,6 @@ export class BinanceUnitListener {
     }
 
 
-    private startBinanceUserWebSocket() {
-        this.socket = new WebSocket(`${UnitUtil.socketUri}/${this.unit.listenKey}`)
-
-        this.socket.onopen = (event: Event) => {
-            this.log(`Opened socket`)
-        }
-
-        this.socket.onclose = (event: CloseEvent) => {
-            this.log(`Closed socket`)
-        }
-        
-        this.socket.onerror = (event: ErrorEvent) => {
-            this.log(`Error on socket`)
-            this.log(`event.error`)
-            this.log(event.error)
-            this.unitService.removeListenKey(this.unit)
-        }
-
-        this.socket.onmessage = async (event: MessageEvent) => {
-            this.removeListenKeyIfMessageIsAboutClose(event)
-            const tradeEvent: TradeEventData = JSONbig.parse(event.data as string)
-            this.logger.log(`[${this.unit.identifier}] Biannce Event ${tradeEvent.e} received`)
-            if (TradeUtil.isTradeEvent(tradeEvent)) {
-                const eventTradeResult = TradeUtil.parseToFuturesResult(tradeEvent)
-                if (TradeUtil.isFilledOrder(eventTradeResult)) {
-                    if (this.duplicateService.preventDuplicate(eventTradeResult, this.unit)) {
-                        return
-                    }
-                    const ctx = await this.prepareTradeContext(eventTradeResult)
-                    if (ctx) {
-                        this.onFilledOrder(ctx, eventTradeResult)
-                    }
-                }
-            }
-        }
-    }
-
     public stopListening() {
         this.listenKeyRequest('DELETE')
     }
@@ -195,90 +323,6 @@ export class BinanceUnitListener {
             return true
         }
         return false
-    }
-
-
-    private async onFilledOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        if (ctx.trade.marketResult?.orderId === eventTradeResult.orderId) {
-            this.onFilledPosition(ctx, eventTradeResult)
-
-        } else if (LimitOrderUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
-            this.limitOrdersService.onFilledLimitOrder(ctx, eventTradeResult)
-            
-        } else if (ctx.trade.stopLossResult.orderId === eventTradeResult.orderId) {
-            this.onFilledStopLoss(ctx, eventTradeResult)
-
-        } else if (TPUtil.orderIds(ctx).includes(eventTradeResult.orderId)) {
-            this.takeProfitsService.onFilledTakeProfit(ctx, eventTradeResult)
-
-        } else {
-            TradeUtil.addLog(`Found trade but matching error! ${eventTradeResult.orderId}`, ctx, this.logger)
-        }
-    }
-
-    private async onFilledPosition(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Found trade with result id ${ctx.trade.marketResult.orderId} match trade event with id ${eventTradeResult.orderId}`, ctx, this.logger)
-        try {
-            const wasOpenOrder = ctx.trade.marketResult?.status === TradeStatus.NEW
-            if (wasOpenOrder) {
-                TradeUtil.addLog(`Was open order`, ctx, this.logger)
-                this.tradeService.closeOrderEvent(ctx)
-            }
-            ctx.trade.marketResult = eventTradeResult
-            await this.tradeService.stopLossRequest(ctx)
-            await this.takeProfitsService.openFirstTakeProfit(ctx)
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            TradeUtil.addError(msg, ctx, this.logger)
-        } finally {
-            const saved = await this.tradeRepo.update(ctx)
-            this.telegramService.onFilledPosition(ctx)
-        }
-    }
-
-    private async onFilledStopLoss(ctx: TradeCtx, eventTradeResult: FuturesResult) {
-        TradeUtil.addLog(`Filled Stop Loss with orderId ${ctx.trade.stopLossResult.orderId}, stopPrice: ${eventTradeResult.stopPrice}`, ctx, this.logger)
-        try {
-            ctx.trade.closed = true
-            ctx.trade.stopLossResult = eventTradeResult
-            const takeProfits = ctx.trade.variant.takeProfits
-            for (let tp of takeProfits) {
-                if (tp.result && tp.result.status === TradeStatus.NEW) {
-                    const closeResult = await this.tradeService.closeOrder(ctx, tp.result.orderId)
-                    tp.result = closeResult
-                    TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
-                }
-            }
-        } catch (error) {
-            const msg = Http.handleErrorMessage(error)
-            TradeUtil.addError(msg, ctx, this.logger)
-        } finally {
-            const saved = await this.tradeRepo.update(ctx)
-            this.telegramService.onFilledStopLoss(ctx)
-        }
-    }
-
-    private async prepareTradeContext(eventTradeResult: FuturesResult): Promise<TradeCtx> {
-        await this.waitUntilSaveTrade() //workaound to prevent finding trade before save Trade entity
-        let trade = await this.tradeRepo.findByTradeEvent(eventTradeResult, this.unit)
-        if (!trade) {
-            this.logger.error(`[${this.unit.identifier}] Not found matching trade - on filled order ${eventTradeResult?.orderId}, ${eventTradeResult.side}, ${eventTradeResult.symbol}`)
-            return
-        }
-        return new TradeCtx({ unit: this.unit, trade })
-    }
-
-    private async waitUntilSaveTrade() {
-        return new Promise(resolve => setTimeout(resolve, 1000))
-    }
-
-
-    private log(log: string) {
-        this.logger.warn(`[${this.unit.identifier}] ${log}`)
-    }
-
-    private errorLog(log: string) {
-        this.logger.error(`[${this.unit.identifier}] ${log}`)
     }
     
 }

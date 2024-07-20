@@ -476,10 +476,10 @@ export class TradesWizard extends UnitWizard {
             trade: this.selectedTrade
         })
         try {
-            TradeUtil.addLog(`[START] closing order ${order.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
-            await this.services.binance.closeOpenOrder(ctx, order.orderId)
+            TradeUtil.addLog(`[START] closing order ${order.clientOrderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
+            await this.services.binance.closeOpenOrder(ctx, order.clientOrderId)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
-            TradeUtil.addLog(`[STOP] closing order ${order.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
+            TradeUtil.addLog(`[STOP] closing order ${order.clientOrderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             this.unselectTrade()
             return true
         } 

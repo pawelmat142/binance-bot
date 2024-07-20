@@ -3,7 +3,7 @@ import { Signal } from "./signal"
 import { TradeVariant } from "../binance/model/trade-variant"
 import { LimitOrderUtil } from "../binance/utils/limit-order-util"
 import { VariantUtil } from "../binance/utils/variant-util"
-import { toDateString } from "../global/util"
+import { Util } from "../binance/utils/util"
 
 export abstract class SignalUtil {
 
@@ -60,7 +60,7 @@ export abstract class SignalUtil {
     }
 
     private static addToSignalLogs(log: string, signal: Signal) {
-        log = `[${toDateString(new Date())}] ${log}`
+        log = `[${Util.toDateString(new Date())}] ${log}`
         signal.logs = signal.logs || []
         signal.logs.push(log)
     }

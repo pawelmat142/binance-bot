@@ -2,6 +2,7 @@ import { Logger } from "@nestjs/common"
 import { Unit } from "../../unit/unit"
 import * as crypto from 'crypto'
 import { Types } from "mongoose"
+import * as moment from 'moment-timezone';
 
 export abstract class Util {
 
@@ -31,6 +32,14 @@ export abstract class Util {
 
     public static newObjectId(): string {
         return new Types.ObjectId().toHexString()
+    }
+
+    public static removeNumbersFromstring(string: string): string {
+        return string.replace(/[0-9]/g, '');
+    }
+
+    public static toDateString(date: Date): string {
+        return moment(date).format('YY-MM-DD hh:mm:ss')
     }
 
 }

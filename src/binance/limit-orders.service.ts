@@ -43,14 +43,8 @@ export class LimitOrdersService {
     }
 
     
-    public async onFilledLimitOrder(ctx: TradeCtx, eventTradeResult: FuturesResult) {
+    public async onFilledLimitOrder(ctx: TradeCtx) {
         try {
-            TradeUtil.addLog(`Filled Limit Order, orderId ${eventTradeResult.orderId}, price ${eventTradeResult.price}`, ctx, this.logger)
-            ctx.trade.variant.limitOrders.forEach(lo => {
-                if (lo.result?.orderId === eventTradeResult.orderId) {
-                    lo.result = eventTradeResult
-                }
-            })
             await this.closeTakeProfitAndStopLossIfOpen(ctx)
             await this.openStopLossAndTakeProfitIfNeeded(ctx)
         } 
@@ -67,10 +61,10 @@ export class LimitOrdersService {
         const orderIdList: string[] = []
         const openedTakeProfit = ctx.trade.variant.takeProfits.find(tp => tp.result?.status === TradeStatus.NEW)
         if (openedTakeProfit) {
-            orderIdList.push(openedTakeProfit.result.orderId)
+            orderIdList.push(openedTakeProfit.result.clientOrderId)
         }
         if (ctx.trade.stopLossResult?.status === TradeStatus.NEW) {
-            orderIdList.push(ctx.trade.stopLossResult.orderId)
+            orderIdList.push(ctx.trade.stopLossResult.clientOrderId)
         }
 
         if (orderIdList.length) {
@@ -79,16 +73,16 @@ export class LimitOrdersService {
                 if (isBinanceError(result)) {
                     TradeUtil.addError(result.msg, ctx, this.logger)
                 } 
-                else if (result.orderId === openedTakeProfit.result?.orderId) {
+                else if (result.clientOrderId === openedTakeProfit.result?.clientOrderId) {
                     openedTakeProfit.result = result
-                    TradeUtil.addLog(`Closed Take Profit ${openedTakeProfit.order+1}, orderId: ${result.orderId}`, ctx, this.logger)
+                    TradeUtil.addLog(`Closed Take Profit ${openedTakeProfit.order+1}, clientOrderId: ${result.clientOrderId}`, ctx, this.logger)
                 } 
-                else if (result.orderId === ctx.trade.stopLossResult?.orderId) {
+                else if (result.clientOrderId === ctx.trade.stopLossResult?.clientOrderId) {
                     ctx.trade.stopLossResult = result
-                    TradeUtil.addLog(`Closed Stop Loss, orderId: ${result.orderId}`, ctx, this.logger)
+                    TradeUtil.addLog(`Closed Stop Loss, clientOrderId: ${result.clientOrderId}`, ctx, this.logger)
                 } 
                 else {
-                    TradeUtil.addError(`Close order result ${result.orderId} doesnt match`, ctx, this.logger)
+                    TradeUtil.addError(`Close order result ${result.clientOrderId} doesnt match`, ctx, this.logger)
                 }
             })
         } else {
@@ -120,14 +114,14 @@ export class LimitOrdersService {
                     return null
                 }
                 tp.result = result
-                TradeUtil.addLog(`Opened Take Profit ${tp.order+1}, stop price ${result.stopPrice}, orderId ${result.orderId}`, ctx, this.logger)
+                TradeUtil.addLog(`Opened Take Profit ${tp.order+1}, stop price ${result.stopPrice}, clientOrderId ${result.clientOrderId}`, ctx, this.logger)
             } 
             else if (result.type === TradeType.STOP_MARKET) {
                 ctx.trade.stopLossResult = result
-                TradeUtil.addLog(`Opened Stop Loss, stop price ${result.stopPrice}, orderId: ${result.orderId}`, ctx, this.logger)
+                TradeUtil.addLog(`Opened Stop Loss, stop price ${result.stopPrice}, clientOrderId: ${result.clientOrderId}`, ctx, this.logger)
             } 
             else {
-                TradeUtil.addError(`Opened order result ${result.orderId} doesnt match`, ctx, this.logger)
+                TradeUtil.addError(`Opened order result ${result.clientOrderId} doesnt match`, ctx, this.logger)
             }
         })
     }
@@ -148,7 +142,7 @@ export class LimitOrdersService {
             TradeUtil.addError(`Not found Take Profit to open`, ctx, this.logger)
             return null
         }
-        const params = TPUtil.takeProfitRequestParams(ctx, tp.price, tp.quantity)
+        const params = TPUtil.takeProfitRequestParams(ctx, tp.price, tp.quantity, tp.order)
         TradeUtil.removeMultiOrderProperties(params)
         return params
     }
@@ -160,7 +154,7 @@ export class LimitOrdersService {
     private closeMultipleOrders(ctx: TradeCtx, orderIdList: string[]): Promise<BinanceResultOrError[]> {
         const params = {
             symbol: ctx.symbol,
-            orderIdList: orderIdList.map(o => BigInt(o)),
+            origClientOrderIdList: orderIdList,
             timeStamp: Date.now()
         }
         return this.placeMultipleOrders(ctx, params, 'DELETE')
@@ -175,16 +169,10 @@ export class LimitOrdersService {
     }
 
     private async placeMultipleOrders(ctx: TradeCtx, params: Object, method: HttpMethod): Promise<BinanceResultOrError[]> {
-        const results = await this.http.fetch<BinanceResultOrError[]>({
+        return this.http.fetch<BinanceResultOrError[]>({
             url: Util.sign(`https://fapi.binance.com/fapi/v1/batchOrders`, params, ctx.unit),
             method: method,
             headers: Util.getHeaders(ctx.unit),
         })
-        for (let r of results || []) {
-            if (!isBinanceError(r) && r.orderId) {
-                r.orderId = r.orderId.toString()
-            } 
-        }
-        return results
     }
 }

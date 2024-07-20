@@ -1,10 +1,11 @@
 import Decimal from "decimal.js";
 import { LimitOrder, TradeCtx, TradeVariant } from "../model/trade-variant";
-import { TradeStatus, TradeType } from "../model/trade";
+import { FuturesResult, TradeStatus, TradeType } from "../model/trade";
 import { PlaceOrderParams } from "../model/model";
 import { BinanceError, BinanceResultOrError, isBinanceError } from "../model/binance.error";
 import { TradeUtil } from "./trade-util";
 import { Logger } from "@nestjs/common";
+import { ClientOrderId, ClientOrderIdUtil } from "./client-order-id-util";
 
 export abstract class LimitOrderUtil {
 
@@ -22,6 +23,17 @@ export abstract class LimitOrderUtil {
         return (ctx.trade.variant.limitOrders || []).filter(lo => !!lo.result).map(lo => lo.result.orderId)
     }
 
+
+    public static updateFilledLimitOrder(ctx: TradeCtx, eventTradeResult: FuturesResult): LimitOrder {
+        for (let lo of ctx.trade.variant.limitOrders) {
+            if (lo.result?.clientOrderId === eventTradeResult.clientOrderId) {
+                lo.result = eventTradeResult
+                return lo
+            }
+        }
+        throw new Error(`Not found Limit Order ${eventTradeResult.clientOrderId}`)
+
+    }
 
     public static filterOpened(variant: TradeVariant): LimitOrder[] {
         return (variant.limitOrders || [])
@@ -63,14 +75,17 @@ export abstract class LimitOrderUtil {
 
 
     public static prepareOrderParams(ctx: TradeCtx): PlaceOrderParams[] {
+        const symbol = ctx.trade.variant.symbol
         return ctx.trade.variant.limitOrders.map(lo => {
+            const clientOrderId = ClientOrderIdUtil.generate(`${ClientOrderId.LIMIT_ORDER}${lo.order+1}`, ctx.unit, symbol)
             return {
-                symbol: ctx.trade.variant.symbol,
+                symbol: symbol,
                 side: ctx.trade.variant.side,
                 type: TradeType.LIMIT,
                 quantity: lo.quantity.toString(),
                 price: lo.price.toString(),
                 timeInForce: "GTC",
+                newClientOrderId: clientOrderId
             }
         })
     }

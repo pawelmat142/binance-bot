@@ -1,10 +1,11 @@
 import Decimal from "decimal.js";
 import { Logger } from "@nestjs/common";
 import { TakeProfit, TradeCtx, TradeVariant } from "../model/trade-variant";
-import { Trade, TradeStatus, TradeType } from "../model/trade";
+import { FuturesResult, Trade, TradeStatus, TradeType } from "../model/trade";
 import { TradeUtil } from "./trade-util";
 import { VariantUtil } from "./variant-util";
 import { PlaceOrderParams } from "../model/model";
+import { ClientOrderId, ClientOrderIdUtil } from "./client-order-id-util";
 
 export abstract class TPUtil {
 
@@ -27,6 +28,14 @@ export abstract class TPUtil {
             .filter(tp => tp.result?.status === TradeStatus.FILLED)
             .map(tp => new Decimal(tp.result?.origQty || 0))
             .reduce((sum, qty) => sum.plus(qty), new Decimal(0))
+    }
+
+    public static updateFilledTakeProfit(eventTradeResult: FuturesResult, ctx: TradeCtx): TakeProfit {
+        const takeProfits = ctx.trade.variant.takeProfits
+        const tp = takeProfits.find(t => t.result?.clientOrderId === eventTradeResult.clientOrderId)
+        if (!tp) throw new Error(`Not found Take Profit clientOrderId: ${eventTradeResult.clientOrderId} in found trade ${ctx.trade._id}`)
+        tp.result = eventTradeResult
+        return tp
     }
 
 
@@ -62,7 +71,8 @@ export abstract class TPUtil {
     }
 
 
-    public static takeProfitRequestParams(ctx: TradeCtx, price: number, quantity: number): PlaceOrderParams {
+    public static takeProfitRequestParams(ctx: TradeCtx, price: number, quantity: number, order: number): PlaceOrderParams {
+        const clientOrderId = ClientOrderIdUtil.reprepare(ClientOrderId.TAKE_PROFIT, ctx, order)
         return {
             symbol: ctx.symbol,
             side: VariantUtil.opositeSide(ctx.trade.variant.side),
@@ -73,6 +83,7 @@ export abstract class TPUtil {
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
             reduceOnly: "true",
+            newClientOrderId: clientOrderId
         }
     }
 

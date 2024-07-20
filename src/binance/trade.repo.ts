@@ -51,17 +51,33 @@ export class TradeRepository {
         }).exec()
     }
 
-    public findByTradeEvent(eventTradeResult: FuturesResult, unit: Unit): Promise<Trade> {
+
+    public findByFilledMarketOrder(eventTradeResult: FuturesResult, unit: Unit): Promise<Trade> {
         return this.model.findOne({
             unitIdentifier: unit.identifier,
-            closed: { $ne: true },
-            $or: [
-                { "marketResult.orderId": eventTradeResult.orderId },
-                { "stopLossResult.orderId": eventTradeResult.orderId },
-                { "variant.takeProfits.result.orderId": eventTradeResult.orderId },
-                { "variant.limitOrders.result.orderId": eventTradeResult.orderId },
-            ]
-        }).exec()
+            "marketResult.clientOrderId": eventTradeResult.clientOrderId
+        })
+    }
+    
+    public findByFilledStopLoss(eventTradeResult: FuturesResult, unit: Unit): Promise<Trade> {
+        return this.model.findOne({
+            unitIdentifier: unit.identifier,
+            "stopLossResult.clientOrderId": eventTradeResult.clientOrderId
+        })
+    }
+    
+    public findByFilledTakeProfit(eventTradeResult: FuturesResult, unit: Unit): Promise<Trade> {
+        return this.model.findOne({
+            unitIdentifier: unit.identifier,
+            "variant.takeProfits.result.clientOrderId": eventTradeResult.clientOrderId
+        })
+    }
+    
+    public findByFilledLimitOrder(eventTradeResult: FuturesResult, unit: Unit): Promise<Trade> {
+        return this.model.findOne({
+            unitIdentifier: unit.identifier,
+            "variant.limitOrders.result.clientOrderId": eventTradeResult.clientOrderId
+        })
     }
 
     public findInProgress(ctx: TradeCtx): Promise<Trade> {
