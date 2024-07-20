@@ -40,7 +40,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-    private initBot() {
+    private initBot(): TelegramBot {
         if (process.env.SKIP_TELEGRAM === 'true') {
             this.logger.warn('[SKIP] Initializing telegram bot')
             return undefined
@@ -63,6 +63,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
                 })
             }  
         }
+        this.bot.on
     }
 
     onModuleDestroy() {

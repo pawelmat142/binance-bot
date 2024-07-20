@@ -28,8 +28,8 @@ export const createMyLogger = () => WinstonModule.createLogger({
         }),
 
         new DailyRotateFile({
-          dirname: 'logs',
-          filename: '%DATE%.log',
+          dirname: '../logs',
+          filename: '%DATE%_binance.log',
           datePattern: 'YYYY-MM-DD', // Daily rotate pattern
           zippedArchive: true,
           maxSize: '20m',
