@@ -71,8 +71,12 @@ export class WizardBinanceService {
         return this.tradeRepo.findByUnit(unit)
     }
 
+    public async fetchTradesBySymbol(unit: Unit, symbol: string) {
+        return this.tradeRepo.findBySymbol(unit, symbol)
+    }
+
     public async closeOpenOrder(ctx: TradeCtx, clientOrderId: string) {
-        const result = await this.tradeService.closeOrder(ctx, clientOrderId)
+        const result = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, clientOrderId)
         if (ctx.trade.marketResult?.clientOrderId === result.clientOrderId) {
             ctx.trade.marketResult = result
             await this.tradeRepo.closeTradeManual(ctx)
@@ -174,5 +178,12 @@ export class WizardBinanceService {
         }
     }
 
+    public async fetchTradesBySelectedPosition(position: Position, unit: Unit) {
+        return this.tradeRepo.findByPosition(position, unit)
+    }
+
+    public update(ctx: TradeCtx) {
+        return this.tradeRepo.update(ctx)
+    }
 
 }

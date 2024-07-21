@@ -9,6 +9,7 @@ import { SelectedTradeProvider } from "./selected-trade.service";
 import { TakeProfitsService } from "../binance/take-profits.service";
 import { StatisticsBinanceService } from "../binance/statistics-binance.service";
 import { SignalSourceService } from "../signal/signal-source.service";
+import { LimitOrdersService } from "../binance/limit-orders.service";
 
 @Injectable()
 export class ServiceProvider {
@@ -21,6 +22,7 @@ export class ServiceProvider {
         public readonly tradeService: TradeService,
         public readonly selectedTradeService: SelectedTradeProvider,
         public readonly takeProfitsService: TakeProfitsService,
+        public readonly limitOrdersService: LimitOrdersService,
         public readonly http: Http,
         public readonly statisticsBinanceService: StatisticsBinanceService,
         public readonly signalSourceService: SignalSourceService,

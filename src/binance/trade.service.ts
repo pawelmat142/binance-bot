@@ -36,7 +36,7 @@ export class TradeService {
     public async openPositionByMarket(ctx: TradeCtx): Promise<void> {
         const quantity = await TradeQuantityCalculator.start<number>(ctx, this.calculationsService)
         const params = TradeUtil.marketOrderParams(ctx, quantity)
-        const result = await this.placeOrder(params, ctx)
+        const result = await this.placeOrder(params, ctx.unit)
         ctx.trade.timestamp = new Date()
         ctx.trade.marketResult = result
         TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.marketResult.origQty}`, ctx, this.logger)
@@ -50,7 +50,7 @@ export class TradeService {
         if (!params) {
             return
         }
-        const result = await this.placeOrder(params, ctx)
+        const result = await this.placeOrder(params, ctx.unit)
         if (result) {
             ctx.trade.stopLossTime = new Date()
             ctx.trade.stopLossResult = result
@@ -73,13 +73,13 @@ export class TradeService {
             TradeUtil.addWarning(`Not found Stop Loss clientOrderId ${stopLossClientOrderId}, result in trade ${trade._id}`, ctx, this.logger)
             return
         }
-        trade.stopLossResult = await this.closeOrder(ctx, stopLossClientOrderId)
+        trade.stopLossResult = await this.closeOrder(ctx.unit, ctx.symbol, stopLossClientOrderId)
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
-    public async closeOrder(ctx: TradeCtx, clientOrderId: string): Promise<FuturesResult> {
-        const params = TradeUtil.closeOrderParams(clientOrderId, ctx.symbol)
-        const result = await this.placeOrder(params, ctx, 'DELETE')
+    public async closeOrder(unit: Unit, symbol: string,  clientOrderId: string): Promise<FuturesResult> {
+        const params = TradeUtil.closeOrderParams(clientOrderId, symbol)
+        const result = await this.placeOrder(params, unit, 'DELETE')
         return result
     }
 
@@ -97,7 +97,7 @@ export class TradeService {
                 recvWindow: TradeUtil.DEFAULT_REC_WINDOW
             }
             await this.http.fetch<FuturesResult>({
-                url: this.signUrlWithParams(`/marginType`, ctx, params),
+                url: this.signUrlWithParams(`/marginType`, ctx.unit, params),
                 method: 'POST',
                 headers: Util.getHeaders(ctx.unit)
             })
@@ -121,19 +121,19 @@ export class TradeService {
             timeInForce: 'GTC',
         }
         const response = await this.http.fetch({
-            url: this.signUrlWithParams(`/leverage`, ctx, params),
+            url: this.signUrlWithParams(`/leverage`, ctx.unit, params),
             method: 'POST',
             headers: Util.getHeaders(ctx.unit)
         })
         TradeUtil.addLog(`Leverage is set to ${lever}x for symbol: ${ctx.trade.variant.symbol}`, ctx, this.logger)
     } 
 
-    public async placeOrder(params: Object, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
+    public async placeOrder(params: Object, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
         const result = await this.http.fetch<FuturesResult>({
-            url: this.signUrlWithParams(path, ctx, params),
+            url: this.signUrlWithParams(path, unit, params),
             method: method ?? 'POST',
-            headers: Util.getHeaders(ctx.unit)
+            headers: Util.getHeaders(unit)
         })
         return result
     }
@@ -149,7 +149,7 @@ export class TradeService {
     }
 
     public async closeTrades(ctx: TradeCtx) {
-        const trades = await this.tradeRepo.findBySymbol(ctx)
+        const trades = await this.tradeRepo.findBySymbol(ctx.unit, ctx.symbol)
         TradeUtil.addLog(`Found ${trades.length} open trades`, ctx, this.logger)
         
         for (let trade of trades) {
@@ -174,12 +174,26 @@ export class TradeService {
                 reduceOnly: true,
                 timestamp: Date.now()
             }
-            const result = await this.placeOrder(params, ctx, 'POST')
+            const result = await this.placeOrder(params, ctx.unit, 'POST')
             return result
         } catch (error) {
             this.handleError(error, `CLOSE POSITION ERROR`, ctx)
             return null
         }
+    }
+
+    public async closePositionBy(position: Position, unit: Unit): Promise<FuturesResult> {
+        const amount = Number(position.positionAmt)
+        const side = amount < 0 ? 'BUY' : 'SELL'
+        const params = {
+            symbol: position.symbol,
+            side: side,
+            type: TradeType.MARKET,
+            quantity: amount.toString(),
+            timestamp: Date.now(),
+            reduceOnly: true,
+        }
+        return this.placeOrder(params, unit, 'POST')
     }
 
     public async fetchPosition(ctx: TradeCtx): Promise<Position> {
@@ -241,8 +255,8 @@ export class TradeService {
         }
     }
 
-    private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: Object): string {
-        return this.signUrlWithParamsAndUnit(urlPath, tradeContext.unit, params)
+    private signUrlWithParams(urlPath: string, unit: Unit, params: Object): string {
+        return this.signUrlWithParamsAndUnit(urlPath, unit, params)
     }
     
     private signUrlWithParamsAndUnit(urlPath: string, unit: Unit, params: Object): string {

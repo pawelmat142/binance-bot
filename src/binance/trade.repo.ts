@@ -7,6 +7,7 @@ import { Unit } from "../unit/unit";
 import { TradeCtx } from "./model/trade-variant";
 import { TradeUtil } from "./utils/trade-util";
 import { Util } from "./utils/util";
+import { Position } from "./wizard-binance.service";
 
 @Injectable()
 export class TradeRepository {
@@ -28,11 +29,11 @@ export class TradeRepository {
         }
     }
 
-    public findBySymbol(ctx: TradeCtx): Promise<Trade[]> {
+    public findBySymbol(unit: Unit, symbol: string): Promise<Trade[]> {
         return this.model.find({
-            unitIdentifier: ctx.unit.identifier,
+            unitIdentifier: unit.identifier,
             closed: { $ne: true },
-            "variant.symbol": ctx.trade.variant.symbol
+            "variant.symbol": symbol
         })
     }
 
@@ -48,6 +49,14 @@ export class TradeRepository {
             closed: { $ne: true },
             unitIdentifier: unit.identifier,
             "variant.symbol": signal.variant.symbol
+        }).exec()
+    }
+
+    public findByPosition(position: Position, unit: Unit): Promise<Trade[]> {
+        return this.model.find({
+            closed: { $ne: true },
+            unitIdentifier: unit.identifier,
+            "variant.symbol": position.symbol
         }).exec()
     }
 

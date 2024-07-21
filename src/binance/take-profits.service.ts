@@ -61,7 +61,7 @@ export class TakeProfitsService {
                 const tpOrderClientOrderId = tp.result.clientOrderId
                 tp.result = null // delete result prevents triggers onFilledTakeProfit
                 await this.tradeRepo.update(ctx)
-                tp.result = await this.tradeService.closeOrder(ctx, tpOrderClientOrderId)
+                tp.result = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, tpOrderClientOrderId)
                 TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
             }
         }
@@ -102,7 +102,7 @@ export class TakeProfitsService {
             return
         }
         const params = TPUtil.takeProfitRequestParams(ctx, takeProfit.price, quantity, takeProfit.order)
-        const result = await this.tradeService.placeOrder(params, ctx)
+        const result = await this.tradeService.placeOrder(params, ctx.unit)
         takeProfit.result = result
         takeProfit.resultTime = new Date()
     }
@@ -157,7 +157,7 @@ export class TakeProfitsService {
             reduceOnly: true,
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW
         }
-        const result = await this.tradeService.placeOrder(params, ctx)
+        const result = await this.tradeService.placeOrder(params, ctx.unit)
         TradeUtil.addLog(`Took profit with order ${tp.order}, price: ${result.price}, unit: ${ctx.unit.identifier}, symbol: ${result.symbol}`, ctx, this.logger)
         return result
     }

@@ -157,7 +157,7 @@ export class BinanceUnitListener {
             const takeProfits = ctx.trade.variant.takeProfits
             for (let tp of takeProfits) {
                 if (tp.result && tp.result.status === TradeStatus.NEW) {
-                    const closeResult = await this.tradeService.closeOrder(ctx, tp.result.clientOrderId)
+                    const closeResult = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, tp.result.clientOrderId)
                     tp.result = closeResult
                     TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
                 }

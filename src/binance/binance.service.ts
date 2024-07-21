@@ -261,7 +261,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         const openOrders = await this.tradeService.fetchOpenOrders(ctx.unit, symbol)
         if (Array.isArray(openOrders)) {
             for (let order of openOrders) {
-                const result = await this.tradeService.closeOrder(ctx, order.clientOrderId)
+                const result = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, order.clientOrderId)
                 if (result.type === TradeType.STOP_MARKET) {
                     ctx.trade.stopLossResult = result
                     this.tradeLog(ctx, `Closed STOP LOSS  ${order.clientOrderId}`)
@@ -285,7 +285,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
         const result = await this.tradeService.closePosition(ctx)
         this.tradeLog(ctx, `Closed position`)
 
-        const trades = await this.tradeRepo.findBySymbol(ctx)
+        const trades = await this.tradeRepo.findBySymbol(ctx.unit, symbol)
         this.tradeLog(ctx, `Found ${trades.length} open trades`)
 
         for (let trade of trades) {
@@ -304,7 +304,7 @@ export class BinanceService implements OnModuleInit, OnModuleDestroy {
 
     private async manualCloseOpenOrder(ctx: TradeCtx) {
         try {
-            const result = await this.tradeService.closeOrder(ctx, ctx.trade.marketResult.clientOrderId)
+            const result = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, ctx.trade.marketResult.clientOrderId)
             ctx.trade.marketResult = result
             ctx.trade.closed = true
         } catch (error) {

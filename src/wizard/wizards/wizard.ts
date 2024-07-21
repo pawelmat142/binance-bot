@@ -21,7 +21,7 @@ export interface WizardStep {
 
 export interface WizardButton {
     text: string
-    callback_data: string,
+    callback_data?: string,
     switch?: string, 
     process?(): Promise<number> //returns order of next step
 }
@@ -36,14 +36,11 @@ export class Wizard {
 
     modified: Date
 
-    private _steps: WizardStep[]
-
     constructor(
         chatId: number,
         protected readonly services: ServiceProvider
     ) {
         this.chatId = chatId
-        this._steps = this.getSteps()
         this.order = 0
         this.modified = new Date()
     }

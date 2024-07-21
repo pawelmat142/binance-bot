@@ -3,6 +3,8 @@ import { FuturesResult, Trade } from "../model/trade"
 import { Unit } from "../../unit/unit"
 import { TradeCtx } from "../model/trade-variant"
 import { Util } from "./util"
+import { TradeUtil } from "./trade-util"
+import { Logger } from "@nestjs/common"
 
 export abstract class ClientOrderId {
     public static readonly MARKET_ORDER = "MA"
@@ -13,13 +15,43 @@ export abstract class ClientOrderId {
 
 export abstract class ClientOrderIdUtil {
 
-    public static getFilterQueryByEventClientOrderId(clientOrderId: string): FilterQuery<Trade> {
-        switch (this.prefix(clientOrderId)) {
-            case ClientOrderId.MARKET_ORDER: return { "marketResult.clientOrderId": clientOrderId }
-            case ClientOrderId.LIMIT_ORDER: return { "variant.limitOrders.result.clientOrderId": clientOrderId }
-            case ClientOrderId.TAKE_PROFIT: return { "variant.takeProfits.result.clientOrderId": clientOrderId }
-            case ClientOrderId.STOP_LOSS: return { "stopLossResult.clientOrderId": clientOrderId }
+    public static updaResult(ctx: TradeCtx, result: FuturesResult) {
+
+        const orderType = this.orderTypeByClientOrderId(result.clientOrderId)
+        TradeUtil.addLog(`Set result of type ${result.type}, orderType: ${orderType} with clientOrderId ${result.clientOrderId}`, ctx, new Logger(`util`))
+        switch (orderType) {
+            case ClientOrderId.MARKET_ORDER: 
+                ctx.trade.marketResult = result
+            break
+
+            case ClientOrderId.STOP_LOSS:
+                ctx.trade.stopLossResult = result
+            break
+
+            case ClientOrderId.LIMIT_ORDER: 
+                for (let lo of ctx.trade.variant?.limitOrders) {
+                    if (!lo.result || lo.result?.clientOrderId === result.clientOrderId) {
+                        lo.result = result
+                        break
+                    }
+                }
+            break
+
+            case ClientOrderId.TAKE_PROFIT: 
+                for (let tp of ctx.trade.variant?.takeProfits) {
+                    if (!tp.result || tp.result?.clientOrderId === result.clientOrderId) {
+                        tp.result = result
+                        continue
+                    }
+                }
+
+            break
+
+            default:
+                TradeUtil.addError(`No matching order result with clientOrderId ${result.clientOrderId}`, ctx, new Logger(`util`))
+
         }
+
     }
 
     public static generate(prefix: string, unit: Unit, symbol: string): string {

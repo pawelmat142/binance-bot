@@ -7,13 +7,14 @@ import { Http } from "../global/http/http.service";
 import { Util } from "./utils/util";
 import { BinanceResultOrError, isBinanceError } from "./model/binance.error";
 import { LimitOrderUtil } from "./utils/limit-order-util";
-import { FuturesResult, TradeStatus, TradeType } from "./model/trade";
+import { TradeStatus, TradeType } from "./model/trade";
 import { TradeUtil } from "./utils/trade-util";
 import { TakeProfitsQuantityCalculator } from "../global/calculators/take-profits-quantity.calculator";
 import { TPUtil } from "./utils/take-profit-util";
 import { HttpMethod } from "../global/type";
 import { TradeRepository } from "./trade.repo";
 import { StopLossCalculator } from "../global/calculators/stop-loss.calculator";
+import { ClientOrderId, ClientOrderIdUtil } from "./utils/client-order-id-util";
 
 @Injectable()
 export class LimitOrdersService {
@@ -45,7 +46,7 @@ export class LimitOrdersService {
     
     public async onFilledLimitOrder(ctx: TradeCtx) {
         try {
-            await this.closeTakeProfitAndStopLossIfOpen(ctx)
+            await this.closeAllOpenOrders(ctx)
             await this.openStopLossAndTakeProfitIfNeeded(ctx)
         } 
         catch (error) {
@@ -57,38 +58,54 @@ export class LimitOrdersService {
         }
     }
 
-    private async closeTakeProfitAndStopLossIfOpen(ctx: TradeCtx) {
-        const orderIdList: string[] = []
-        const openedTakeProfit = ctx.trade.variant.takeProfits.find(tp => tp.result?.status === TradeStatus.NEW)
-        if (openedTakeProfit) {
-            orderIdList.push(openedTakeProfit.result.clientOrderId)
-        }
-        if (ctx.trade.stopLossResult?.status === TradeStatus.NEW) {
-            orderIdList.push(ctx.trade.stopLossResult.clientOrderId)
-        }
+    public async closeAllOpenOrders(ctx: TradeCtx) {
+        const clinetOrderIds = this.openOrderClientOrderIds(ctx)
 
-        if (orderIdList.length) {
-            const results = await this.closeMultipleOrders(ctx, orderIdList)
-            results.forEach(result => {
-                if (isBinanceError(result)) {
-                    TradeUtil.addError(result.msg, ctx, this.logger)
-                } 
-                else if (result.clientOrderId === openedTakeProfit.result?.clientOrderId) {
-                    openedTakeProfit.result = result
-                    TradeUtil.addLog(`Closed Take Profit ${openedTakeProfit.order+1}, clientOrderId: ${result.clientOrderId}`, ctx, this.logger)
-                } 
-                else if (result.clientOrderId === ctx.trade.stopLossResult?.clientOrderId) {
-                    ctx.trade.stopLossResult = result
-                    TradeUtil.addLog(`Closed Stop Loss, clientOrderId: ${result.clientOrderId}`, ctx, this.logger)
-                } 
-                else {
-                    TradeUtil.addError(`Close order result ${result.clientOrderId} doesnt match`, ctx, this.logger)
-                }
-            })
+        if (clinetOrderIds.length) {
+            const results = await this.closeMultipleOrders(ctx, clinetOrderIds)
+            this.updateMultipleOrderResults(ctx, results)
         } else {
             TradeUtil.addLog(`No Stop Loss or Take Profit to close`, ctx, this.logger)
         }
     }
+
+    private openOrderClientOrderIds(ctx: TradeCtx) {
+        const orderIdList: string[] = []
+        for (let tp of ctx.trade.variant?.takeProfits || []) {
+            if (tp.result?.status === TradeStatus.NEW) {
+                orderIdList.push(tp.result.clientOrderId)
+            }
+        }
+
+        for (let lo of ctx.trade.variant?.limitOrders || []) {
+            if (lo.result?.status === TradeStatus.NEW) {
+                orderIdList.push(lo.result.clientOrderId)
+            }
+        }
+
+        if (ctx.trade.stopLossResult?.status === TradeStatus.NEW) {
+            orderIdList.push(ctx.trade.stopLossResult.clientOrderId)
+        }
+        return orderIdList
+    }
+
+    
+
+    private updateMultipleOrderResults(ctx: TradeCtx, results: BinanceResultOrError[]) {
+        for (let result of results) {
+
+            if (isBinanceError(result)) {
+                TradeUtil.addError(result.msg, ctx, this.logger)
+                continue
+            } 
+                
+            const orderType = ClientOrderIdUtil.orderTypeByClientOrderId(result.clientOrderId)
+            TradeUtil.addLog(`Set result of type ${result.type}, orderType: ${orderType} with clientOrderId ${result.clientOrderId}`, ctx, this.logger)
+            ClientOrderIdUtil.updaResult(ctx, result)
+        }
+    }
+
+
 
     private async openStopLossAndTakeProfitIfNeeded(ctx: TradeCtx) {
         const orders: PlaceOrderParams[] = [
@@ -102,28 +119,7 @@ export class LimitOrdersService {
         }
 
         const results = await this.openMultipleOrders(ctx, orders)
-
-        results.forEach(result => {
-            if (isBinanceError(result)) {
-                TradeUtil.addError(result.msg, ctx, this.logger)
-            } 
-            else if (result.type === TradeType.TAKE_PROFIT_MARKET) {
-                const tp = TPUtil.firstTakeProfitToOpen(ctx.trade.variant)
-                if (!tp) {
-                    TradeUtil.addError(`Not found Take Profit to place result`, ctx, this.logger)
-                    return null
-                }
-                tp.result = result
-                TradeUtil.addLog(`Opened Take Profit ${tp.order+1}, stop price ${result.stopPrice}, clientOrderId ${result.clientOrderId}`, ctx, this.logger)
-            } 
-            else if (result.type === TradeType.STOP_MARKET) {
-                ctx.trade.stopLossResult = result
-                TradeUtil.addLog(`Opened Stop Loss, stop price ${result.stopPrice}, clientOrderId: ${result.clientOrderId}`, ctx, this.logger)
-            } 
-            else {
-                TradeUtil.addError(`Opened order result ${result.clientOrderId} doesnt match`, ctx, this.logger)
-            }
-        })
+        this.updateMultipleOrderResults(ctx, results)
     }
 
     private async prepareStopLossParams(ctx: TradeCtx): Promise<PlaceOrderParams> {

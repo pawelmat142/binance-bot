@@ -18,6 +18,7 @@ import { TelegramService } from "../telegram/telegram.service";
 import { IncomesWizard } from "./wizards/incomes.wizard";
 import { AdminIncomesWizard } from "./wizards/admin-incomes.wizard";
 import { TradeAmountWizard } from "./wizards/trade-amount.wizard";
+import { TestWizard } from "./wizards/test-wizard";
 
 @Injectable()
 export class WizardService implements OnModuleInit, OnModuleDestroy {
@@ -140,6 +141,9 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
             options.reply_markup = {
                 one_time_keyboard: true,
                 inline_keyboard: buttons.map(btns => btns.map(btn => {
+                    if (!btn.callback_data) {
+                        btn.callback_data = btn.text
+                    }
                     return btn as TelegramBot.InlineKeyboardButton
                 })),
             }
@@ -240,8 +244,14 @@ export class WizardService implements OnModuleInit, OnModuleDestroy {
         switch (name) {
             case AccountWizard.name:
                 return new AccountWizard(currentWizard.getUnit(), this.service)
+
+                // REFACTOR IN PROGRESS
             case TradesWizard.name:
                 return new TradesWizard(currentWizard.getUnit(), this.service)
+
+            case TestWizard.name:
+                return new TestWizard(currentWizard.getUnit(), this.service)
+
             case AdminWizard.name:
                 return new AdminWizard(currentWizard.getUnit(), this.service)
             case LogsWizard.name:

@@ -247,7 +247,7 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
 
             for (let lo of ctx.trade.variant.limitOrders) {
                 if (lo.result) {
-                    const result = await this.tradeService.closeOrder(ctx, lo.result.clientOrderId)
+                    const result = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, lo.result.clientOrderId)
                     ctx.trade.closed = true
                     lo.result = result
                     this.telegramService.sendUnitMessage(ctx, [VariantUtil.label(ctx.trade.variant), `Closed order bcs price limit exceeded`])

@@ -3,9 +3,9 @@ import { UnitWizard } from "./unit-wizard";
 import { WizardStep } from "./wizard";
 import { WizBtn } from "./wizard-buttons";
 import { AccountWizard } from "./account.wizard";
-import { TradesWizard } from "./trades.wizard";
 import { AdminWizard } from "./admin.wizard";
 import { Unit } from "../../unit/unit";
+import { TestWizard } from "./test-wizard";
 
 export class StartWizard extends UnitWizard {
 
@@ -23,9 +23,12 @@ export class StartWizard extends UnitWizard {
                 callback_data: WizBtn.amount,
                 switch: AccountWizard.name
             }], [{
-                text: 'Trades & orders',
+                text: 'Positions & orders',
                 callback_data: WizBtn.trade,
-                switch: TradesWizard.name
+                // REFACTOR IN PROGRESS
+                // switch: TradesWizard.name
+
+                switch: TestWizard.name
             }]],
         }
 

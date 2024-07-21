@@ -53,6 +53,7 @@ import { StatisticsBinanceService } from './statistics-binance.service';
     WizardBinanceService,
     TakeProfitsService,
     StatisticsBinanceService,
+    LimitOrdersService,
   ]
 })
 export class BinanceModule {}

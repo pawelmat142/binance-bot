@@ -6,6 +6,8 @@ import * as moment from 'moment-timezone';
 
 export abstract class Util {
 
+    public static readonly $$: string = 'USDT'
+
     public static payload(params: Object): string {
         return Object.entries(params).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join('&')
     }
@@ -41,5 +43,6 @@ export abstract class Util {
     public static toDateString(date: Date): string {
         return moment(date).format('YY-MM-DD hh:mm:ss')
     }
+
 
 }
