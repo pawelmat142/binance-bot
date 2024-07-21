@@ -1,9 +1,9 @@
 import { HttpService } from '@nestjs/axios';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AxiosError, AxiosRequestConfig } from 'axios';
-import { BinanceError, isBinanceError } from 'src/binance/model/binance.error';
 import { lastValueFrom } from 'rxjs';
 import * as JSONbig from 'json-bigint';
+import { isBinanceError, BinanceError } from '../../binance/model/binance.error';
 
 @Injectable()
 export class Http {
@@ -39,6 +39,9 @@ export class Http {
     public static handleErrorMessage(error): string {
         if (error instanceof AxiosError) {
             if (error.response?.data) {
+                if (error.response.status === 404) {
+                    return 'Not found 404'
+                }
                 const errorData = JSON.parse(error.response?.data)
                 if (isBinanceError(errorData)) {
                     return errorData.msg
@@ -48,9 +51,6 @@ export class Http {
                 return `[${error.response?.status}] ${error.response?.statusText}`
             }
         }
-        // TODO remove
-        console.log(error)
-        console.log('console.log')
         return error
     }
 

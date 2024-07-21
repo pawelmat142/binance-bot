@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { BehaviorSubject } from "rxjs";
-import { Trade } from "src/binance/model/trade";
-import { TradeCtx } from "src/binance/model/trade-variant";
-import { Unit } from "src/unit/unit";
+import { Trade } from "../binance/model/trade";
+import { TradeCtx } from "../binance/model/trade-variant";
+import { Unit } from "../unit/unit";
 
 @Injectable()
 export class SelectedTradeProvider {

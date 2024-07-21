@@ -3,37 +3,42 @@ import { InjectModel } from '@nestjs/mongoose';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Unit } from './unit';
 import { Model } from 'mongoose';
-import { getHeaders, newObjectId, queryParams, sign } from 'src/global/util';
-import { TradeUtil } from 'src/binance/trade-util';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { UnitUtil } from './unit.util';
-import { WebSocket, Event, MessageEvent, CloseEvent, ErrorEvent, Data } from 'ws';
-import { BinanceError } from 'src/binance/model/binance.error';
-import { HttpMethod } from 'src/global/http-method';
-import { BotUtil } from 'src/wizard/bot.util';
-import { Http } from 'src/global/http/http.service';
-import { ListeKeyResponse, TradeEventData } from 'src/binance/model/model';
-import * as JSONbig from 'json-bigint';
+import { BinanceError } from '../binance/model/binance.error';
+import { TradeEventData } from '../binance/model/model';
+import { TradeUtil } from '../binance/utils/trade-util';
+import { Http } from '../global/http/http.service';
+import { BotUtil } from '../wizard/bot.util';
+import { Util } from '../binance/utils/util';
+import { Data } from 'ws';
 
 
 @Injectable()
 export class UnitService implements OnModuleInit {
 
     private readonly logger = new Logger(UnitService.name)
-    private readonly WEBSOCKET_ONLY_FOR = process.env.WEBSOCKET_ONLY_FOR
 
     constructor(
         @InjectModel(Unit.name) private unitModel: Model<Unit>,
         private readonly http: Http,
     ) {}
 
-    private adminChannelIds = BotUtil.adminChannelIds()
+    private readonly adminChannelIds = BotUtil.adminChannelIds()
 
     public isAdmin = (chatId: string): boolean => {
         return this.adminChannelIds.includes(chatId?.toString())
     }
 
     private _units$ = new BehaviorSubject<Unit[]>([])
+    public get units$(): Observable<Unit[]> {
+        return this._units$.asObservable()
+    }
+
+    public get units(): Unit[] {
+        return this._units$.value
+    }
+
+
 
     private tradeEventSubject$ = new Subject<TradeEventData>()
 
@@ -44,7 +49,7 @@ export class UnitService implements OnModuleInit {
     onModuleInit() {
         this.initUnits()
         this._units$.subscribe(units => {
-            this.logger.log(`Loaded ${units.length} units: [ ${units.map(u => u.identifier).join(', ')} ]`)
+            this.logger.log(`Loaded ${units.length} active units: [ ${units.map(u => u.identifier).join(', ')} ]`)
         })
     }
 
@@ -62,23 +67,6 @@ export class UnitService implements OnModuleInit {
 
     private async initUnits() {
         await this.loadUnits()
-        this.startListeningForEveryUnit()
-    }
-
-    @Cron(CronExpression.EVERY_30_MINUTES)
-    private async keepAliveListenKeyForEveryUnit() {
-        this.logger.warn('Refreshing listen keys')
-        const units = await this.unitModel.find(
-            { active: true, listenKey: { $exists: true } },
-            { listenJsons: false, tradeObjectIds: false }).exec()
-
-       await Promise.all(units.map(this.keepAliveListenKey))
-       this.logger.log(`Keeping alive listenKey for ${units.length} units: [ ${units.map(u=>u.identifier).join(' ')} ]`)
-    }
-
-
-    public get units(): Unit[] {
-        return this._units$.value
     }
 
     public getUnit(identifier: string): Unit {
@@ -89,7 +77,7 @@ export class UnitService implements OnModuleInit {
 
     public findUnitByChatId(chatId: number): Promise<Unit> {
         return this.unitModel.findOne({ telegramChannelId: chatId }, 
-            { listenJsons: false, tradeObjectIds: false }).exec()
+            { listenJsons: false }).exec()
     }
 
     public async fetchLogs(identifier: string): Promise<string[]> {
@@ -98,158 +86,31 @@ export class UnitService implements OnModuleInit {
         return unit.listenJsons
     }
 
-    private async startListeningForEveryUnit() {
-        if (process.env.SKIP_WEBSOCKET_LISTEN === 'true') {
-            this.logger.warn(`[SKIP] listening websockets`)
-            return
-        }
-        const units = this._units$.value
-
-        await Promise.all(units.map(this.startListening))
-    }
-
-
-    public startListening = async (unit: Unit) => {
-        if (this.WEBSOCKET_ONLY_FOR) {
-            if (unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
-                return
-            }
-        }
-        if (UnitUtil.socketOpened(unit)) {
-            this.logger.warn(`Socket fot unit ${unit.identifier} already opened`)
-            return
-        }
-
-        const listenKey = await this.fetchListenKey(unit)
-        const ws = new WebSocket(`${UnitUtil.socketUri}/${listenKey}`)
-
-        ws.onopen = (event: Event) => {
-            this.logger.log(`Opened socket for unit: ${unit.identifier}`)
-        }
-        
-        ws.onclose = (event: CloseEvent) => {
-            this.logger.warn(`Closed socket for unit: ${unit.identifier}`)
-        }
-        
-        ws.onerror = (event: ErrorEvent) => {
-            this.addError(unit, `Error on socket for unit: ${unit.identifier}`)
-            this.addError(unit, `event.error`)
-            this.addError(unit, event.error)
-            this.removeListenKey(unit)
-        }
-
-        ws.onmessage = (event: MessageEvent) => {
-            this.removeListenKeyIfMessageIsAboutClose(event, unit)
-            const tradeEvent: TradeEventData = JSONbig.parse(event.data as string)
-            this.logger.log(`[${unit.identifier}] Biannce Event ${tradeEvent.e} received`)
-            if (TradeUtil.isTradeEvent(tradeEvent)) {
-                tradeEvent.unitIdentifier = unit.identifier
-                this.tradeEventSubject$.next(tradeEvent)
-            }
-        }
-        unit.socket = ws
-    }
-
-
-    public keepAliveListenKey = async (unit: Unit) =>  { //
-        if (this.WEBSOCKET_ONLY_FOR) {
-            if (unit.identifier !== this.WEBSOCKET_ONLY_FOR) {
-                return
-            }
-        }
-        const fetched = await this.fetchUnit(unit.identifier)
-        const listenKey = fetched?.listenKey
-        if (!listenKey) {
-            this.logger.error(`Could not find listenKey for unit ${unit.identifier}`)
-        }
-        return this.request(unit, 'PUT')
-    }
-
-    public stopListening(unit: Unit) {
-        unit.socket?.close()
-        return this.request(unit, 'DELETE')
-    }
-
-
-    private async fetchListenKey(unit: Unit): Promise<string> {
-        try {
-            const listenKey = await this.request(unit, 'POST')
-            if (!listenKey || typeof listenKey !== 'string') {
-                throw new Error(`Listen key error response for unit: ${unit.identifier}`)
-            }
-            this.logger.log(`Found new listenKey for unit ${unit.identifier}: ${listenKey}`)
-            this.updateListenKey(unit, listenKey)
-            return listenKey
-        } catch (error) {
-            const message = Http.handleErrorMessage(error)
-            this.logger.error(message)
-        }
-    }
-
-    private async request(unit: Unit, method: HttpMethod): Promise<string> {
-        const response = await this.http.fetch<ListeKeyResponse>({
-            url: this.signUrlWithParams(`/listenKey`, unit, ''),
-            method: method,
-            headers: getHeaders(unit)
-        })
-        return response.listenKey
-    }
-
-
-    private signUrlWithParams(path: string, unit: Unit, queryString: string) {
-        const url = `${TradeUtil.futuresUri}${path}`
-        return sign(url, queryString, unit)
-    }
-
     private async fetchUnit(identifier: string): Promise<Unit> {
         const found = await this.unitModel.findOne(
             { identifier: identifier }, 
-            { listenJsons: false, tradeObjectIds: false }).exec()
+            { listenJsons: false }).exec()
         if (!found) throw new Error(`Could not found unit ${identifier}`)
         return found
     }
 
-
-    private onBinanceError(err: BinanceError, unit: Unit) {
-        this.logger.error(`[${err.code}] unit: ${unit.identifier} - ${err.msg}`)
-        if (err?.code === -1125) {
-            this.removeListenKey(unit)
-        }
-        if (UnitUtil.socketOpened(unit)) {
-            unit.socket.close()
-        }
+    public async fetchAllUnits(): Promise<Unit[]> {
+        return this.unitModel.find({})
     }
 
-    private removeListenKeyIfMessageIsAboutClose(event: MessageEvent, unit: Unit) {
-        try {
-            const data = JSON.parse(event?.data.toString())
-            if (data?.e === 'listenKeyExpired') {
-                if (UnitUtil.socketOpened(unit)) {
-                    unit.socket.close()
-                }
-            }
-        } catch {
-            return
-        }
-    }
-
-
-    private removeListenKey(unit: Unit) {
+    public removeListenKey(unit: Unit) {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
             { $unset: { listenKey: 1 } }
-        ).exec().finally(() => this.logger.warn(`Removed listen key for unit ${unit.identifier}`))
+        ).exec().finally(() => this.logger.warn(`[${unit.identifier}] Removed listen key`))
     }
 
-
-    private updateListenKey(unit: Unit, listenKey: string) {
+    public updateListenKey(unit: Unit) {
         return this.unitModel.updateOne(
             { identifier: unit.identifier },
-            { $set: { listenKey: listenKey } }
+            { $set: { listenKey: unit.listenKey } }
         ).exec()
     }
-
-
 
     public async addUnit(body: Unit) {
         if (!body.identifier) {
@@ -260,12 +121,11 @@ export class UnitService implements OnModuleInit {
             throw new BadRequestException(`Unit ${body.identifier} already exists`)
         }
         const entity = new this.unitModel({
-            _id: newObjectId(),
+            _id: Util.newObjectId(),
             identifier: body.identifier,
             active: body.active,
             listenJsons: [],
-            tradeObjectIds: [],
-            usdtPerTransaction: body.usdtPerTransaction,
+            tradeAmounts: body.tradeAmounts,
             binanceApiKey: body.binanceApiKey,
             binanceApiSecret: body.binanceApiSecret,
             telegramChannelId: body.telegramChannelId,
@@ -306,10 +166,6 @@ export class UnitService implements OnModuleInit {
                 units.push(unit)
             }
             this._units$.next(units)
-
-            if (unit.active) {
-                this.startListening(unit)
-            }
         } else {
             const units = this._units$.value.filter(u => u.identifier !== identifier)
             this._units$.next(units)
@@ -365,14 +221,14 @@ export class UnitService implements OnModuleInit {
     }
 
     public async apiKeyError(unit: Unit): Promise<BinanceError> {
-        const params = queryParams({
+        const params = {
             timestamp: Date.now(),
-        })
+        }
         try {
             return this.http.fetch<BinanceError>({
-                url: sign(`${TradeUtil.futuresUriV2}/account`, params, unit),
+                url: Util.sign(`${TradeUtil.futuresUriV2}/account`, params, unit),
                 method: 'GET',
-                headers: getHeaders(unit)
+                headers: Util.getHeaders(unit)
             })
         } catch (error) {
             const message = Http.handleErrorMessage(error)
@@ -387,51 +243,56 @@ export class UnitService implements OnModuleInit {
         return unit?.listenJsons ?? []
     }
 
-    public async activation(identifier: string, active: boolean) {
-        const unit = await this.fetchUnitByIdentifier(identifier)
+    public async activation(_unit: Unit) {
         const update = await this.unitModel.updateOne(
-            { identifier: unit?.identifier },
-            { $set: { active: active } }
+            { identifier: _unit.identifier },
+            { $set: { active: _unit.active } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     } 
 
-    public async updateUsdtPerTransaction(_unit: Unit) {
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
+    public async updateTradeAmounts(_unit: Unit) {
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
-            { $set: { usdtPerTransaction: _unit.usdtPerTransaction } }
+            { identifier: _unit.identifier },
+            { $set: { tradeAmounts: _unit.tradeAmounts } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
 
     public async updateAllowMinNotional(_unit: Unit) {
         _unit.allowMinNotional = !_unit.allowMinNotional
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: _unit.identifier },
             { $set: { allowMinNotional: _unit.allowMinNotional } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
 
     public async updateApiKey(_unit: Unit) {
-        const unit = await this.fetchUnitByIdentifier(_unit.identifier)
         const update = await this.unitModel.updateOne(
-            { identifier: unit.identifier },
+            { identifier: _unit.identifier },
             { $set: { 
                 binanceApiKey: _unit.binanceApiKey,
                 binanceApiSecret: _unit.binanceApiSecret 
             } }
         ).exec()
-        this.loadUnit(unit.identifier)
+        this.loadUnit(_unit.identifier)
         return update
     }
 
-
+    public async updateAdminSignalSource(_unit: Unit) {
+        const update = await this.unitModel.updateOne(
+            { identifier: _unit.identifier },
+            { $set: { 
+                adminSignalSource: _unit.adminSignalSource,
+            } }
+        ).exec()
+        this.loadUnit(_unit.identifier)
+        return update
+    }
     
     private async fetchUnitByIdentifier(identifier: string): Promise<Unit> {
         const unit = await this.unitModel.findOne({ identifier: identifier }, { listenJsons: false })

@@ -19,17 +19,4 @@ export class UnitController {
         return this.unitService.getLogs(identifier)
     }
 
-
-    @Get('socket/keepalive/:identifier')
-    keepAlive(@Param('identifier') identifier: string) {
-        const unit = this.unitService.getUnit(identifier)
-        return this.unitService.keepAliveListenKey(unit)
-    }
-
-    @Get('socket/close/:identifier')
-    socketClose(@Param('identifier') identifier: string) {
-        const unit = this.unitService.getUnit(identifier)
-        return this.unitService.stopListening(unit)
-    }
-
 }

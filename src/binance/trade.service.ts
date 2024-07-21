@@ -1,21 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TradeUtil } from './trade-util';
-import { getHeaders, queryParams, sign } from 'src/global/util';
-import { FuturesResult, TradeStatus } from './model/trade';
-import { TradeCtx, TakeProfit, TradeContext } from './model/trade-variant';
+import { TradeUtil } from './utils/trade-util';
+import { FuturesResult, TradeType } from './model/trade';
+import { TradeCtx, TradeContext } from './model/trade-variant';
 import Decimal from 'decimal.js';
-import { HttpMethod } from 'src/global/http-method';
-import { TradeType } from './model/model';
-import { TradeRepository } from './trade.repo';
-import { TelegramService } from 'src/telegram/telegram.service';
-import { Unit } from 'src/unit/unit';
 import { Position } from './wizard-binance.service';
-import { Http } from 'src/global/http/http.service';
 import { CalculationsService } from './calculations.service';
 import { BinanceErrors } from './model/binance.error';
-import { TPUtil } from './take-profit-util';
 import { Subject } from 'rxjs';
-import { VariantUtil } from './model/variant-util';
+import { VariantUtil } from './utils/variant-util';
+import { TradeQuantityCalculator } from '../global/calculators/trade-quantity.calculator';
+import { Http } from '../global/http/http.service';
+import { HttpMethod } from '../global/type';
+import { Unit } from '../unit/unit';
+import { Util } from './utils/util';
+import { StopLossCalculator } from '../global/calculators/stop-loss.calculator';
+import { PlaceOrderParams } from './model/model';
+import { TradeRepository } from './trade.repo';
 
 @Injectable()
 export class TradeService {
@@ -25,195 +25,62 @@ export class TradeService {
     private readonly testNetwork = process.env.BINANCE_TEST_NETWORK === 'true'
 
     constructor(
-        private readonly tradeRepo: TradeRepository,
-        private readonly telegramService: TelegramService,
         private readonly http: Http,
         private readonly calculationsService: CalculationsService,
+        private readonly tradeRepo: TradeRepository,
     ) {}
 
     public closeOrderEvent$ = new Subject<string>()
 
-    public async openPosition(ctx: TradeCtx) {
-        if (TradeUtil.priceInEntryZone(ctx)) {
-            await this.tradeRequestMarket(ctx)
-        } else {
-            await this.tradeRequestLimit(ctx)
-        }
-        const status = ctx.trade.futuresResult?.status
-        if ([TradeStatus.NEW, TradeStatus.FILLED].includes(status)) {
-            TradeUtil.addLog(`Opened position for unit: ${ctx.unit.identifier} with status: ${status}, origQty: ${ctx.trade.futuresResult.origQty}`, ctx, this.logger)
-        } else {
-            TradeUtil.addError(`Wrong trade status! ${status}`, ctx, this.logger)
-        }
-    }
 
-    private async tradeRequestMarket(ctx: TradeCtx): Promise<void> {
-        const params = TradeUtil.tradeRequestMarketParams(ctx.trade)
-        const result = await this.placeOrder(params, ctx)
+    public async openPositionByMarket(ctx: TradeCtx): Promise<void> {
+        const quantity = await TradeQuantityCalculator.start<number>(ctx, this.calculationsService)
+        const params = TradeUtil.marketOrderParams(ctx, quantity)
+        const result = await this.placeOrder(params, ctx.unit)
         ctx.trade.timestamp = new Date()
-        ctx.trade.futuresResult = result
-        if (this.testNetwork) {
-            ctx.trade.futuresResult.origQty = ctx.trade.quantity.toString()
-            ctx.trade.futuresResult.status = 'FILLED'
+        ctx.trade.marketResult = result
+        TradeUtil.addLog(`Opened position with status: ${result.status}, origQty: ${ctx.trade.marketResult.origQty}`, ctx, this.logger)
+        if (!ctx.marketFilledQuantity.equals(new Decimal(quantity))) {
+            TradeUtil.addWarning(`origQuantity ${ctx.marketFilledQuantity} != quantity ${quantity}`, ctx, this.logger)
         }
-        this.verifyOrigQuantity(ctx)
     }
 
-    private async tradeRequestLimit(ctx: TradeCtx): Promise<void> {
-        const params = TradeUtil.tradeRequestLimitParams(ctx.trade)
-        const result = await this.placeOrder(params, ctx)
-        ctx.trade.timestamp = new Date()
-        ctx.trade.futuresResult = result
-        if (this.testNetwork) {
-            ctx.trade.futuresResult.origQty = ctx.trade.quantity.toString()
-            ctx.trade.futuresResult.status = 'NEW'
-        }
-        this.verifyOrigQuantity(ctx)
-    }
-
-    private verifyOrigQuantity(ctx: TradeCtx) {
-        if (ctx.trade.futuresResult.status !== 'FILLED') {
+    public async placeStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
+        const params = await StopLossCalculator.start<PlaceOrderParams>(ctx, this.calculationsService, forcedPrice ? { forcedPrice } : undefined)
+        if (!params) {
             return
         }
-        if (!ctx.origQuantity.equals(new Decimal(ctx.trade.quantity))) {
-            TradeUtil.addWarning(`origQuantity ${ctx.origQuantity} != quantity ${ctx.trade.quantity}`, ctx, this.logger)
-        }
-    }
-
-    public async stopLossRequest(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
-        if (!ctx.trade.variant.stopLoss && !forcedPrice) {
-            TradeUtil.addWarning(`STOP LOSS NOT PROVIDED!`, ctx, this.logger)
-            return
-        }
-        const stopLossQuantity = TradeUtil.calculateStopLossQuantity(ctx)
-        let stopLossPrice = isNaN(forcedPrice) ? TradeUtil.getStopLossPrice(ctx) : forcedPrice
-        stopLossPrice = this.calculationsService.fixPricePrecision(stopLossPrice, ctx.symbol)
-
-        TradeUtil.addLog(`Calculated stop loss quantity: ${stopLossQuantity}, price: ${stopLossPrice}`, ctx, this.logger)
-
-        const params = TradeUtil.stopLossRequestParams(ctx, stopLossQuantity, stopLossPrice)
-        const result = await this.placeOrder(params, ctx)
+        const result = await this.placeOrder(params, ctx.unit)
         if (result) {
             ctx.trade.stopLossTime = new Date()
             ctx.trade.stopLossResult = result
-            TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${stopLossPrice}`, ctx, this.logger)
+            TradeUtil.addLog(`Placed stop loss order with quantity: ${ctx.trade.stopLossResult.origQty}, price: ${result.stopPrice}`, ctx, this.logger)
         } else {
             TradeUtil.addError(`Error placing stop loss order`, ctx, this.logger)
         }
     }
 
-
     public async moveStopLoss(ctx: TradeCtx, forcedPrice?: number): Promise<void> {
         await this.closeStopLoss(ctx)
         await new Promise(resolve => setTimeout(resolve, 3000))
-        await this.stopLossRequest(ctx, forcedPrice)
+        await this.placeStopLoss(ctx, forcedPrice)
     }
-
 
     public async closeStopLoss(ctx: TradeCtx): Promise<void> {
         const trade = ctx.trade
-        const stopLossOrderId = trade.stopLossResult?.orderId
-        if (!stopLossOrderId) {
-            TradeUtil.addLog(`Could not find SL with id: ${stopLossOrderId}, result in trade ${trade._id}`, ctx, this.logger)
+        const stopLossClientOrderId = trade.stopLossResult?.clientOrderId
+        if (!stopLossClientOrderId) {
+            TradeUtil.addWarning(`Not found Stop Loss clientOrderId ${stopLossClientOrderId}, result in trade ${trade._id}`, ctx, this.logger)
             return
         }
-        trade.stopLossResult = await this.closeOrder(ctx, stopLossOrderId)
+        trade.stopLossResult = await this.closeOrder(ctx.unit, ctx.symbol, stopLossClientOrderId)
         TradeUtil.addLog(`Closed stop loss with stopPrice: ${trade.stopLossResult.stopPrice}`, ctx, this.logger)
     }
 
-    public async closePendingTakeProfit(ctx: TradeCtx) {
-        const takeProfits = ctx.trade.variant.takeProfits
-        for (let tp of takeProfits) {
-            if (tp.reuslt?.status === TradeStatus.NEW) {
-                const tpOrderId = tp.reuslt.orderId
-                tp.reuslt = null // delete result prevents triggers onFilledTakeProfit
-                await this.tradeRepo.update(ctx)
-                tp.reuslt = await this.closeOrder(ctx, tpOrderId)
-                TradeUtil.addLog(`Closed take profit with order: ${tp.order}`, ctx, this.logger)
-            }
-        }
-    }
-
-    public async openNextTakeProfit(ctx: TradeCtx) {
-        const takeProfits = ctx.trade.variant.takeProfits
-        takeProfits.sort((a, b) => a.order - b.order)
-        for (let tp of takeProfits) {
-            if (!tp.reuslt && tp.quantity) {
-                await this.takeProfitRequest(ctx, tp)
-                return
-            }
-        }
-    }
-
-    public async takeSomeProfit(ctx: TradeCtx): Promise<boolean> {
-        try {
-            this.calculationsService.calculateSingleTakeProfitQuantityIfEmpty(ctx)
-            const takeProfits = ctx.trade.variant.takeProfits
-            takeProfits.sort((a, b) => a.order - b.order)
-            for (let i = takeProfits.length-1; i>=0; i--) {
-                const tp = takeProfits[i]
-                const quantity = Number(tp.quantity)
-                if ((!tp.reuslt || tp.reuslt.status === TradeStatus.NEW) && quantity) {
-                    if (tp.reuslt?.status === TradeStatus.NEW) {
-                        await this.closePendingTakeProfit(ctx)
-                    }
-                    delete tp.reuslt
-                    tp.takeSomeProfitFlag = true
-                    const result = await this.takeSomeProfitRequest(ctx, tp)
-                    result.status = TradeStatus.FILLED
-                    result.executedQty = result.origQty
-                    tp.reuslt = result
-                    this.onFilledTakeSomeProfit(ctx)
-                    return !!result
-                }
-            }
-            throw new Error(`Take profits are empty`)
-        } catch (error) {
-            this.handleError(error, `TAKE SOME PROFIT ERROR`, ctx)
-            return false
-        }
-    }
-
-    private async onFilledTakeSomeProfit(ctx: TradeCtx) {
-        if (TPUtil.positionFullyFilled(ctx)) {
-            await this.closeStopLoss(ctx)
-            await this.closePendingTakeProfit(ctx)
-            TradeUtil.addLog(`Every take profit filled, stop loss closed ${ctx.trade._id}`, ctx, this.logger)
-            this.telegramService.onClosedPosition(ctx)
-        } else {
-            const stopLossPrice = Number(ctx.trade.stopLossResult?.stopPrice)
-            await this.moveStopLoss(ctx, isNaN(stopLossPrice) ? undefined : stopLossPrice)
-            TradeUtil.addLog(`Moved stop loss`, ctx, this.logger)
-            this.telegramService.onFilledTakeProfit(ctx)
-        }
-        const saved = await this.tradeRepo.update(ctx)
-    }
-
-
-    private async takeSomeProfitRequest(ctx: TradeCtx, tp: TakeProfit): Promise<FuturesResult> {
-        const params = queryParams({
-            symbol: ctx.trade.variant.symbol,
-            side: VariantUtil.opositeSide(ctx.trade.variant.side),
-            type: TradeType.MARKET,
-            quantity: Number(tp.quantity),
-            timestamp: Date.now(),
-            reduceOnly: true,
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
-        const result = await this.placeOrder(params, ctx)
-        TradeUtil.addLog(`Took profit with order ${tp.order}, price: ${result.price}, unit: ${ctx.unit.identifier}, symbol: ${result.symbol}`, ctx, this.logger)
+    public async closeOrder(unit: Unit, symbol: string,  clientOrderId: string): Promise<FuturesResult> {
+        const params = TradeUtil.closeOrderParams(clientOrderId, symbol)
+        const result = await this.placeOrder(params, unit, 'DELETE')
         return result
-    }
-
-    public closeOrder(ctx: TradeCtx, orderId: BigInt): Promise<FuturesResult> {
-        const params = queryParams({
-            symbol: ctx.symbol,
-            orderId: orderId,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-        })
-        return this.placeOrder(params, ctx, 'DELETE')
     }
 
     public closeOrderEvent(ctx: TradeCtx) {
@@ -222,17 +89,17 @@ export class TradeService {
 
     public async setIsolatedMode(ctx: TradeCtx) {
         try {
-            const params = queryParams({
+            const params = {
                 symbol: ctx.symbol,
                 marginType: 'ISOLATED',
                 timestamp: Date.now(),
                 timeInForce: 'GTC',
                 recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-            })
+            }
             await this.http.fetch<FuturesResult>({
-                url: this.signUrlWithParams(`/marginType`, ctx, params),
+                url: this.signUrlWithParams(`/marginType`, ctx.unit, params),
                 method: 'POST',
-                headers: getHeaders(ctx.unit)
+                headers: Util.getHeaders(ctx.unit)
             })
             TradeUtil.addLog(`Isolated mode set for: ${ctx.trade.variant.symbol}`, ctx, this.logger)
         } catch (error) {
@@ -245,94 +112,100 @@ export class TradeService {
         }
     }
 
-    private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
-        const quantity = forcedQuantity ?? takeProfit.quantity
-        TradeUtil.addLog(`Placing Take Profit order: ${takeProfit.order} with quantity: ${quantity}`, ctx, this.logger)
-        if (this.takeProfitQuantitiesFilled(ctx) || !quantity) {
-            return
-        }
-        const params = TradeUtil.takeProfitRequestParams(ctx, takeProfit.price, quantity)
-        const result = await this.placeOrder(params, ctx)
-        takeProfit.reuslt = result
-        takeProfit.resultTime = new Date()
-        if (this.testNetwork) {
-            takeProfit.reuslt.executedQty = ctx.trade.quantity.toString()
-            takeProfit.reuslt.status = 'NEW'
-        }
-    }
-
-    private takeProfitQuantitiesFilled(ctx: TradeCtx): boolean {
-        if (ctx.origQuantity.equals(new Decimal(ctx.takeProfitOrigQuentitesSum))) {
-            return true
-        } else if (new Decimal(TPUtil.takeProfitsFilledQuantitySum(ctx.trade)).greaterThan(ctx.origQuantity)) {
-            throw new Error(`Take profit quantities sum > origQuantity`)
-        }
-        return false
-    }
-
-
     public async setPositionLeverage(ctx: TradeCtx) {
         const lever = ctx.lever
-        const params = queryParams({
+        const params = {
             symbol: ctx.symbol,
             leverage: lever,
             timestamp: Date.now(),
             timeInForce: 'GTC',
-        })
+        }
         const response = await this.http.fetch({
-            url: this.signUrlWithParams(`/leverage`, ctx, params),
+            url: this.signUrlWithParams(`/leverage`, ctx.unit, params),
             method: 'POST',
-            headers: getHeaders(ctx.unit)
+            headers: Util.getHeaders(ctx.unit)
         })
         TradeUtil.addLog(`Leverage is set to ${lever}x for symbol: ${ctx.trade.variant.symbol}`, ctx, this.logger)
     } 
 
-    public placeOrder(params: string, ctx: TradeCtx, method?: HttpMethod): Promise<FuturesResult> {
+    public async placeOrder(params: Object, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
-        return this.http.fetch<FuturesResult>({
-            url: this.signUrlWithParams(path, ctx, params),
+        const result = await this.http.fetch<FuturesResult>({
+            url: this.signUrlWithParams(path, unit, params),
             method: method ?? 'POST',
-            headers: getHeaders(ctx.unit)
+            headers: Util.getHeaders(unit)
         })
+        return result
     }
 
-    public placeOrderByUnit(params: string, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
+    public async placeOrderByUnit(params: Object, unit: Unit, method?: HttpMethod): Promise<FuturesResult> {
         const path = this.testNetwork ? '/order/test' : '/order'
-        return this.http.fetch<FuturesResult>({
+        const result = await this.http.fetch<FuturesResult>({
             url: this.signUrlWithParamsAndUnit(path, unit, params),
             method: method ?? 'POST',
-            headers: getHeaders(unit)
+            headers: Util.getHeaders(unit)
         })
+        return result
+    }
+
+    public async closeTrades(ctx: TradeCtx) {
+        const trades = await this.tradeRepo.findBySymbol(ctx.unit, ctx.symbol)
+        TradeUtil.addLog(`Found ${trades.length} open trades`, ctx, this.logger)
+        
+        for (let trade of trades) {
+            await this.tradeRepo.closeTradeManual(ctx)
+            TradeUtil.addLog(`Closed trade: ${trade._id}`, ctx, this.logger)
+        }
     }
 
     public async closePosition(ctx: TradeCtx): Promise<FuturesResult> {
         try {
             const position = ctx.position ?? await this.fetchPosition(ctx)
-            const params = queryParams({
+            const amount = Number(position.positionAmt)
+            if (!amount) {
+                TradeUtil.addLog(`Position empty`, ctx, this.logger)
+                return null
+            }
+            const params = {
                 symbol: ctx.symbol,
                 side: VariantUtil.opositeSide(ctx.side),
                 type: TradeType.MARKET,
                 quantity: Number(position.positionAmt),
                 reduceOnly: true,
                 timestamp: Date.now()
-            })
-            return this.placeOrder(params, ctx, 'POST')
+            }
+            const result = await this.placeOrder(params, ctx.unit, 'POST')
+            return result
         } catch (error) {
             this.handleError(error, `CLOSE POSITION ERROR`, ctx)
             return null
         }
     }
 
-    private async fetchPosition(ctx: TradeCtx): Promise<Position> {
+    public async closePositionBy(position: Position, unit: Unit): Promise<FuturesResult> {
+        const amount = Number(position.positionAmt)
+        const side = amount < 0 ? 'BUY' : 'SELL'
+        const params = {
+            symbol: position.symbol,
+            side: side,
+            type: TradeType.MARKET,
+            quantity: amount.toString(),
+            timestamp: Date.now(),
+            reduceOnly: true,
+        }
+        return this.placeOrder(params, unit, 'POST')
+    }
+
+    public async fetchPosition(ctx: TradeCtx): Promise<Position> {
         try {
-            const params = queryParams({
+            const params = {
                 timestamp: Date.now(),
                 symbol: ctx.trade.variant.symbol
-            })
+            }
             const response = await this.http.fetch<Position[]>({
-                url: sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit),
+                url: Util.sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, ctx.unit),
                 method: `GET`,
-                headers: getHeaders(ctx.unit)
+                headers: Util.getHeaders(ctx.unit)
             })
             if (!(response || []).length) {
                 throw new Error(`Could not fetch position ${VariantUtil.label(ctx.trade.variant)}`)
@@ -346,13 +219,10 @@ export class TradeService {
 
     public async fetchPositions(unit: Unit): Promise<Position[]> {
         try {
-            const params = queryParams({
-                timestamp: Date.now()
-            })
             const trades = await this.http.fetch<Position[]>({
-                url: sign(`${TradeUtil.futuresUriV2}/positionRisk`, params, unit),
+                url: Util.sign(`${TradeUtil.futuresUriV2}/positionRisk`, { timestamp: Date.now() }, unit),
                 method: 'GET',
-                headers: getHeaders(unit)
+                headers: Util.getHeaders(unit)
             })
             this.logger.log(`fetched ${trades.length} positions`)
             if (trades.length >= 500) {
@@ -374,9 +244,9 @@ export class TradeService {
                 params['symbol'] = symbol
             }
             const result = await this.http.fetch<FuturesResult[]>({
-                url: sign(`${TradeUtil.futuresUri}/openOrders`, queryParams(params), unit),
+                url: Util.sign(`${TradeUtil.futuresUri}/openOrders`, params, unit),
                 method: 'GET',
-                headers: getHeaders(unit)
+                headers: Util.getHeaders(unit)
             })
             return result
         } catch (error) {
@@ -385,16 +255,16 @@ export class TradeService {
         }
     }
 
-    private signUrlWithParams(urlPath: string, tradeContext: TradeContext, params: string): string {
-        return this.signUrlWithParamsAndUnit(urlPath, tradeContext.unit, params)
+    private signUrlWithParams(urlPath: string, unit: Unit, params: Object): string {
+        return this.signUrlWithParamsAndUnit(urlPath, unit, params)
     }
     
-    private signUrlWithParamsAndUnit(urlPath: string, unit: Unit, params: string): string {
+    private signUrlWithParamsAndUnit(urlPath: string, unit: Unit, params: Object): string {
         const url = `${TradeUtil.futuresUri}${urlPath}`
-        return sign(url, params, unit)
+        return Util.sign(url, params, unit)
     }
 
-    private handleError(error, msg?: string, ctx?: TradeCtx) {
+    public handleError(error, msg?: string, ctx?: TradeCtx) {
         const errorMessage = Http.handleErrorMessage(error)
         if (ctx) {
             if (msg) {
@@ -406,5 +276,6 @@ export class TradeService {
             this.logger.error(errorMessage)
         }
     }
+
 
 }

@@ -2,12 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Signal } from './signal';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { TelegramMessage } from 'src/telegram/message';
-import { SignalValidator } from './signal-validator';
 import { SignalUtil } from './signal-util';
 import { Observable, Subject } from 'rxjs';
-import { TelegramService } from 'src/telegram/telegram.service';
-import { SignalOtherActionValidator } from './additional-validator';
+import { TelegramService } from '../telegram/telegram.service';
+import { TelegramMessage } from '../telegram/message';
+import { SignalSourceService } from './signal-source.service';
+import { SignalValidationService } from './signal-validation.service';
 
 @Injectable()
 export class SignalService {
@@ -17,6 +17,8 @@ export class SignalService {
     constructor(
         @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
+        private readonly signalSourceService: SignalSourceService,
+        private readonly signalValidationService: SignalValidationService,
     ) {}
 
     private tradeSubject$ = new Subject<Signal>()
@@ -29,15 +31,20 @@ export class SignalService {
     public async onReceiveTelegramMessage(telegramMessage: TelegramMessage) {
         const signal: Signal = this.prepareSignal(telegramMessage)
         try {
-            this.validateSignal(signal)
+            this.signalSourceService.findSignalSourceName(telegramMessage, signal)
+
+            this.signalValidationService.validateSignal(signal)
+
 
             await this.verifyIfDuplicate(signal)
 
-            this.additionalValidationIfNotValid(signal)
+            if (!signal.valid) {
+                this.signalValidationService.additionalValidationIfNeeded(signal)
+            }
 
             await this.save(signal)
 
-            this.telegramService.sendPublicMessage(telegramMessage?.message)
+            this.sendTelegramPublicMessage(telegramMessage, signal)
 
             if (signal.valid || SignalUtil.anyOtherAction(signal)) {
                 this.tradeSubject$.next(signal)
@@ -53,23 +60,22 @@ export class SignalService {
         return telegramMessage
     }
 
-    private validateSignal(signal: Signal): void {
-        const validator = new SignalValidator(signal)
-        validator.validate()
-    }
-
-    private additionalValidationIfNotValid(signal: Signal) {
-        const validator = new SignalOtherActionValidator(signal)
-        validator.validate()
-    }
 
     private prepareSignal(telegramMessage: TelegramMessage): Signal {
         return new this.signalModel({
+            variant: { takeProfits: [] },
             content: telegramMessage?.message ?? 'no-content',
             timestamp: new Date(),
             telegramMessageId: telegramMessage?.id ?? 'missing'
         })
     }
+
+    private sendTelegramPublicMessage(telegramMessage: TelegramMessage, signal: Signal) {
+        const signalSource = signal.variant.signalSource
+        const message = `${signalSource}: \n\n${telegramMessage.message}`
+        this.telegramService.sendPublicMessage(message)
+    }
+
 
     
     // REPOSITORY
@@ -96,9 +102,10 @@ export class SignalService {
         SignalUtil.addLog(`Saved signal ${saved._id}`, signal, this.logger)
     }
 
+
     private async verifyIfDuplicate(signal: Signal) {
-        if (process.env.SKIP_PREVENT_DUPLICATE === 'true') {
-            this.logger.warn('SKIP PREVENT DUPLICATE')
+        if (process.env.SKIP_PREVENT_DUPLICATE_SIGNAL === 'true') {
+            this.logger.warn('SKIP_PREVENT_DUPLICATE_SIGNAL')
             return
         } 
         const found = await this.signalModel.findOne(
@@ -107,8 +114,6 @@ export class SignalService {
         ).exec()
         if (found) {
             throw new Error(`Already found signal ${found._id}`)   
-        } else {
-            SignalUtil.addLog('Signal is new, will be processed if valid', signal, this.logger)
         }
     }
 

@@ -1,17 +1,13 @@
-import { BaseValidator } from "./base-validator";
-import { Signal } from "./signal";
-import { SignalUtil } from "./signal-util";
+import { BaseSignalValidator } from "../base-signal-validator";
+import { Signal } from "../../signal";
+import { SignalUtil } from "../../signal-util";
 
-export class StopLossValidator extends BaseValidator {
-
-    constructor(signal: Signal) {
-        super(signal)
-    }
+export class GalaxyStopLossValidator extends BaseSignalValidator {
 
     private stopLossLineIndex = -1
 
     static start(signal: Signal): boolean {
-        const val = new StopLossValidator(signal)
+        const val = new GalaxyStopLossValidator(signal)
         val.validate()
         return val.triggered
     }
@@ -61,7 +57,7 @@ export class StopLossValidator extends BaseValidator {
                     const stopLossValue = SignalUtil.withoutDollar(stopLossStringValue)
                     if (!isNaN(stopLossValue)) {
                         this.signal.variant.stopLoss = stopLossValue
-                        this.addLog(`Found stop loss ${this.signal.variant.stopLoss}`)
+                        this.addLog(`Found Stop Loss price ${this.signal.variant.stopLoss} USDT`)
                     }
                 }
             }

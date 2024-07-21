@@ -1,26 +1,27 @@
 import Decimal from "decimal.js"
+import { VariantSide } from "../utils/variant-util"
+import { TradeType } from "./trade"
 
 export interface BinancePrice {
     symbol: string
     price: number
 }
 
+export interface PlaceOrderParams {
+    type: TradeType
+    timeInForce?: string
+    symbol: string
+    side?: VariantSide
+    price?: string
+    stopPrice?: string
+    quantity?: string
+    reduceOnly?: string | boolean
 
-export abstract class TradeType {
-    public static readonly MARKET = 'MARKET' // market order is an order to buy or sell at the best available price
-    public static readonly LIMIT = 'LIMIT' //A limit order is an order to buy or sell at a specific price or better
-    public static readonly STOP_MARKET = 'STOP_MARKET' //A stop market order will become a market order to buy or sell once the stop price is reached.
-    public static readonly TAKE_PROFIT_MARKET = 'TAKE_PROFIT_MARKET' //A take profit market order will become a market order to buy or sell once the take profit price is reached
-}
-
-export abstract class TradeSide {
-    public static readonly BUY = 'BUY'
-    public static readonly SELL = 'SELL'
-}
-
-export abstract class TradeStatus {
-    public static readonly FILLED = 'FILLED'
-    public static readonly NEW = 'NEW'
+    orderId?: BigInt,
+    recvWindow?: number
+    timestamp?: number
+    newClientOrderId?: string
+    origClientOrderId?: string
 }
 
 
@@ -66,25 +67,6 @@ export interface BinanceExchangeInfoFilter {
 export interface LotSize {
     minQty: Decimal
     stepSize: Decimal
-}
-
-export interface Ticker24hResponse {
-    symbol: string;
-    priceChange: string;
-    priceChangePercent: string;
-    weightedAvgPrice: string;
-    lastPrice: string;
-    lastQty: string;
-    openPrice: string;
-    highPrice: string;
-    lowPrice: string;
-    volume: string;
-    quoteVolume: string;
-    openTime: number;
-    closeTime: number;
-    firstId: number;
-    lastId: number;
-    count: number;
 }
 
 export interface TradeEventData {
@@ -133,4 +115,31 @@ export interface TradeEventData {
 
 export interface ListeKeyResponse {
     listenKey: string
+}
+
+export interface MarketPriceResponse {
+    symbol: string;
+    markPrice: string;
+    indexPrice: string;
+    estimatedSettlePrice: string;
+    lastFundingRate: string;
+    interestRate: string;
+    nextFundingTime: number;
+    time: number;
+}
+
+export interface Period {
+    from: number
+    to: number
+}
+
+export interface IncomeRecord {
+    symbol: string;              // trade symbol, if existing
+    incomeType: string;          // income type
+    income: string;              // income amount
+    asset: string;               // income asset
+    info: string;                // extra information
+    time: number;                // timestamp
+    tranId: string;              // transaction id
+    tradeId: string;             // trade id, if existing
 }

@@ -1,11 +1,15 @@
 import { Injectable } from "@nestjs/common";
-import { BinanceService } from "src/binance/binance.service";
-import { TradeService } from "src/binance/trade.service";
-import { WizardBinanceService } from "src/binance/wizard-binance.service";
-import { SignalService } from "src/signal/signal.service";
-import { UnitService } from "src/unit/unit.service";
+import { BinanceService } from "../binance/binance.service";
+import { TradeService } from "../binance/trade.service";
+import { WizardBinanceService } from "../binance/wizard-binance.service";
+import { Http } from "../global/http/http.service";
+import { SignalService } from "../signal/signal.service";
+import { UnitService } from "../unit/unit.service";
 import { SelectedTradeProvider } from "./selected-trade.service";
-import { Http } from "src/global/http/http.service";
+import { TakeProfitsService } from "../binance/take-profits.service";
+import { StatisticsBinanceService } from "../binance/statistics-binance.service";
+import { SignalSourceService } from "../signal/signal-source.service";
+import { LimitOrdersService } from "../binance/limit-orders.service";
 
 @Injectable()
 export class ServiceProvider {
@@ -17,7 +21,11 @@ export class ServiceProvider {
         public readonly signalService: SignalService,
         public readonly tradeService: TradeService,
         public readonly selectedTradeService: SelectedTradeProvider,
+        public readonly takeProfitsService: TakeProfitsService,
+        public readonly limitOrdersService: LimitOrdersService,
         public readonly http: Http,
+        public readonly statisticsBinanceService: StatisticsBinanceService,
+        public readonly signalSourceService: SignalSourceService,
     ) {}
 
 }

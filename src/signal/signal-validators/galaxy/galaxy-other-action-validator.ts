@@ -1,28 +1,28 @@
-import { Signal } from "./signal";
-import { SignalUtil } from "./signal-util";
-import { BaseValidator } from "./base-validator";
-import { TakeProfitsValidator } from "./take-profits.validator";
-import { StopLossValidator } from "./stop-loss-validator";
+import { Signal } from "../../signal";
+import { SignalUtil } from "../../signal-util";
+import { BaseSignalValidator as BaseSignalValidator } from "../base-signal-validator";
+import { GalaxyTakeProfitsValidator } from "./galaxy-take-profits.validator";
+import { GalaxyStopLossValidator } from "./galaxy-stop-loss-validator";
 
-export class SignalOtherActionValidator extends BaseValidator {
+export class GalaxyOtherActionValidator extends BaseSignalValidator {
 
     constructor(signal: Signal) {
         super(signal)
     }
 
-    validate() {
+    override validate() {
         if (this.signal.valid) {
-            this.addLog(`[SKIP] SignalOtherActionValidator`)
+            this.addLog(`[SKIP] SignalOtherActionValidator, signal is valid`)
             return
         }
         this.addLog(`[START] SignalOtherActionValidator`)
         const variant = this.signal.variant
         if (variant.symbol && variant.side) {
             
-            const tpValTriggered = TakeProfitsValidator.start(this.signal)
-            const slValTriggered = StopLossValidator.start(this.signal)
+            const isTakeProfitSignal = GalaxyTakeProfitsValidator.start(this.signal)
+            const isStopLossSignal = GalaxyStopLossValidator.start(this.signal)
 
-            if (!tpValTriggered && !slValTriggered) {
+            if (!isTakeProfitSignal && !isStopLossSignal) {
                 this.otherActionsValidation()
             }
             
@@ -39,7 +39,7 @@ export class SignalOtherActionValidator extends BaseValidator {
     }
 
     private isTakeSomeProfit(): boolean {
-        const result = this.message.includes('take some profit')
+        const result = this.signal.content.includes('take some profit')
         if (result) {
             SignalUtil.addLog(`TAKE SOME PROFIT signal`, this.signal, this.logger)
         }

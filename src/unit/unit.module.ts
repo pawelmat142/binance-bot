@@ -4,7 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Unit, UnitSchema } from './unit';
 import { UnitController } from './unit.controller';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AppHttpModule } from 'src/global/http/http.module';
+import { AppHttpModule } from '../global/http/http.module';
 
 @Module({
   imports: [

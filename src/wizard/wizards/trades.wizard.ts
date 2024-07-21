@@ -1,19 +1,17 @@
-import { Unit } from "src/unit/unit"
-import { ServiceProvider } from "../services.provider"
-import { UnitWizard } from "./unit-wizard"
-import { FuturesResult, Trade, TradeStatus } from "src/binance/model/trade"
-import { TradeType } from "src/binance/model/model"
-import { Position } from "src/binance/wizard-binance.service"
-import { TradeUtil } from "src/binance/trade-util"
 import Decimal from "decimal.js"
-import { WizBtn } from "./wizard-buttons"
-import { WizardButton, WizardStep } from "./wizard"
-import { TradeCtx } from "src/binance/model/trade-variant"
-import { TakeProfitsWizard } from "./take-profits.wizard"
+import { Trade, FuturesResult, TradeStatus, TradeType } from "../../binance/model/trade"
+import { TradeCtx } from "../../binance/model/trade-variant"
+import { TradeUtil } from "../../binance/utils/trade-util"
+import { Position } from "../../binance/wizard-binance.service"
+import { Http } from "../../global/http/http.service"
+import { Unit } from "../../unit/unit"
 import { BotUtil } from "../bot.util"
+import { ServiceProvider } from "../services.provider"
 import { StartWizard } from "./start.wizard"
-import { error } from "console"
-import { Http } from "src/global/http/http.service"
+import { TakeProfitsWizard } from "./take-profits.wizard"
+import { UnitWizard } from "./unit-wizard"
+import { WizardStep, WizardButton } from "./wizard"
+import { WizBtn } from "./wizard-buttons"
 
 export class TradesWizard extends UnitWizard {
 
@@ -65,9 +63,7 @@ export class TradesWizard extends UnitWizard {
         this.openPositions = this.positions
             .filter(p => Number(p.positionAmt) !== 0)
 
-        this.openOrders = this.orders
-            .filter(o => o.status === TradeStatus.NEW)
-            .filter(o => o.type === TradeType.LIMIT)
+        this.openOrders = this.findOpenOrdersWithoutDuplicates()
 
         this.openStopLosses = this.orders
             .filter(o => o.status === TradeStatus.NEW)
@@ -111,7 +107,6 @@ export class TradesWizard extends UnitWizard {
                     }],
                     ...this.openOrders.map(o => this.orderButton(o))
                 ]),
-
 
                 [BotUtil.getBackSwitchButton(StartWizard.name), {
                     text: `Refresh`,
@@ -212,7 +207,7 @@ export class TradesWizard extends UnitWizard {
                 `Found ${this.selectedPosition?.symbol} position in your Binance Futures account without bot reference`,
                 `Would you like to close it?`
             ],
-            buttons: [[{
+            buttons: [ [{
                 text: 'No',
                 callback_data: WizBtn.NO,
                 process: async () => this.STEP?.TRADES_ORDERS
@@ -282,7 +277,7 @@ export class TradesWizard extends UnitWizard {
                     unit: this.unit,
                     trade: this.selectedTrade
                 })
-                const success = await this.services.tradeService.takeSomeProfit(ctx)
+                const success = await this.services.takeProfitsService.takeSomeProfit(ctx)
                 if (success) {
                     this.select(ctx.trade)
                     return 12
@@ -308,7 +303,7 @@ export class TradesWizard extends UnitWizard {
             callback_data: WizBtn.closeOrder,
             process: async () => {
                 const success = await this.fullCloseOrder() 
-                return success ? 7 : 3
+                return success ? this.STEP.ORDER_CLOSED : 3
             }
         }, {
             text: `Edit take profits`,
@@ -393,13 +388,10 @@ export class TradesWizard extends UnitWizard {
 
     private findMatchingTrade(position: Position) {
         const matchingTrades = this.trades.filter(t => t.variant.symbol === position.symbol)
-            .filter(t => t.futuresResult?.status === TradeStatus.FILLED)
+            .filter(t => t.marketResult?.status === TradeStatus.FILLED)
             .filter(t => {
                 const tradeAmount = TradeUtil.tradeAmount(t)
                 const positionAmount = new Decimal(position.positionAmt)
-                // TODO check/test if any TP is filled
-                // console.log(`${t.variant.symbol} tradeAmount: ${tradeAmount.toString()}`)
-                // console.log(`${t.variant.symbol} positionAmount: ${positionAmount.toString()}`)
                 return tradeAmount.equals(positionAmount)
             }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]
@@ -411,7 +403,7 @@ export class TradesWizard extends UnitWizard {
 
     private findMatchingOrderTrade(order: FuturesResult): Trade {
         const matchingTrades = this.trades.filter(t => t.variant.symbol === order.symbol)
-            .filter(t => t.futuresResult?.status === TradeStatus.NEW)
+            .filter(t => t.marketResult?.status === TradeStatus.NEW || t.variant.limitOrders?.some(lo => lo.result?.status === TradeStatus.NEW))
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         const result = matchingTrades[0]
         if (!result) {
@@ -452,10 +444,16 @@ export class TradesWizard extends UnitWizard {
         if (this.selectedTrade) {
             const position = this.openOrdersPositions.find(o => o.symbol === this.selectedTrade.variant.symbol)
             if (position) {
-                const message = [
-                    `Entry price: ${this.selectedTrade.entryPrice.toFixed(2)} USDT`,
-                    `Market price: ${Number(position.markPrice).toFixed(2)} USDT`,
-                ]
+                const message: string[] = [] 
+                if (this.selectedTrade.marketResult) {
+                    message.push(`Entry price: ${Number(this.selectedTrade.marketResult.averagePrice).toFixed(2)} USDT`)
+                    message.push(`Entry price: ${Number(this.selectedTrade.marketResult.averagePrice).toFixed(2)} USDT`)
+                } else if (this.selectedTrade.variant.limitOrders) {
+                    this.selectedTrade.variant.limitOrders.forEach(lo => {
+                        message.push(`Entry price ${lo.order+1}: ${Number(lo.result.price).toFixed(2)} USDT`)
+                    })
+                    message.push(`Market price: ${Number(position.markPrice).toFixed(2)} USDT`)
+                }
                 if (this.selectedTrade.variant.stopLoss) {
                     message.push(`Stop loss: ${this.selectedTrade.variant.stopLoss.toFixed(2)} USDT`)
                 } else {
@@ -478,10 +476,10 @@ export class TradesWizard extends UnitWizard {
             trade: this.selectedTrade
         })
         try {
-            TradeUtil.addLog(`[START] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
-            await this.services.binance.closeOpenOrder(ctx, order.orderId)
+            TradeUtil.addLog(`[START] closing order ${order.clientOrderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
+            await this.services.binance.closeOpenOrder(ctx, order.clientOrderId)
             this.openOrders = this.openOrders.filter(o => o.symbol !== this.selectedTrade.variant.symbol)
-            TradeUtil.addLog(`[STOP] closing order ${this.selectedTrade.futuresResult.orderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
+            TradeUtil.addLog(`[STOP] closing order ${order.clientOrderId}, ${this.selectedTrade.variant.symbol}`, ctx, this.logger)
             this.unselectTrade()
             return true
         } 
@@ -520,6 +518,21 @@ export class TradesWizard extends UnitWizard {
             })
         }
         throw new Error(`missing selected trade`)
+    }
+
+    private findOpenOrdersWithoutDuplicates() {
+        const orders = this.orders
+            .filter(o => o.status === TradeStatus.NEW)
+            .filter(o => o.type === TradeType.LIMIT)
+        const result: FuturesResult[] = [] 
+        const seenSymbols = new Set()
+        orders.forEach(order => {
+            if (!seenSymbols.has(order.symbol)) {
+                seenSymbols.add(order.symbol)
+                result.push(order)
+            }
+        })
+        return result
     }
 
 }

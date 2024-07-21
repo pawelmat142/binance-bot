@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
-import { WebSocket } from 'ws';
+import { SignalSource } from "../binance/utils/variant-util";
 
 export type UnitDocument = HydratedDocument<Unit>
 
@@ -20,10 +20,7 @@ export class Unit {
     listenJsons: string[]
 
     @Prop()
-    tradeObjectIds: string[]
-
-    @Prop()
-    usdtPerTransaction: number
+    tradeAmounts: Map<string, number> //key: signal source, value: usdt amount per trade
 
     @Prop()
     binanceApiKey: string
@@ -42,7 +39,8 @@ export class Unit {
     @Prop()
     allowMinNotional?: boolean
 
-    socket?: WebSocket
+    @Prop()
+    adminSignalSource?: SignalSource
 }
 
 export const UnitSchema = SchemaFactory.createForClass(Unit)

@@ -3,16 +3,19 @@ import { BinanceService } from './binance.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Trade, TradeSchema } from './model/trade';
 import { ConfigModule } from '@nestjs/config';
-import { AppTelegramModule } from 'src/telegram/telegram.module';
-import { CalculationsService } from './calculations.service';
-import { SignalModule } from 'src/signal/signal.module';
-import { TradeService } from './trade.service';
-import { UnitModule } from 'src/unit/unit.module';
-import { WizardBinanceService } from './wizard-binance.service';
-import { DuplicateService } from './duplicate.service';
-import { TradeRepository } from './trade.repo';
-import { AppHttpModule } from 'src/global/http/http.module';
+import { AppHttpModule } from '../global/http/http.module';
+import { SignalModule } from '../signal/signal.module';
+import { AppTelegramModule } from '../telegram/telegram.module';
+import { UnitModule } from '../unit/unit.module';
 import { AutoCloseService } from './auto-close.service';
+import { CalculationsService } from './calculations.service';
+import { DuplicateService } from './duplicate.service';
+import { LimitOrdersService } from './limit-orders.service';
+import { TradeRepository } from './trade.repo';
+import { TradeService } from './trade.service';
+import { WizardBinanceService } from './wizard-binance.service';
+import { TakeProfitsService } from './take-profits.service';
+import { StatisticsBinanceService } from './statistics-binance.service';
 
 @Module({
   imports: [
@@ -39,12 +42,18 @@ import { AutoCloseService } from './auto-close.service';
     WizardBinanceService, 
     DuplicateService, 
     TradeRepository, 
-    AutoCloseService
+    AutoCloseService,
+    LimitOrdersService,
+    TakeProfitsService,
+    StatisticsBinanceService,
   ],
   exports: [
     BinanceService,
     TradeService,
     WizardBinanceService,
+    TakeProfitsService,
+    StatisticsBinanceService,
+    LimitOrdersService,
   ]
 })
 export class BinanceModule {}

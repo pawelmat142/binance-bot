@@ -1,14 +1,13 @@
-import { Unit } from "src/unit/unit"
+import { TradeStatus } from "../../binance/model/trade"
+import { TakeProfit, TradeCtx } from "../../binance/model/trade-variant"
+import { TPUtil } from "../../binance/utils/take-profit-util"
+import { TradeUtil } from "../../binance/utils/trade-util"
+import { Unit } from "../../unit/unit"
+import { BotUtil } from "../bot.util"
 import { ServiceProvider } from "../services.provider"
+import { TradesWizard } from "./trades.wizard"
 import { UnitWizard } from "./unit-wizard"
 import { WizardStep } from "./wizard"
-import { TakeProfit, TradeCtx } from "src/binance/model/trade-variant"
-import { TradeStatus } from "src/binance/model/trade"
-import Decimal from "decimal.js"
-import { BotUtil } from "../bot.util"
-import { TradesWizard } from "./trades.wizard"
-import { TradeUtil } from "src/binance/trade-util"
-import { TPUtil } from "src/binance/take-profit-util"
 
 export class TakeProfitsWizard extends UnitWizard {
 
@@ -92,9 +91,9 @@ export class TakeProfitsWizard extends UnitWizard {
                     text: `CONFIRM`,
                     callback_data: 'confirm',
                     process: async () => {
-                        this.calculatePercentages()
+                        TPUtil.calculatePercentages(this.takeProfits)
                         this.selectedTrade.variant.takeProfits = this.takeProfits
-                        const anyPendingTakeProfit = this.takeProfits.some(tp => tp.reuslt?.status === TradeStatus.NEW)
+                        const anyPendingTakeProfit = this.takeProfits.some(tp => tp.result?.status === TradeStatus.NEW)
                         if (anyPendingTakeProfit) {
                             throw new Error(`Should be no any pending Take Profit now!`)
                         }
@@ -102,7 +101,7 @@ export class TakeProfitsWizard extends UnitWizard {
                             trade: this.selectedTrade,
                             unit: this.unit
                         })
-                        await this.services.binanceServie.openFirstTakeProfit(ctx)
+                        await this.services.takeProfitsService.openFirstTakeProfit(ctx)
                         TradeUtil.addLog(`Opened first take profit`, ctx, this.logger)
                         await this.services.binanceServie.update(ctx)
                         this.select(ctx.trade)
@@ -139,8 +138,8 @@ export class TakeProfitsWizard extends UnitWizard {
                             unit: this.unit,
                             trade: trade
                         })
-                        await this.services.tradeService.closePendingTakeProfit(ctx)
-                        trade.variant.takeProfits = trade.variant.takeProfits.filter(tp => tp.reuslt?.status === TradeStatus.FILLED)
+                        await this.services.takeProfitsService.closePendingTakeProfit(ctx)
+                        trade.variant.takeProfits = trade.variant.takeProfits.filter(tp => tp.result?.status === TradeStatus.FILLED)
                         await this.services.binanceServie.update(ctx)
                         this.takeProfitsAggregator = ctx.trade.variant.takeProfits
                         return 1
@@ -162,7 +161,7 @@ export class TakeProfitsWizard extends UnitWizard {
     }
 
     private get hasOnlyFilledTps(): boolean {
-        return this.takeProfits.every(tp => tp.reuslt?.status === TradeStatus.FILLED)
+        return this.takeProfits.every(tp => tp.result?.status === TradeStatus.FILLED)
     }
 
 
@@ -170,7 +169,7 @@ export class TakeProfitsWizard extends UnitWizard {
         const side = this.selectedTrade.variant.side
         if (this.takeProfitsIterator === 0) {
             if (side === "BUY") {
-                if (price > this.selectedTrade.entryPrice) {
+                if (price > Number(this.selectedTrade.marketResult.averagePrice)) {
                     return true
                 } else {
                     this.error = `It should be more than entry price`
@@ -178,7 +177,7 @@ export class TakeProfitsWizard extends UnitWizard {
                 }
             }
             else {
-                if (price < this.selectedTrade.entryPrice) {
+                if (price < Number(this.selectedTrade.marketResult.averagePrice)) {
                     return true
                 } else {
                     this.error = `It should be less than entry price`
@@ -207,13 +206,6 @@ export class TakeProfitsWizard extends UnitWizard {
         }
     }
 
-    private calculatePercentages() {
-        const singleTakeProfitPercentage = new Decimal(100).div(this.takeProfits.length).floor()
-        this.takeProfits.forEach(tp => {
-            tp.closePercent = singleTakeProfitPercentage.toNumber()
-        })
-        const remainder = 100 % this.takeProfits.length
-        this.takeProfits[0].closePercent += remainder
-    }
+
 
 }

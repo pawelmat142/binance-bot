@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { Expose } from "class-transformer"
+import { Expose, Transform, Type } from "class-transformer"
 import { HydratedDocument } from "mongoose"
 import { TradeVariant } from "./trade-variant"
-
+import { Document } from 'mongoose';
 
 export abstract class TradeStatus {
     public static readonly FILLED = 'FILLED'
@@ -11,10 +11,21 @@ export abstract class TradeStatus {
     public static readonly CLOSED_MANUALLY = 'CLOSED_MANUALLY'
 }
 
+export abstract class TradeType {
+    public static readonly MARKET = 'MARKET' // market order is an order to buy or sell at the best available price
+    public static readonly LIMIT = 'LIMIT' //A limit order is an order to buy or sell at a specific price or better
+    public static readonly STOP_MARKET = 'STOP_MARKET' //A stop market order will become a market order to buy or sell once the stop price is reached.
+    public static readonly TAKE_PROFIT_MARKET = 'TAKE_PROFIT_MARKET' //A take profit market order will become a market order to buy or sell once the take profit price is reached
+}
+
 export type TradeDocument = HydratedDocument<Trade>
 
-export class FuturesResult {
-    @Expose() @Prop({ type: 'string' }) orderId: BigInt // The unique identifier for the order  zamieniam typ przez buga z BigInt  https://github.com/jaggedsoft/node-binance-api/issues/539
+export class FuturesResult extends Document {
+
+    @Expose() 
+    @Prop({type: 'string'   }) 
+    orderId: string // The unique identifier for the order  zamieniam typ przez buga z BigInt  https://github.com/jaggedsoft/node-binance-api/issues/539
+    
     @Expose() @Prop() symbol: string // The trading pair symbol for the order (e.g., ‘BTCUSDT’).
     @Expose() @Prop() status: string // The current status of the order (e.g., ‘FILLED’, ‘NEW’).
     @Expose() @Prop() clientOrderId: string //The unique identifier for the order provided by the client
@@ -59,18 +70,6 @@ export class Trade {
 
     @Expose() 
     @Prop()
-    entryPrice: number
-
-    @Expose() 
-    @Prop()
-    currentPrice: number
-
-    @Expose() 
-    @Prop()
-    quantity?: number
-
-    @Expose() 
-    @Prop()
     unitIdentifier: string
 
     @Expose() 
@@ -79,20 +78,18 @@ export class Trade {
 
     @Expose() 
     @Prop()
-    futuresResult: FuturesResult
+    @Type(() => FuturesResult)
+    marketResult: FuturesResult
 
     
     @Expose()
     @Prop()
+    @Type(() => FuturesResult)
     stopLossResult: FuturesResult
 
     @Expose()
     @Prop()
     stopLossTime: Date
-
-    @Expose()
-    @Prop()
-    testMode: boolean
 
     @Expose()
     @Prop()

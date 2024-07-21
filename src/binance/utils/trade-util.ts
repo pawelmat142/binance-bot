@@ -1,12 +1,13 @@
-import { queryParams, toDateString } from "src/global/util"
 import { Logger } from "@nestjs/common"
-import { FuturesResult, Trade, TradeStatus } from "./model/trade"
-import { TradeEventData, TradeSide, TradeType } from "./model/model"
-import { TakeProfit, TradeCtx } from "./model/trade-variant"
+import { FuturesResult, Trade, TradeStatus, TradeType } from "../model/trade"
+import { PlaceOrderParams, TradeEventData } from "../model/model"
+import { TakeProfit, TradeCtx } from "../model/trade-variant"
 import Decimal from "decimal.js"
-import { Position } from "./wizard-binance.service"
+import { Position } from "../wizard-binance.service"
 import { TPUtil } from "./take-profit-util"
-import { VariantUtil } from "./model/variant-util"
+import { VariantUtil } from "./variant-util"
+import { ClientOrderId, ClientOrderIdUtil } from "./client-order-id-util"
+import { Util } from "./util"
 
 
 export abstract class TradeUtil {
@@ -52,41 +53,31 @@ export abstract class TradeUtil {
     }
 
     private static addToCtxLogs(log: string, ctx: TradeCtx) {
-        log = `[${toDateString(new Date())}] ${log}`
+        log = `[${Util.toDateString(new Date())}] ${log}`
         ctx.trade.logs = ctx.trade.logs || []
         ctx.trade.logs.push(log)
     }
 
-    public static tradeRequestLimitParams = (trade: Trade): string => {
-        return queryParams({
-            symbol: trade.variant.symbol,
-            side: trade.variant.side,
-            type: TradeType.LIMIT,
-            quantity: trade.quantity,
-            price: trade.entryPrice,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
-    }
-
-    public static tradeRequestMarketParams = (trade: Trade): string => {
-        return queryParams({
+    public static marketOrderParams (ctx: TradeCtx, quantity: number): Object  {
+        const trade = ctx.trade
+        const clientOrderId = ClientOrderIdUtil.generate(ClientOrderId.MARKET_ORDER, ctx.unit, ctx.trade.variant.symbol)
+        return {
             symbol: trade.variant.symbol,
             side: trade.variant.side,
             type: TradeType.MARKET,
-            quantity: trade.quantity,
+            quantity: quantity,
             timestamp: Date.now(),
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW
-        })
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            newClientOrderId: clientOrderId
+        }
     }
 
-    public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): string => {
-        const tradeorigQty = ctx.trade.futuresResult.origQty
+    public static stopLossRequestParams = (ctx: TradeCtx, quantity: Decimal, stopLossPrice?: number): Object => {
+        const tradeorigQty = ctx.trade.marketResult.origQty
         if (!tradeorigQty) {
             throw new Error(`origQuantity could not be found`)
         }
-        return queryParams({
+        return {
             symbol: ctx.symbol,
             side: VariantUtil.opositeSide(ctx.trade.variant.side),
             type: TradeType.STOP_MARKET,
@@ -96,22 +87,9 @@ export abstract class TradeUtil {
             timeInForce: 'GTC',
             recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
             reduceOnly: true
-        })
+        }
     }
 
-    public static takeProfitRequestParams = (ctx: TradeCtx, price: number, quantity: number): string => {
-        return queryParams({
-            symbol: ctx.symbol,
-            side: VariantUtil.opositeSide(ctx.trade.variant.side),
-            type: TradeType.TAKE_PROFIT_MARKET,
-            quantity: quantity,
-            stopPrice: price,
-            timestamp: Date.now(),
-            timeInForce: 'GTC',
-            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-            reduceOnly: true,
-        })
-    }
 
     public static isTradeEvent(tradeEvent: TradeEventData): boolean {
         const isOrderTradeUpdate = tradeEvent?.e === 'ORDER_TRADE_UPDATE'
@@ -121,7 +99,7 @@ export abstract class TradeUtil {
 
     public static parseToFuturesResult(tradeEvent: TradeEventData): FuturesResult {
         return {
-            orderId: tradeEvent.o?.i,
+            orderId: tradeEvent.o?.i?.toString(),
             symbol: tradeEvent.o?.s,
             status: tradeEvent.o?.X,
             clientOrderId: tradeEvent.o?.c,
@@ -145,46 +123,15 @@ export abstract class TradeUtil {
         return isLimitType && isFilled
     }
 
-    public static priceInEntryZone(ctx: TradeCtx): boolean {
-        const variant = ctx.trade.variant
-        const currentPrice = ctx.trade.currentPrice
-        return (variant.side === TradeSide.BUY && currentPrice < variant.entryZoneEnd) || (variant.side === TradeSide.SELL && currentPrice > variant.entryZoneEnd)
-    }
 
-    public static calculateStopLossQuantity = (ctx: TradeCtx) => {
-        let stopLossQuantity = new Decimal(ctx.trade.futuresResult.origQty ?? 0)
-            .minus(TPUtil.takeProfitsFilledQuantitySum(ctx.trade))
-        return stopLossQuantity
-    }
 
-    public static getStopLossPrice = (ctx: TradeCtx): number => {
-        let result = Number(ctx.trade.variant.stopLoss)
-        const takeProfits = ctx.trade.variant.takeProfits
-        takeProfits.sort((a, b) => a.order - b.order)
-        for (let tp of takeProfits) {
-            if (tp.reuslt?.status === TradeStatus.FILLED) {
-                if (tp.order === 0) {
-                    const entryPrice = Number(ctx.trade.entryPrice)
-                    if (!isNaN(entryPrice)) {
-                        result = entryPrice
-                    }
-                } else if (tp.order > 1) {
-                    const takeProfitPrice = Number(ctx.trade.variant.takeProfits[tp.order-2].price)
-                    if (!isNaN(takeProfitPrice)) {
-                        result = takeProfitPrice
-                    }
-                }
-            }
-        }
-        return result
-    }
 
 
     public static tradeAmount = (trade: Trade): Decimal => {
         let result = new Decimal(0)
-        if (trade.futuresResult) {
+        if (trade.marketResult) {
             result = result
-                .plus(new Decimal(trade.futuresResult.origQty)) // has to be orig here, not executed!
+                .plus(new Decimal(trade.marketResult.origQty)) // has to be orig here, not executed!
                 .minus(TPUtil.takeProfitsFilledQuantitySum(trade))
         }
         return result
@@ -199,8 +146,8 @@ export abstract class TradeUtil {
     }
  
     public static takeProfitStatus = (tp: TakeProfit): string => {
-        if (tp.reuslt) {
-            switch (tp.reuslt.status) {
+        if (tp.result) {
+            switch (tp.result.status) {
                 case TradeStatus.NEW: return `pending`
                 case TradeStatus.FILLED: return `filled`
                 case TradeStatus.CANCELED: return `canceled`
@@ -208,6 +155,22 @@ export abstract class TradeUtil {
             }
         }
         return 'waiting'
+    }
+
+    public static closeOrderParams(clientOrderId : string, symbol: string): PlaceOrderParams {
+        return {
+            symbol: symbol,
+            timeInForce: 'GTC',
+            type: undefined,
+            timestamp: Date.now(),
+            recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
+            origClientOrderId: clientOrderId
+        }
+    }
+
+    public static removeMultiOrderProperties(params: PlaceOrderParams): void {
+        delete params.recvWindow
+        delete params.timestamp
     }
 
 }

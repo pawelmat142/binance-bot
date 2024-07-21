@@ -1,12 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Decimal from 'decimal.js';
-import { TradeStatus } from 'src/binance/model/trade';
-import { TradeCtx } from 'src/binance/model/trade-variant';
-import { BotUtil } from '../wizard/bot.util';
-import { Observable, Subject } from 'rxjs';
 import TelegramBot = require("node-telegram-bot-api")
 import { Messages } from './messages';
-import { VariantUtil } from 'src/binance/model/variant-util';
+import { Subject, Observable } from 'rxjs';
+import { TradeStatus } from '../binance/model/trade';
+import { TradeCtx } from '../binance/model/trade-variant';
+import { VariantUtil } from '../binance/utils/variant-util';
+import { BotUtil } from '../wizard/bot.util';
 
 export interface TelegramMsg {
     message: string
@@ -20,7 +20,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
 
-    private readonly bot = this.initBot()
+    private readonly bot: TelegramBot = this.initBot()
 
     constructor() {}
 
@@ -40,7 +40,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
 
-    private initBot() {
+    private initBot(): TelegramBot {
         if (process.env.SKIP_TELEGRAM === 'true') {
             this.logger.warn('[SKIP] Initializing telegram bot')
             return undefined
@@ -63,6 +63,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
                 })
             }  
         }
+        this.bot.on
     }
 
     onModuleDestroy() {
@@ -124,7 +125,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     public onFilledPosition(ctx: TradeCtx) {
         const lines = [
             `${VariantUtil.label(ctx.trade.variant)} FILLED`,
-            `entryPrice: ${this.print$(ctx.trade.entryPrice)}`,
+            `averagePrice: ${this.print$(ctx.trade.marketResult.averagePrice)}`,
             `${ctx.trade._id}`
         ]
         this.addStopLossLine(ctx, lines)
@@ -151,9 +152,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         if (tps.length) {
             for (let tp of tps) {
                 if (tp.quantity) {
-                    if (tp.reuslt) {
-                        const realPercent = new Decimal(tp.reuslt.origQty).div(ctx.origQuantity).times(100).round()
-                        lines.push(`- ${this.print$(tp.reuslt?.stopPrice)}, ${realPercent}%, ${tp.reuslt.status}`)
+                    if (tp.result) {
+                        const realPercent = new Decimal(tp.result.origQty).div(ctx.marketFilledQuantity).times(100).round()
+                        lines.push(`- ${this.print$(tp.result?.stopPrice)}, ${realPercent}%, ${tp.result.status}`)
                     } else {
                         lines.push(`- ${this.print$(tp.price)}, waiting`)
                     }
@@ -165,12 +166,12 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     public onFilledTakeProfit(ctx: TradeCtx) {
         const lines = [
-            `Filled TP ${VariantUtil.label(ctx.trade.variant)}`,
+            `${VariantUtil.label(ctx.trade.variant)} filled Take Profit`,
         ]
         this.addTakeProfitLines(ctx, lines)
         this.addStopLossLine(ctx, lines)
         const everyTpFilled = ctx.trade.variant.takeProfits
-            .every(tp => tp.reuslt?.status === TradeStatus.FILLED)
+            .every(tp => tp.result?.status === TradeStatus.FILLED)
         if (everyTpFilled) lines.push(`Position closed successfully!`)
         this.sendUnitMessage(ctx, lines)
     }

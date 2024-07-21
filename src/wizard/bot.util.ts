@@ -1,11 +1,12 @@
 import TelegramBot from "node-telegram-bot-api"
 import { Wizard, WizardButton, WizardStep } from "./wizards/wizard"
-import { TakeProfit } from "src/binance/model/trade-variant"
-import { TradeUtil } from "src/binance/trade-util"
+import { Trade, FuturesResult, TradeType } from "../binance/model/trade"
+import { TakeProfit } from "../binance/model/trade-variant"
+import { TradeUtil } from "../binance/utils/trade-util"
+import { VariantUtil } from "../binance/utils/variant-util"
+import { Position } from "../binance/wizard-binance.service"
 import { WizBtn } from "./wizards/wizard-buttons"
-import { FuturesResult, Trade } from "src/binance/model/trade"
-import { Position } from "src/binance/wizard-binance.service"
-import { VariantUtil } from "src/binance/model/variant-util"
+import { Util } from "../binance/utils/util"
 
 export abstract class BotUtil {
 
@@ -22,7 +23,7 @@ export abstract class BotUtil {
     }
     
     public static adminChannelIds = (): string[] => {
-        return process.env.ADMIN_CHAT_ID.split('_')
+        return process.env.ADMIN_CHANNEL_ID.split('_')
     }
 
     public static messageFromButtonCallback = (callback: TelegramBot.CallbackQuery): TelegramBot.Message => {
@@ -32,6 +33,27 @@ export abstract class BotUtil {
             chat: callback.message.chat,
             text: callback.data,
             date: callback.message.date
+        }
+    }
+
+    public static positionLabel(position: Position): string {
+        if (!position) return ``
+        const profit = Number(position.unRealizedProfit)
+        const profitPrefix = profit > 0 ? '+' : ''
+        return `x${position.leverage} ${position.symbol} (${profitPrefix}${this.fixValue(position.unRealizedProfit)} ${Util.$$})`
+    }
+
+    public static orderLabel(order: FuturesResult): string {
+        if (!order) return ''
+        return `${order.symbol} ${this.orderTypeForLabel(order)} ${this.fixValue(order.stopPrice)}`
+    }
+
+    public static orderTypeForLabel(order: FuturesResult): string {
+        switch (order.type) {
+            case TradeType.LIMIT: return `Limit Order`
+            case TradeType.STOP_MARKET: return `Stop Loss`
+            case TradeType.TAKE_PROFIT_MARKET: return `Take Profit`
+            default: return `unknown`
         }
     }
 
@@ -72,8 +94,14 @@ export abstract class BotUtil {
         }
         for (let btns of step.buttons || []) {
             for (let btn of btns) {
-                if (btn.callback_data === callbackData) {
-                    return btn
+                if (btn.callback_data) {
+                    if (btn.callback_data === callbackData) {
+                        return btn
+                    } 
+                } else {
+                    if (btn.text === callbackData) {
+                        return btn
+                    }
                 }
             }
         }

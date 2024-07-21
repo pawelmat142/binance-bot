@@ -1,15 +1,15 @@
 import Decimal from "decimal.js"
-import { TradeUtil } from "../trade-util"
-import { TradeVariant } from "./trade-variant"
+import { TradeVariant } from "../model/trade-variant"
 
 export type VariantMode = 'SHORT' | 'LONG'
 
 export type VariantSide = 'SELL' | 'BUY'
 
+export type SignalSource = 'ADMIN' | 'GALAXY' | 'CRYPTO_HUNTER' 
+
 export abstract class VariantUtil {
 
     public static readonly DEFAULT_LEVER = 5
-
 
     public static label(variant: TradeVariant): string {
         return `${this.mode(variant.side)} ${variant.symbol} ${this.lever(variant)}x`

@@ -1,28 +1,31 @@
-import { Signal } from "./signal"
-import { TradeUtil } from "src/binance/trade-util"
-import { TradeVariant } from "src/binance/model/trade-variant"
-import { SignalUtil } from "./signal-util"
-import { BaseValidator } from "./base-validator"
-import { TakeProfitsValidator } from "./take-profits.validator"
-import { StopLossValidator } from "./stop-loss-validator"
-import { VariantUtil } from "src/binance/model/variant-util"
+import { TradeVariant } from "../../../binance/model/trade-variant"
+import { TradeUtil } from "../../../binance/utils/trade-util"
+import { VariantUtil } from "../../../binance/utils/variant-util"
+import { BaseSignalValidator } from "../base-signal-validator"
+import { SignalUtil } from "../../signal-util"
+import { SignalValidator } from "../signal-validator"
+import { GalaxyStopLossValidator } from "./galaxy-stop-loss-validator"
+import { GalaxyTakeProfitsValidator } from "./galaxy-take-profits.validator"
+import { ValidatorUtil } from "../validator.util"
 
-export class SignalValidator extends BaseValidator {
-
+export class GalaxySignalValidator extends BaseSignalValidator implements SignalValidator {
     
-    errors: string[] = []
-
-    variant: Partial<TradeVariant> = { 
-        takeProfits: [] 
-    }
-
-    public get valid() {
+    override valid() {
         return this.modeValueOk
         && this.entryZoneValuesOk 
     }
 
-    constructor(signal: Signal) {
-        super(signal)
+    override validate() {
+        this.addLog(`[START] ${this.constructor.name}`)
+
+        this.processValidation()
+        this.signal.valid = this.valid()
+        this.signal.variant = this.variant as TradeVariant
+
+        GalaxyTakeProfitsValidator.start(this.signal)
+        GalaxyStopLossValidator.start(this.signal)
+
+        this.addLog(`[STOP] ${this.constructor.name}`)
     }
 
     private readonly entryZoneRegex = /entry\s*zone/i;
@@ -36,21 +39,11 @@ export class SignalValidator extends BaseValidator {
     private leverageLineIndex = -1
     private percentOfBalanceLineIndex = -1
 
-    public validate() {
-        this.addLog(`[START] SignalValidator`)
-        this.processValidation()
-        this.signal.valid = this.valid
-        this.signal.variant = this.variant as TradeVariant
-        TakeProfitsValidator.start(this.signal)
-        StopLossValidator.start(this.signal)
-        this.addLog(`[STOP] SignalValidator`)
-    }
-
     private processValidation() {
         for(let i=0; i < this.lines.length; i++) {
             if (!this.lines[i]) continue
             this.findSignalSideAndSymbol(i)
-            this.findEntryZoneIndex(i)
+            this.findEntryZoneLineIndex(i)
             this.findLeverageLineIndex(i)
             this.findPercentOfBalanceLineIndex(i)
         }
@@ -85,13 +78,14 @@ export class SignalValidator extends BaseValidator {
 
     }
 
+    // SYMBOL SIDE
     private findSignalSideAndSymbol(lineIndex: number) {
         if (this.tokenNameLineIndex !== -1) {
             return
         }
         const line = this.lines[lineIndex]
-        const isShort = this.isShort(line)
-        const isLong = this.isLong(line)
+        const isShort = ValidatorUtil.isShort(line)
+        const isLong = ValidatorUtil.isLong(line)
         if (isShort && !isLong) {
             this.variant.side = 'SELL'
             this.tokenNameLineIndex = lineIndex
@@ -108,7 +102,7 @@ export class SignalValidator extends BaseValidator {
             let words = line.split(' ')
                 .filter(word => !!word)
             if (words.length > 0) {
-                const sideIndex = words.findIndex(word => this.isShort(word) || this.isLong(word))
+                const sideIndex = words.findIndex(word => ValidatorUtil.isShort(word) || ValidatorUtil.isLong(word))
                 if (sideIndex !== -1) {
                     const wordAfter = words[sideIndex + 1]
                     if (wordAfter) {
@@ -125,7 +119,11 @@ export class SignalValidator extends BaseValidator {
     }
 
 
-    private findEntryZoneIndex(lineIndex: number) {
+    // ENTRY ZONE
+    private findEntryZoneLineIndex(lineIndex: number) {
+        if (this.entryZoneLineIndex !== -1) {
+            return
+        }
         const line = this.lines[lineIndex]
         const isEntryZone = this.entryZoneRegex.test(line) || this.enteringRegex.test(line)
         if (isEntryZone) {
@@ -249,14 +247,6 @@ export class SignalValidator extends BaseValidator {
         }
     }
 
-
-    private isShort(line: string): boolean {
-        return /\bshort\b/i.test(line)
-    }
-
-    private isLong(line: string): boolean {
-        return /\blong\b/i.test(line)
-    }
 
     private numberOk(input: number) {
         return !isNaN(input)

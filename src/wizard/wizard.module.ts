@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { UnitModule } from 'src/unit/unit.module';
-import { ServiceProvider } from './services.provider';
-import { BinanceModule } from 'src/binance/binance.module';
-import { AppTelegramModule } from 'src/telegram/telegram.module';
-import { SignalModule } from 'src/signal/signal.module';
-import { WizardService } from './wizard.service';
+import { BinanceModule } from '../binance/binance.module';
+import { AppHttpModule } from '../global/http/http.module';
+import { SignalModule } from '../signal/signal.module';
+import { AppTelegramModule } from '../telegram/telegram.module';
+import { UnitModule } from '../unit/unit.module';
 import { SelectedTradeProvider } from './selected-trade.service';
-import { AppHttpModule } from 'src/global/http/http.module';
+import { ServiceProvider } from './services.provider';
+import { WizardService } from './wizard.service';
 
 @Module({
   imports: [

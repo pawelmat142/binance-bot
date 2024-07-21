@@ -1,13 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { FuturesResult, Trade, TradeStatus } from "./model/trade";
+import { FuturesResult, Trade, TradeStatus, TradeType } from "./model/trade";
 import { TradeService } from "./trade.service";
-import { Unit } from "src/unit/unit";
-import { getHeaders, queryParams, sign } from "src/global/util";
-import { TradeUtil } from "./trade-util";
+import { VariantSide } from "./utils/variant-util";
+import { Http } from "../global/http/http.service";
+import { Unit } from "../unit/unit";
 import { TradeCtx, TradeVariant } from "./model/trade-variant";
 import { TradeRepository } from "./trade.repo";
-import { Http } from "src/global/http/http.service";
-import { TradeSide, TradeType } from "./model/model";
+import { TradeUtil } from "./utils/trade-util";
+import { Util } from "./utils/util";
+import { LimitOrderUtil } from "./utils/limit-order-util";
+import { ClientOrderId } from "./utils/client-order-id-util";
 
 export interface BinanceFuturesAccountInfo {
     accountAlias: string;
@@ -55,35 +57,41 @@ export class WizardBinanceService {
 
 
     public async fetchAllOrders(unit: Unit): Promise<FuturesResult[]> {
-        const params = queryParams({
+        const params = {
             timestamp: Date.now()
-        })
+        }
         return this.http.fetch<FuturesResult[]>({
-            url: sign(`${TradeUtil.futuresUri}/allOrders`, params, unit),
+            url: Util.sign(`${TradeUtil.futuresUri}/allOrders`, params, unit),
             method: 'GET',
-            headers: getHeaders(unit)
+            headers: Util.getHeaders(unit)
         })
-    }
-
-    public async getBalance(unit: Unit): Promise<BinanceFuturesAccountInfo> {
-        const params = queryParams({
-            timestamp: Date.now()
-        })
-        const accountInfos = await this.http.fetch<BinanceFuturesAccountInfo[]>({
-            url: sign(`${TradeUtil.futuresUriV2}/balance`, params, unit),
-            method: 'GET',
-            headers: getHeaders(unit)
-        })
-        return (accountInfos || []).find(info => info.asset === 'USDT')
     }
 
     public async fetchTrades(unit: Unit) {
         return this.tradeRepo.findByUnit(unit)
     }
 
-    public async closeOpenOrder(ctx: TradeCtx, orderId: BigInt) {
-        await this.tradeService.closeOrder(ctx, orderId)
-        await this.tradeRepo.closeTradeManual(ctx)
+    public async fetchTradesBySymbol(unit: Unit, symbol: string) {
+        return this.tradeRepo.findBySymbol(unit, symbol)
+    }
+
+    public async closeOpenOrder(ctx: TradeCtx, clientOrderId: string) {
+        const result = await this.tradeService.closeOrder(ctx.unit, ctx.symbol, clientOrderId)
+        if (ctx.trade.marketResult?.clientOrderId === result.clientOrderId) {
+            ctx.trade.marketResult = result
+            await this.tradeRepo.closeTradeManual(ctx)
+        } else {
+            (ctx.trade.variant.limitOrders || []).forEach(order => {
+                if (order?.result.clientOrderId === result.clientOrderId) {
+                    order.result = result
+                }
+            })
+            if (!LimitOrderUtil.filterOpened(ctx.trade.variant).length) {
+                await this.tradeRepo.closeTradeManual(ctx)
+            } else {
+                this.tradeRepo.update(ctx)
+            }
+        } 
         this.tradeService.closeOrderEvent(ctx)
     }
 
@@ -106,22 +114,21 @@ export class WizardBinanceService {
             if (isNaN(amount)) {
                 throw new Error(`Position amount is not a number`)
             }
-            const side = amount > 0 ? TradeSide.SELL : TradeSide.BUY;
+            const side: VariantSide = amount > 0 ? 'SELL' : 'BUY';
             const quantity = Math.abs(amount)
-            const params = queryParams({
+            const params = {
                 symbol: position.symbol,
                 side: side,
                 type: TradeType.MARKET,
                 quantity: quantity,
                 reduceOnly: true,
                 timestamp: Date.now()
-            })
+            }
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'POST')
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {
-                futuresResult: result,
+                marketResult: result,
                 unitIdentifier: unit.identifier,
-                quantity: quantity,
                 closed: true,
                 variant: { 
                     symbol: position.symbol,
@@ -142,17 +149,17 @@ export class WizardBinanceService {
 
     public async closeOrderWithoutTrade(order: FuturesResult, unit: Unit): Promise<string> {
         try {
-            const params = queryParams({
+            const params = {
                 symbol: order.symbol,
                 orderId: order.orderId,
                 timestamp: Date.now(),
                 timeInForce: 'GTC',
                 recvWindow: TradeUtil.DEFAULT_REC_WINDOW,
-            })
+            }
             const result = await this.tradeService.placeOrderByUnit(params, unit, 'DELETE')
             result.status = TradeStatus.CLOSED_MANUALLY
             const trade = {
-                futuresResult: result,
+                marketResult: result,
                 unitIdentifier: unit.identifier,
                 closed: true,
                 variant: { 
@@ -171,5 +178,12 @@ export class WizardBinanceService {
         }
     }
 
+    public async fetchTradesBySelectedPosition(position: Position, unit: Unit) {
+        return this.tradeRepo.findByPosition(position, unit)
+    }
+
+    public update(ctx: TradeCtx) {
+        return this.tradeRepo.update(ctx)
+    }
 
 }

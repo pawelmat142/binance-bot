@@ -1,10 +1,8 @@
-import { Unit } from "./unit"
 import { WebSocket } from 'ws';
 
 export abstract class UnitUtil {
 
     public static readonly socketUri: string = 'wss://fstream.binance.com/ws'
-
 
     public static state(ws: WebSocket): string {
         switch (ws.readyState) {
@@ -14,14 +12,6 @@ export abstract class UnitUtil {
             case 3: return 'CLOSED'
             default: throw new Error ('Wronk readystate')
         }
-    }
-
-    public static socketOpened(unit: Unit): boolean {
-        const readyState = unit.socket?.readyState
-        if (WebSocket.OPEN === readyState || WebSocket.CONNECTING === readyState) {
-            return true
-        }
-        return false
     }
 
 }
