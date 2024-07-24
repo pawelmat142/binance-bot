@@ -73,6 +73,10 @@ export class AutoCloseService implements OnModuleDestroy, OnModuleInit {
     private closeOrderEventSubscription: Subscription
     
     onModuleInit() {
+        if (process.env.SKIP_PRICE_TICKER === 'true') {
+            this.logger.warn(`SKIP_PRICE_TICKER`)
+            return
+        }
         this.openPriceTikersForOpenOrders()
         if (!this.closeOrderEventSubscription) {
             this.closeOrderEventSubscription = this.tradeService.closeOrderEvent$.subscribe(symbol => {
