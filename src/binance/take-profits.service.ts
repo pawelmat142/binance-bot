@@ -97,10 +97,10 @@ export class TakeProfitsService {
 
     private async takeProfitRequest(ctx: TradeCtx, takeProfit: TakeProfit, forcedQuantity?: number): Promise<void> {
         const quantity = forcedQuantity ?? takeProfit.quantity
-        TradeUtil.addLog(`Placing Take Profit order: ${takeProfit.order} with quantity: ${quantity}`, ctx, this.logger)
         if (this.takeProfitQuantitiesFilled(ctx) || !quantity) {
             return
         }
+        TradeUtil.addLog(`Placing Take Profit: ${takeProfit.order+1} with quantity: ${quantity}`, ctx, this.logger)
         const params = TPUtil.takeProfitRequestParams(ctx, takeProfit.price, quantity, takeProfit.order)
         const result = await this.tradeService.placeOrder(params, ctx.unit)
         takeProfit.result = result
