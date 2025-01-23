@@ -1,6 +1,7 @@
 ## Description
 
-Application is a bot that works with the Telegram API and the Binance crypto exchange API.
+Application is a bot that works with the Telegram API and the Binance crypto exchange API. 
+Bot processes signals in real time, converting them into positions on the Binance Futures exchange.
 
 It listens to private signal channels on Telegram. Signals are text messages containing futures position information such as
 - currency pair
