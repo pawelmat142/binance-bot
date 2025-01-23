@@ -223,7 +223,7 @@ export class NewUnitWizard extends Wizard {
 
     private getApiKeyGenerationManualMessageForMobile(): string[] {
         if (this.order !== 16) return []
-        const message = [
+        const message = this.addListNumbers([
             `Log in to Binance`,
             `Enable futures trading:`,
             `https://www.binance.com/en/support/faq/how-to-open-a-binance-futures-account-360033772992`,
@@ -238,8 +238,9 @@ export class NewUnitWizard extends Wizard {
             `When you set restricted IP check box "Enable Futures"`,
             `"Save"`,
             `You can start subscribe process now`,
-        ]
-        return this.addListNumbers(message)
+        ])
+        message.unshift("To generate API keys for Binance, follow these steps:")
+        return message
     }
 
     private addListNumbers(message: string[]): string[] {
