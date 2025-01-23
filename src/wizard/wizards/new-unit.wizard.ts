@@ -16,7 +16,8 @@ export class NewUnitWizard extends Wizard {
     public static USDT_MIN_LIMIT = 10
 
     private getBotIp(): string {
-        return process.env.BOT_IP
+        const ip = process.env.BOT_IP
+        return ip || `<IP where application is installed>`
     }
 
     public getSteps(): WizardStep[] {
@@ -38,7 +39,7 @@ export class NewUnitWizard extends Wizard {
             }]]
         }, {
             order: 1,
-            message: [`Provide your unique identifier...`],
+            message: [`Provide your unique identifier/nickname...`],
             backButton: true,
             process: async (input: string) => {
                 const taken = await this.services.unitService.identifierTaken(input)

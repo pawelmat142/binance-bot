@@ -23,7 +23,7 @@ export abstract class BotUtil {
     }
     
     public static adminChannelIds = (): string[] => {
-        return process.env.ADMIN_CHANNEL_ID.split('_')
+        return (process.env.ADMIN_CHANNEL_ID || '').split('_')
     }
 
 

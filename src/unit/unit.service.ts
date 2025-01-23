@@ -47,10 +47,10 @@ export class UnitService implements OnModuleInit {
     }
 
     onModuleInit() {
-        this.initUnits()
         this._units$.subscribe(units => {
             this.logger.log(`Loaded ${units.length} active units: [ ${units.map(u => u.identifier).join(', ')} ]`)
         })
+        this.initUnits()
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_7AM)
