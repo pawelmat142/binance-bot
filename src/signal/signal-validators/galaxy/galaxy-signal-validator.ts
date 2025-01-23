@@ -133,9 +133,8 @@ export class GalaxySignalValidator extends BaseSignalValidator implements Signal
 
     private findEntryZone() {
         const linesToScan = `${this.lines[this.entryZoneLineIndex]}${this.lines[this.entryZoneLineIndex+1]}${this.lines[this.entryZoneLineIndex+2]}${this.lines[this.entryZoneLineIndex+3]}`
-        let values = (linesToScan.match(SignalUtil.dolarValueSpaceRegex) || [])
-            .map(val => SignalUtil.withoutDollar(val))
-            .filter(val => !isNaN(val))
+        const matches = linesToScan.match(SignalUtil.dolarValueSpaceRegex)
+        const values = (matches || []).map(v => SignalUtil.withoutDollar(v)).filter(val => !isNaN(val))
         
         if (!values.length) {
             SignalUtil.addError(`Not found entry zone for signal ${this.signal._id}`, this.signal, this.logger)
