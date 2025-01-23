@@ -29,6 +29,10 @@ export class SignalSourceService implements OnModuleInit {
         this.loadSignalSourceFromFile()
     }
 
+    public isFromSignalChannel(channelId: string): boolean {
+        return this._signalSources.map(s => s.telegramChannelId).includes(channelId)
+    }
+
     public findSignalSourceName(telegramMessage: TelegramMessage, signal: Signal) {
         const telegramChannelId = telegramMessage?.peer_id?.channel_id
         if (!telegramChannelId) {

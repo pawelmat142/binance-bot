@@ -1,4 +1,5 @@
 export interface TelegramMessage {
+    _: 'message';
 
     date: number
     message: string

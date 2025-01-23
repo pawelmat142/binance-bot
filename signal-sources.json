@@ -1,5 +1,9 @@
 [
     {
+        "name": "DEFAULT",
+        "telegramChannelId": "2388300491"
+    },
+    {
         "name": "GALAXY",
         "telegramChannelId": "1350378085"
     }, {

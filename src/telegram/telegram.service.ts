@@ -18,7 +18,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     private readonly logger = new Logger(TelegramService.name)
 
-    private readonly channelId = process.env.TELEGRAM_CHANNEL_ID
+    private readonly publicChannelId = process.env.TELEGRAM_BOT_PUBLIC_CHANNEL_ID
 
     private readonly bot: TelegramBot = this.initBot()
 
@@ -46,7 +46,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             return undefined
         } else {
             this.logger.log('Initializing telegram bot')
-            return new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true })
+            return new TelegramBot(process.env.TELEGRAM_BOT_PUBLIC_CHANNEL_TOKEN, { polling: true })
         }
     }
 
@@ -85,7 +85,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
     public async sendPublicMessage(msg: string): Promise<TelegramBot.Message> {
-        const result = await this.bot?.sendMessage(this.channelId, msg)
+        if (!this.publicChannelId) {
+            this.logger.log(`[SKIP] Public bot channel message`)
+            return
+        }
+        const result = await this.bot?.sendMessage(this.publicChannelId, msg)
         return result
     }
 

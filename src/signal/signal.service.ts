@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Signal } from './signal';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -8,23 +8,38 @@ import { TelegramService } from '../telegram/telegram.service';
 import { TelegramMessage } from '../telegram/message';
 import { SignalSourceService } from './signal-source.service';
 import { SignalValidationService } from './signal-validation.service';
+import { MtProtoService } from '../telegram/mt-proto.service';
 
 @Injectable()
-export class SignalService {
+export class SignalService implements OnModuleInit {
 
     private readonly logger = new Logger(SignalService.name)
 
     constructor(
         @InjectModel(Signal.name) private signalModel: Model<Signal>,
         private readonly telegramService: TelegramService,
+        private readonly mtProtoService: MtProtoService,
         private readonly signalSourceService: SignalSourceService,
         private readonly signalValidationService: SignalValidationService,
     ) {}
+
+    onModuleInit() {
+        this.initMtProtoListener()
+    }
 
     private tradeSubject$ = new Subject<Signal>()
 
     public get tradeObservable$(): Observable<Signal> {
         return this.tradeSubject$.asObservable()
+    }
+
+    private initMtProtoListener() {
+        this.mtProtoService.mtProtoMsg$.subscribe(mtProtoMessage => {
+            const telegramChannelId = mtProtoMessage.peer_id?.channel_id || mtProtoMessage.peer_id?.user_id.toString()
+            if (this.signalSourceService.isFromSignalChannel(telegramChannelId)) {
+                this.onReceiveTelegramMessage(mtProtoMessage)
+            }
+        })
     }
 
 

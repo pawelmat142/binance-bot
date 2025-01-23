@@ -5,7 +5,7 @@ export type VariantMode = 'SHORT' | 'LONG'
 
 export type VariantSide = 'SELL' | 'BUY'
 
-export type SignalSource = 'ADMIN' | 'GALAXY' | 'CRYPTO_HUNTER' 
+export type SignalSource = 'DEFAULT' | 'ADMIN' | 'GALAXY' | 'CRYPTO_HUNTER' 
 
 export abstract class VariantUtil {
 
