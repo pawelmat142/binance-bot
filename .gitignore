@@ -1,6 +1,7 @@
 production
 .env
 exchange-info.json
+signal-sources.json
 
 # compiled output
 /dist
