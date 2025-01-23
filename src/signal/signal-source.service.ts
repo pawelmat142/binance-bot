@@ -29,6 +29,10 @@ export class SignalSourceService implements OnModuleInit {
         this.loadSignalSourceFromFile()
     }
 
+    public isFromSignalChannel(channelId: string): boolean {
+        return this._signalSources.map(s => s.telegramChannelId).includes(channelId)
+    }
+
     public findSignalSourceName(telegramMessage: TelegramMessage, signal: Signal) {
         const telegramChannelId = telegramMessage?.peer_id?.channel_id
         if (!telegramChannelId) {
@@ -54,6 +58,7 @@ export class SignalSourceService implements OnModuleInit {
         if (!this._signalSources.length) {
             throw new Error("Signal sources not found")
         }
+        this.logger.warn(this._signalSources)
         this.logger.log(`Initialized ${this._signalSources.length} signal sources: ${this._signalSources.map(s => s.name).join(', ')}`)
     }
 

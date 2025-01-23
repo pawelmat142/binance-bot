@@ -28,6 +28,8 @@ export class SignalValidationService {
 
     private selectValidatorBySource(signal: Signal, signalSource: SignalSource): SignalValidator {
         switch (signalSource) {
+            case "DEFAULT":
+                return new CryptoHunterSignalValidator(signal)
             case "CRYPTO_HUNTER":
                 return new CryptoHunterSignalValidator(signal)
             case "GALAXY":

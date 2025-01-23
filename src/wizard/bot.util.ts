@@ -26,15 +26,6 @@ export abstract class BotUtil {
         return process.env.ADMIN_CHANNEL_ID.split('_')
     }
 
-    public static messageFromButtonCallback = (callback: TelegramBot.CallbackQuery): TelegramBot.Message => {
-        return{
-            message_id: callback.message.message_id,
-            from: callback.from,
-            chat: callback.message.chat,
-            text: callback.data,
-            date: callback.message.date
-        }
-    }
 
     public static positionLabel(position: Position): string {
         if (!position) return ``

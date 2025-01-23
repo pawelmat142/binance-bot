@@ -107,7 +107,7 @@ export class TradeCtx implements TradeContext {
 
     public get takeProfitOrigQuentitesSum(): number {
         return this.trade.variant.takeProfits
-            .reduce((acc, tp) => acc + (Number(tp.result?.origQty ??0)), 0)
+            .reduce((acc, tp) => acc + (Number(tp.result?.origQty || 0)), 0)
     }
 
     public get lever(): number {

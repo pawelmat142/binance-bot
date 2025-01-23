@@ -15,8 +15,7 @@ export abstract class SignalUtil {
 
     public static readonly stopLossRegex = /\bstop\s*loss\b/i
 
-    public static readonly dolarValueSpaceRegex = /\$ ?\d+[.,]?\d*|\d+[.,]?\d* ?\$/g //  [ 0,014033$ 0.014033$ 0,014033 $  0.014033 $  $0.014033  $ 0,014033 ] 
-
+    public static readonly dolarValueSpaceRegex = /(\$?\s*\d+[\.,]?\d*\s*k?\s*\$?)/gi;
 
 
     public static mayBeOpened(signal: Signal): boolean {
@@ -70,7 +69,11 @@ export abstract class SignalUtil {
     }
 
     public static withoutDollar(input: string): number {
-        return Number(input?.trim().replace(',', '.').replace(' ', '').replace(/\$/g, ''))
+        return Number(input?.trim()
+        .replace('k', '000')
+        .replace(',', '.')
+        .replace(' ', '')
+        .replace(/\$/g, ''))
     }
 
     public static limitOrderPricesString(variant: TradeVariant): string {
