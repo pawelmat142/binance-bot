@@ -2,16 +2,36 @@
 
 Application is a bot that works with the Telegram API and the Binance crypto exchange API.
 
-It listens to private signal channels on Telegram. Signals are text messages containing futures position information such as
-- currency pair
-- position side - LONG/SHORT
-- entry price or entry zone
-- stop loss level
-- take profit level or levels
-- leverage
 
-It is possible to support multiple signal sources. At the moment 2 signal sources are implemented. Both have different message formats, which I have no control over as a bot programmer, so each subsequent source requires a new implementation of the so-called SignalValidator.
+### 1.1. Signals
 
+<div style="display: flex; gap: 20px">
+    <div>
+        <p>The bot listens to signal channels on Telegram. Signals are text messages containing futures position information such as</p>
+        <ul>
+            <li>currency pair</li>
+            <li>position side - LONG/SHORT</li>
+            <li>stop loss level</li>
+            <li>take profit level or levels</li>
+            <li>leverage</li>
+        </ul>
+        </br>
+        <p>Properly formatted signals are processed in real-time into positions on Binance Futures for each active subscription.</p>
+        <p>It is possible to support multiple signal sources. By default, signals formatted as shown in the screenshot will be supported, but there is an option to handle differently formatted messages by implementing an extension of the <strong>SignalValidator</strong> class </p>
+    </div>
+    <img src="screenshots/signals.png" width="250">
+</div>
+
+
+
+
+### 1.2. Positions 
+
+![subscribe0](screenshots/positions.jpg)        
+![subscribe0](screenshots/orders-cut.jpg)   
+
+<!-- TODO -->
+<!-- 
 It is also possible to support multiple Binance accounts. The account creation process is carried out via Telegram in the form of a chatbot and requires a unique Binance API key with permission to play on Futures.
 
 The account creation process takes place via Telegram Bot API, which ensures authentication and authorization. During the process, the unique Binance API key is checked. This means that there is no login and registration system here. You are logged in to Telegram - you have access to your bot.
@@ -24,9 +44,11 @@ After creating an account, you can manage it via Telegram, also in the form of a
 - add/remove position take profits
 - activte / deactivate account (inactive account will not open more positions)
 
-The effectiveness of the bot depends on the effectiveness of analyses/signals.
+The effectiveness of the bot depends on the effectiveness of analyses/signals. -->
 
 </br>
+
+     
 
 ## 2. Technologies
 - NestJS
@@ -61,7 +83,7 @@ The effectiveness of the bot depends on the effectiveness of analyses/signals.
 git clone https://github.com/pawelmat142/binance-bot.git ./
 npm i
 ```
-- Create `.env` in the project directory and fill required environment variables: 
+- Create a file named `.env` in the project directory and fill required environment variables: 
 ```
 MONGO_URI=<see 3.1.6.>
 
@@ -96,6 +118,13 @@ npm start
 
 #### 3.2.2 Subscribe with Binance Futures account
 
-- Send any message to bot what you created in step <strong>3.1.5</strong>
-- Select `How to generate API key?` Bot will explain how to generate API key...
-- After generating the API keys, follow the instructions to complete your subscription.
+- By Telegram send any message to bot what you created in step <strong>3.1.5</strong>
+- Select `How to generate API key?` The bot will explain how to generate API key...
+- After generating the API keys, select `Subscribe` and follow the instructions to complete your subscription.
+- After activating the subscription, the bot will automatically manage positions related to incoming signals in real time.
+
+
+| ![subscribe0](screenshots/s0.jpg) | ![subscribe1](screenshots/start1.jpg) | ![subscribe2](screenshots/start2.jpg) 
+|--------------------------------------|---------------------------------------------|--------------------------------------|
+| ![subscribe3](screenshots/start3.jpg) | ![subscribe4](screenshots/start4.jpg) 
+
