@@ -31,7 +31,7 @@ The bot operates fully autonomously, ensuring fast and precise trade execution w
 
 
 ### 1.2. Positions
-Here’s an example of automatically opened positions based on signals presented in point 1.1:
+Here’s an example of automatically opened positions based on signals presented in screenshot - point 1.1.
 
 ![subscribe0](screenshots/positions.jpg)
 
