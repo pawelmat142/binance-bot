@@ -17,7 +17,7 @@ export class NewUnitWizard extends Wizard {
 
     private getBotIp(): string {
         const ip = process.env.BOT_IP
-        return ip || `<IP where application is installed>`
+        return ip || `<address where the application is installed>`
     }
 
     public getSteps(): WizardStep[] {
@@ -101,7 +101,8 @@ export class NewUnitWizard extends Wizard {
                     this.unit.tradeAmounts.set(s.name, amount)
                 })
 
-                return 10
+                // return 10
+                return 11
 
             }
         }, {

@@ -33,13 +33,13 @@ export class StartWizard extends UnitWizard {
         ],
         }
 
-        if (this.isAdmin(this.unit?.telegramChannelId)) {
-            stepZero.buttons.push([{
-                text: 'ADMIN',
-                callback_data: WizBtn.admin,
-                switch: AdminWizard.name
-            }])
-        }
+        // if (this.isAdmin(this.unit?.telegramChannelId)) {
+        //     stepZero.buttons.push([{
+        //         text: 'ADMIN',
+        //         callback_data: WizBtn.admin,
+        //         switch: AdminWizard.name
+        //     }])
+        // }
         return [ stepZero ]
     }
 

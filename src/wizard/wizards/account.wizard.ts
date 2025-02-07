@@ -39,7 +39,7 @@ export class AccountWizard extends UnitWizard {
                     this.unit.active = !this.unit.active
                     const result = await this.services.unitService.activation(this.unit)
                     if (result) {
-                        return this.unit?.active ? 3 : 4
+                        return this.unit?.active ? 4 : 3
                     }
                     return 0
                 }

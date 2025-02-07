@@ -1,6 +1,10 @@
 ## 1. Description
 
-Application is a bot that works with the Telegram API and the Binance crypto exchange API.
+The application is a bot that integrates with the Telegram API and the Binance cryptocurrency exchange API.
+
+The bot automatically converts text messages from specific Telegram channels into positions on Binance Futures in real time. Based on predefined rules and algorithms, it analyzes message content and generates corresponding buy or sell orders on the Binance futures market.
+
+The bot operates fully autonomously, ensuring fast and precise trade execution without the need for manual intervention.
 
 
 ### 1.1. Signals
@@ -18,33 +22,33 @@ Application is a bot that works with the Telegram API and the Binance crypto exc
         </br>
         <p>Properly formatted signals are processed in real-time into positions on Binance Futures for each active subscription.</p>
         <p>It is possible to support multiple signal sources. By default, signals formatted as shown in the screenshot will be supported, but there is an option to handle differently formatted messages by implementing an extension of the <strong>SignalValidator</strong> class </p>
+        <br/>
+        <p>Here’s an example of signal messages that the bot might process by default:</p>
     </div>
     <img src="screenshots/signals.png" width="250">
 </div>
 
 
 
+### 1.2. Positions
+Here’s an example of automatically opened positions based on signals presented in point 1.1:
 
-### 1.2. Positions 
+![subscribe0](screenshots/positions.jpg)
 
-![subscribe0](screenshots/positions.jpg)        
+If multiple take profit levels are provided, the bot will automatically divide the position value equally across the number of TP orders.
+
 ![subscribe0](screenshots/orders-cut.jpg)   
+As seen in the screenshot, only one take profit order has been opened, even though the signal included multiple targets. Each subsequent TP will be placed automatically after the previous one is executed. This approach is designed to limit the number of open orders, adhering to Binance's limitations.
 
-<!-- TODO -->
-<!-- 
-It is also possible to support multiple Binance accounts. The account creation process is carried out via Telegram in the form of a chatbot and requires a unique Binance API key with permission to play on Futures.
+If the stop loss order is executed, take profit order related to that specific position will be automatically closed.
 
-The account creation process takes place via Telegram Bot API, which ensures authentication and authorization. During the process, the unique Binance API key is checked. This means that there is no login and registration system here. You are logged in to Telegram - you have access to your bot.
+If the final take profit order is executed, the stop loss order will be automatically closed.
 
-After creating an account, you can manage it via Telegram, also in the form of a chatbot. Options are:
-- manage USDT amount per transaction for each signal source
-- view positions or orders
-- close position with current market price
-- add/remove position stop loss (addtional button to move SL to entry price)
-- add/remove position take profits
-- activte / deactivate account (inactive account will not open more positions)
+In case needed, there is an option to manually close positions through the Telegram chatbot.
 
-The effectiveness of the bot depends on the effectiveness of analyses/signals. -->
+There is also an option to manually open and close stop loss and take profit orders associated with a specific position.
+
+<strong>The effectiveness of the bot depends on the effectiveness of analyses/signals.</strong>
 
 </br>
 
