@@ -1,3 +1,12 @@
+
+![Telegram API](https://img.shields.io/badge/Telegram%20API-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
+![Binance API](https://img.shields.io/badge/Binance%20API-F3BA2F?style=for-the-badge&logo=binance&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+
+
+
 ## 1. Description
 
 The application is a bot that integrates with the Telegram API and the Binance cryptocurrency exchange API.
